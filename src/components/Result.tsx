@@ -14,9 +14,8 @@ const ResultWrap = styled.div`
 const RowWrap = styled.div`
   display: flex;
   justify-content: space-between;
-  p{
-      margin: 0.25em;
-
+  p {
+    margin: 0.25em;
   }
 `;
 const Row = ({ title, val }: { title: string; val: string }) => (
@@ -28,14 +27,14 @@ const Row = ({ title, val }: { title: string; val: string }) => (
 export const Result = ({ person }: { person: Person }) => {
   return (
     <ResultWrap>
-        <Row title="Name" val={person.name} />
-        <Row title="Height" val={person.height} />
-        <Row title="Mass" val={person.mass} />
-        <Row title="Hair Color" val={person.hair_color} />
-        <Row title="Skin Color" val={person.skin_color} />
-        <Row title="Eye Color" val={person.eye_color} />
-        <Row title="Birth Year" val={person.birth_year} />
-        <Row title="Gender" val={person.gender} />
+      <Row title="Name" val={person.name} />
+      <Row title="Height" val={person.height} />
+      <Row title="Mass" val={person.mass} />
+      <Row title="Hair Color" val={person.hair_color} />
+      <Row title="Skin Color" val={person.skin_color} />
+      <Row title="Eye Color" val={person.eye_color} />
+      <Row title="Birth Year" val={person.birth_year} />
+      <Row title="Gender" val={person.gender} />
     </ResultWrap>
   );
 };

@@ -4,7 +4,6 @@ import { useFetch } from "../hooks/useFetch";
 import { SearchInput } from "./SearchInput";
 
 import styled from "styled-components";
-import Spinner from "./Spinner";
 export interface Person {
   name: string;
   height: string;

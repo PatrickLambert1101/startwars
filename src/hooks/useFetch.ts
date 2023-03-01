@@ -1,4 +1,4 @@
-import { useRef, useReducer, useEffect, Reducer } from "react";
+import { useEffect, useReducer, useRef } from "react";
 import { Person } from "../components/SearchBar";
 export type Status = 'FETCHING' | 'FETCHED' | 'ERROR' | 'IDLE'
 type State = {
@@ -8,27 +8,24 @@ type State = {
 }
 type Action = { type: 'FETCHING' } | { type: 'FETCHED', payload: Person[] } | { type: 'FETCH_ERROR', payload: string }
 export const useFetch = (url: string, numberOfChars: number) => {
-	console.log("🚀 ~ useFetch ~ numberOfChars:", numberOfChars)
 	const cache = useRef<{ current?: string[] }>({});
-
 	const initialState: State = {
 		status: 'IDLE' as Status,
 		error: null,
 		data: [],
 	};
-
 	const [state, dispatch] = useReducer((state: State, action: Action) => {
 		switch (action.type) {
-		  case 'FETCHING':
-			return { ...initialState, status: 'FETCHING' };
-		  case 'FETCHED':
-			return { ...initialState, status: 'FETCHED', data: action.payload };
-		  case 'FETCH_ERROR':
-			return { ...initialState, status: 'ERROR', error: action.payload };
-		  default:
-			return state;
+			case 'FETCHING':
+				return { ...initialState, status: 'FETCHING' };
+			case 'FETCHED':
+				return { ...initialState, status: 'FETCHED', data: action.payload };
+			case 'FETCH_ERROR':
+				return { ...initialState, status: 'ERROR', error: action.payload };
+			default:
+				return state;
 		}
-	  } , initialState);
+	}, initialState);
 
 	useEffect(() => {
 		let cancelRequest = false;
