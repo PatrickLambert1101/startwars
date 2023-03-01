@@ -29,7 +29,7 @@ const Results = ({ data, numberOfChars, resultStatus }: ResultsI) => {
       </ResultsWrapper>
     );
   } else if (numberOfChars > 1) {
-    return <p>No results available...</p>;
+    return <p data-testid="no-results">No results available...</p>;
   } else {
     return <></>;
   }

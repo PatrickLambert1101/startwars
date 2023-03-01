@@ -34,7 +34,7 @@ function SearchBar() {
     <SearchPageWrap>
       <SearchInput
         loading={status === "FETCHING"}
-        type="email"
+        type="text"
         placeholder="Search..."
         onChange={(e) => setQuery(e.target.value)}
         value={query}

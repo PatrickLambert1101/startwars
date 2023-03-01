@@ -28,7 +28,7 @@ export const SearchInput = ({
 }: SearchInputI) => {
   return (
     <SearchInputWrap>
-      <SearchInputField type={type} placeholder={placeholder} onChange={onChange} value={value} />
+      <SearchInputField data-testid="search" type={type} placeholder={placeholder} onChange={onChange} value={value} />
       {loading && <Spinner />}
     </SearchInputWrap>
   );
