@@ -95,6 +95,12 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
 
       {activeTab === "health" && (
         <View style={themed($section)}>
+          <Button
+            text="+ Add Health Record"
+            preset="filled"
+            style={themed($addRecordButton)}
+            onPress={() => navigation.navigate("HealthRecordForm", { animalId })}
+          />
           {healthRecords.length === 0 ? (
             <Text text="No health records yet." style={themed($dimText)} />
           ) : (
@@ -114,6 +120,12 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
 
       {activeTab === "weight" && (
         <View style={themed($section)}>
+          <Button
+            text="+ Add Weight Record"
+            preset="filled"
+            style={themed($addRecordButton)}
+            onPress={() => navigation.navigate("WeightRecordForm", { animalId })}
+          />
           {weightRecords.length === 0 ? (
             <Text text="No weight records yet." style={themed($dimText)} />
           ) : (
@@ -132,6 +144,12 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
 
       {activeTab === "breeding" && (
         <View style={themed($section)}>
+          <Button
+            text="+ Add Breeding Record"
+            preset="filled"
+            style={themed($addRecordButton)}
+            onPress={() => navigation.navigate("BreedingRecordForm", { animalId })}
+          />
           {breedingRecords.length === 0 ? (
             <Text text="No breeding records yet." style={themed($dimText)} />
           ) : (
@@ -259,6 +277,10 @@ const $recordHeader: ThemedStyle<ViewStyle> = () => ({
 
 const $dimText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.textDim,
+})
+
+const $addRecordButton: ThemedStyle<ViewStyle> = () => ({
+  alignSelf: "flex-start",
 })
 
 const $deleteButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({

@@ -11,6 +11,9 @@ import { ErrorBoundary } from "@/screens/ErrorScreen/ErrorBoundary"
 import { LoginScreen } from "@/screens/LoginScreen"
 import { AnimalDetailScreen } from "@/screens/AnimalDetailScreen/AnimalDetailScreen"
 import { AnimalFormScreen } from "@/screens/AnimalFormScreen"
+import { HealthRecordFormScreen } from "@/screens/HealthRecordFormScreen"
+import { WeightRecordFormScreen } from "@/screens/WeightRecordFormScreen"
+import { BreedingRecordFormScreen } from "@/screens/BreedingRecordFormScreen"
 import { useAppTheme } from "@/theme/context"
 
 import { MainTabNavigator } from "./MainTabNavigator"
@@ -43,6 +46,9 @@ const AppStack = () => {
           <Stack.Screen name="Main" component={MainTabNavigator} />
           <Stack.Screen name="AnimalDetail" component={AnimalDetailScreen} />
           <Stack.Screen name="AnimalForm" component={AnimalFormScreen} />
+          <Stack.Screen name="HealthRecordForm" component={HealthRecordFormScreen} />
+          <Stack.Screen name="WeightRecordForm" component={WeightRecordFormScreen} />
+          <Stack.Screen name="BreedingRecordForm" component={BreedingRecordFormScreen} />
         </>
       ) : (
         <>
