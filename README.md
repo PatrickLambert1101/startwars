@@ -1,46 +1,66 @@
-# Star Wars Search 
+# HerdTrackr
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Offline-first cattle management app built with React Native (Ignite), WatermelonDB, and Supabase.
 
-## Available Scripts
+## Tech Stack
 
-In the project directory, you can run:
+- **React Native** (Expo + Ignite boilerplate)
+- **WatermelonDB** — offline-first local database (SQLite/LokiJS)
+- **Supabase** — backend (PostgreSQL, Auth, Edge Functions)
+- **React Navigation** — tab + stack navigation
+- **TypeScript** — strict mode
 
-### `npm start`
+## Getting Started
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+```bash
+# Install dependencies
+npm install --legacy-peer-deps
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+# Start the dev server
+npm start
 
-### `npm test`
+# Run on Android
+npm run android
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+# Run on iOS
+npm run ios
 
-### `npm run build`
+# Run on web
+npm run web
+```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## Environment Variables
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Copy `.env.example` to `.env` and fill in your Supabase credentials:
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```
+EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
 
-### `npm run eject`
+## Project Structure
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+```
+app/
+├── components/       # Reusable UI components (Ignite)
+├── config/           # App configuration
+├── context/          # React Context providers (Auth)
+├── db/               # WatermelonDB database layer
+│   ├── models/       # Data models (Animal, HealthRecord, etc.)
+│   ├── sync/         # Sync service (WatermelonDB <> Supabase)
+│   └── schema.ts     # Database schema definition
+├── i18n/             # Internationalization
+├── navigators/       # React Navigation setup
+├── screens/          # App screens
+├── services/         # External services (Supabase client)
+├── theme/            # Design tokens, colors, typography
+└── utils/            # Utility functions
+```
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## Data Model
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+- **Organization** — multi-tenant support
+- **Animal** — RFID tag, visual tag, breed, sex, lineage, status
+- **HealthRecord** — vaccinations, treatments, vet visits
+- **WeightRecord** — weight history, condition scores
+- **BreedingRecord** — breeding, pregnancy, calving tracking
