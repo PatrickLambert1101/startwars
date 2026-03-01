@@ -7,9 +7,10 @@ import type { ThemedStyle } from "@/theme/types"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { useDatabase } from "@/context/DatabaseContext"
 import { useAuth } from "@/context/AuthContext"
+import { HerdTrackrLogo, PastureIcon } from "@/components/icons"
 
 export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation }) => {
-  const { themed } = useAppTheme()
+  const { themed, theme: { colors } } = useAppTheme()
   const { createOrganization } = useDatabase()
   const { user } = useAuth()
 
@@ -36,6 +37,7 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
   return (
     <Screen preset="auto" contentContainerStyle={themed($container)} safeAreaEdges={["top", "bottom"]}>
       <View style={themed($hero)}>
+        <HerdTrackrLogo size={90} color={colors.tint} accentColor={colors.tint} />
         <Text text="HerdTrackr" preset="heading" style={themed($appName)} />
         <Text text="Set up your operation" preset="subheading" style={themed($subtitle)} />
       </View>
@@ -78,6 +80,10 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
         <InfoItem number="2" text="Use Chute mode for fast processing days" themed={themed} />
         <InfoItem number="3" text="Track health, weight, and breeding records" themed={themed} />
         <InfoItem number="4" text="Sync across devices when you have internet" themed={themed} />
+      </View>
+
+      <View style={themed($pastureContainer)}>
+        <PastureIcon size={280} color={colors.tint} />
       </View>
     </Screen>
   )
@@ -167,4 +173,9 @@ const $infoBadgeText: ThemedStyle<TextStyle> = () => ({
 
 const $infoText: ThemedStyle<TextStyle> = () => ({
   flex: 1,
+})
+
+const $pastureContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  alignItems: "center",
+  marginTop: spacing.xl,
 })

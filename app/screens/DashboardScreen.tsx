@@ -2,6 +2,7 @@ import { FC, useCallback } from "react"
 import { Pressable, View, ViewStyle, TextStyle } from "react-native"
 
 import { Screen, Text } from "@/components"
+import { HerdTrackrLogo, CattleSilhouette } from "@/components/icons"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { useDashboardStats } from "@/hooks/useDashboardStats"
@@ -10,7 +11,7 @@ import { useAuth } from "@/context/AuthContext"
 import type { MainTabScreenProps } from "@/navigators/navigationTypes"
 
 export const DashboardScreen: FC<MainTabScreenProps<"Dashboard">> = ({ navigation }) => {
-  const { themed } = useAppTheme()
+  const { themed, theme: { colors } } = useAppTheme()
   const { stats } = useDashboardStats()
   const { currentOrg } = useDatabase()
   const { user } = useAuth()
@@ -32,6 +33,9 @@ export const DashboardScreen: FC<MainTabScreenProps<"Dashboard">> = ({ navigatio
 
       {!currentOrg ? (
         <View style={themed($setupCard)}>
+          <View style={{ alignItems: "center", marginBottom: 12 }}>
+            <HerdTrackrLogo size={80} color={colors.tint} accentColor={colors.tint} />
+          </View>
           <Text preset="subheading" text="Welcome to HerdTrackr" />
           <Text
             text="Set up your organization to start managing your herd."

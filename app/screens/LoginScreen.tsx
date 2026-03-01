@@ -8,6 +8,7 @@ import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { TextField, type TextFieldAccessoryProps } from "@/components/TextField"
 import { useAuth } from "@/context/AuthContext"
+import { HerdTrackrLogo, CattleSilhouette } from "@/components/icons"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import type { ThemedStyle } from "@/theme/types"
 import { useAppTheme } from "@/theme/context"
@@ -80,6 +81,9 @@ export const LoginScreen: FC<LoginScreenProps> = () => {
       contentContainerStyle={themed($screenContentContainer)}
       safeAreaEdges={["top", "bottom"]}
     >
+      <View style={themed($logoContainer)}>
+        <HerdTrackrLogo size={100} color={colors.tint} accentColor={colors.tint} />
+      </View>
       <Text text="HerdTrackr" preset="heading" style={themed($appName)} />
       <Text
         text={isSignUp ? "Create your account" : "Sign in to your account"}
@@ -156,6 +160,10 @@ export const LoginScreen: FC<LoginScreenProps> = () => {
           }}
         />
       </View>
+
+      <View style={themed($silhouetteContainer)}>
+        <CattleSilhouette size={280} color={colors.tint} />
+      </View>
     </Screen>
   )
 }
@@ -165,9 +173,15 @@ const $screenContentContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingHorizontal: spacing.lg,
 })
 
+const $logoContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  alignItems: "center",
+  marginBottom: spacing.md,
+})
+
 const $appName: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   color: colors.tint,
   marginBottom: spacing.xs,
+  textAlign: "center",
 })
 
 const $subtitle: ThemedStyle<TextStyle> = ({ spacing }) => ({
@@ -212,4 +226,10 @@ const $toggleButton: ThemedStyle<ViewStyle> = () => ({
 
 const $toggleButtonText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.tint,
+})
+
+const $silhouetteContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  alignItems: "center",
+  marginTop: spacing.xl,
+  opacity: 0.6,
 })

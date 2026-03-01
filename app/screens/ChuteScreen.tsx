@@ -2,6 +2,7 @@ import { FC, useCallback, useRef, useState } from "react"
 import { Alert, FlatList, Pressable, TextInput, View, ViewStyle, TextStyle } from "react-native"
 
 import { Screen, Text, TextField, Button } from "@/components"
+import { RfidTagIcon } from "@/components/icons"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { database } from "@/db"
@@ -151,6 +152,7 @@ export const ChuteScreen: FC = () => {
         /* Step 1: Scan / Enter RFID */
         <View style={themed($scanArea)}>
           <View style={themed($scanBox)}>
+            <RfidTagIcon size={48} color={theme.colors.tint} />
             <Text preset="subheading" text="SCAN RFID" style={themed($scanText)} />
             <TextField
               ref={rfidInputRef}
