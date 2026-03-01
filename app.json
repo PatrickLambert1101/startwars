@@ -42,7 +42,7 @@
         "image": "./assets/images/app-icon-android-adaptive-foreground.png",
         "imageWidth": 300,
         "resizeMode": "contain",
-        "backgroundColor": "#1E1A16"
+        "backgroundColor": "#2D5A27"
       }
     ],
     [

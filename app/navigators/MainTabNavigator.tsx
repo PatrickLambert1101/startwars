@@ -1,12 +1,12 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs"
 import { TextStyle, ViewStyle } from "react-native"
 
-import { Icon } from "@/components"
 import { DashboardScreen } from "@/screens/DashboardScreen"
 import { HerdListScreen } from "@/screens/HerdListScreen"
 import { ChuteScreen } from "@/screens/ChuteScreen"
 import { ReportsScreen } from "@/screens/ReportsScreen"
 import { SettingsScreen } from "@/screens/SettingsScreen"
+import { BarnIcon, CowHeadIcon, ChuteIcon, ReportsIcon, SettingsIcon } from "@/components/icons"
 import { useAppTheme } from "@/theme/context"
 
 import type { MainTabParamList } from "./navigationTypes"
@@ -15,7 +15,7 @@ const Tab = createBottomTabNavigator<MainTabParamList>()
 
 export const MainTabNavigator = () => {
   const {
-    theme: { colors, spacing },
+    theme: { colors },
   } = useAppTheme()
 
   return (
@@ -34,9 +34,7 @@ export const MainTabNavigator = () => {
         component={DashboardScreen}
         options={{
           tabBarLabel: "Home",
-          tabBarIcon: ({ focused, color }) => (
-            <Icon icon="components" color={color} size={24} />
-          ),
+          tabBarIcon: ({ color }) => <BarnIcon color={color} size={24} />,
         }}
       />
       <Tab.Screen
@@ -44,9 +42,7 @@ export const MainTabNavigator = () => {
         component={HerdListScreen}
         options={{
           tabBarLabel: "Herd",
-          tabBarIcon: ({ focused, color }) => (
-            <Icon icon="community" color={color} size={24} />
-          ),
+          tabBarIcon: ({ color }) => <CowHeadIcon color={color} size={24} />,
         }}
       />
       <Tab.Screen
@@ -54,9 +50,7 @@ export const MainTabNavigator = () => {
         component={ChuteScreen}
         options={{
           tabBarLabel: "Chute",
-          tabBarIcon: ({ focused, color }) => (
-            <Icon icon="view" color={color} size={24} />
-          ),
+          tabBarIcon: ({ color }) => <ChuteIcon color={color} size={24} />,
         }}
       />
       <Tab.Screen
@@ -64,9 +58,7 @@ export const MainTabNavigator = () => {
         component={ReportsScreen}
         options={{
           tabBarLabel: "Reports",
-          tabBarIcon: ({ focused, color }) => (
-            <Icon icon="debug" color={color} size={24} />
-          ),
+          tabBarIcon: ({ color }) => <ReportsIcon color={color} size={24} />,
         }}
       />
       <Tab.Screen
@@ -74,9 +66,7 @@ export const MainTabNavigator = () => {
         component={SettingsScreen}
         options={{
           tabBarLabel: "Settings",
-          tabBarIcon: ({ focused, color }) => (
-            <Icon icon="settings" color={color} size={24} />
-          ),
+          tabBarIcon: ({ color }) => <SettingsIcon color={color} size={24} />,
         }}
       />
     </Tab.Navigator>

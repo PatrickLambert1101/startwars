@@ -2,6 +2,7 @@ import { FC, useCallback, useState } from "react"
 import { FlatList, Pressable, View, ViewStyle, TextStyle } from "react-native"
 
 import { Screen, Text, Button, EmptyState, TextField } from "@/components"
+import { CowHeadIcon } from "@/components/icons"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import type { MainTabScreenProps } from "@/navigators/navigationTypes"
