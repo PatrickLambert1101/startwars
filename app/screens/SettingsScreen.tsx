@@ -4,6 +4,7 @@ import { View, ViewStyle, TextStyle } from "react-native"
 import { Screen, Text, ListItem, Button } from "@/components"
 import { useAuth } from "@/context/AuthContext"
 import { useDatabase } from "@/context/DatabaseContext"
+import { useSync } from "@/hooks/useSync"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
@@ -11,10 +12,22 @@ export const SettingsScreen: FC = () => {
   const { themed } = useAppTheme()
   const { logout, user } = useAuth()
   const { currentOrg } = useDatabase()
+  const { sync, status, lastSynced, error: syncError } = useSync()
 
   const handleLogout = useCallback(() => {
     logout()
   }, [logout])
+
+  const syncLabel = (() => {
+    if (status === "syncing") return "Syncing..."
+    if (status === "success") return "Sync complete!"
+    if (status === "error") return `Sync failed: ${syncError}`
+    return "Sync Now"
+  })()
+
+  const lastSyncedLabel = lastSynced
+    ? `Last synced: ${lastSynced.toLocaleTimeString()}`
+    : "Last synced: Never"
 
   return (
     <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
@@ -24,14 +37,17 @@ export const SettingsScreen: FC = () => {
         <Text preset="formLabel" text="ACCOUNT" style={themed($sectionLabel)} />
         <ListItem text={user?.email || "Not signed in"} bottomSeparator />
         <ListItem text={`Org: ${currentOrg?.name || "None"}`} bottomSeparator />
-        <ListItem text="Organization" bottomSeparator rightIcon="caretRight" />
-        <ListItem text="Team Members" bottomSeparator rightIcon="caretRight" />
       </View>
 
       <View style={themed($section)}>
         <Text preset="formLabel" text="SYNC" style={themed($sectionLabel)} />
-        <ListItem text="Sync Status" bottomSeparator rightIcon="caretRight" />
-        <ListItem text="Last synced: Never" bottomSeparator />
+        <ListItem text={lastSyncedLabel} bottomSeparator />
+        <Button
+          text={syncLabel}
+          preset="filled"
+          onPress={sync}
+          style={themed($syncButton)}
+        />
       </View>
 
       <View style={themed($section)}>
@@ -72,6 +88,10 @@ const $sectionLabel: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   color: colors.textDim,
   marginBottom: spacing.xs,
   letterSpacing: 1,
+})
+
+const $syncButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  marginTop: spacing.xs,
 })
 
 const $logoutButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
