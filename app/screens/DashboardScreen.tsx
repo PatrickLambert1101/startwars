@@ -12,13 +12,12 @@ import type { MainTabScreenProps } from "@/navigators/navigationTypes"
 export const DashboardScreen: FC<MainTabScreenProps<"Dashboard">> = ({ navigation }) => {
   const { themed } = useAppTheme()
   const { stats } = useDashboardStats()
-  const { currentOrg, createOrganization } = useDatabase()
+  const { currentOrg } = useDatabase()
   const { user } = useAuth()
 
-  const handleSetupOrg = useCallback(async () => {
-    // Quick org creation — in a full implementation this would be a dedicated screen
-    await createOrganization("My Ranch")
-  }, [createOrganization])
+  const handleSetupOrg = useCallback(() => {
+    navigation.navigate("OrgSetup")
+  }, [navigation])
 
   const handleAnimalPress = useCallback((animalId: string) => {
     navigation.navigate("AnimalDetail", { animalId })

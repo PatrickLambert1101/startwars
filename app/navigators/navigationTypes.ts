@@ -20,6 +20,7 @@ export type MainTabParamList = {
 export type AppStackParamList = {
   Login: undefined
   Main: NavigatorScreenParams<MainTabParamList>
+  OrgSetup: undefined
   AnimalDetail: { animalId: string }
   AnimalForm: { mode: "create" | "edit"; animalId?: string }
   HealthRecordForm: { animalId: string; recordId?: string }

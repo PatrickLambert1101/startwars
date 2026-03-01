@@ -14,6 +14,7 @@ import { AnimalFormScreen } from "@/screens/AnimalFormScreen"
 import { HealthRecordFormScreen } from "@/screens/HealthRecordFormScreen"
 import { WeightRecordFormScreen } from "@/screens/WeightRecordFormScreen"
 import { BreedingRecordFormScreen } from "@/screens/BreedingRecordFormScreen"
+import { OrgSetupScreen } from "@/screens/OrgSetupScreen"
 import { useAppTheme } from "@/theme/context"
 
 import { MainTabNavigator } from "./MainTabNavigator"
@@ -44,6 +45,7 @@ const AppStack = () => {
       {isAuthenticated ? (
         <>
           <Stack.Screen name="Main" component={MainTabNavigator} />
+          <Stack.Screen name="OrgSetup" component={OrgSetupScreen} />
           <Stack.Screen name="AnimalDetail" component={AnimalDetailScreen} />
           <Stack.Screen name="AnimalForm" component={AnimalFormScreen} />
           <Stack.Screen name="HealthRecordForm" component={HealthRecordFormScreen} />
