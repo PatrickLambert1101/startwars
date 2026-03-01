@@ -1,6 +1,6 @@
-import { ComponentType, FC, useEffect, useMemo, useRef, useState } from "react"
+import { ComponentType, FC, useMemo, useRef, useState } from "react"
 // eslint-disable-next-line no-restricted-imports
-import { TextInput, TextStyle, ViewStyle } from "react-native"
+import { ActivityIndicator, TextInput, TextStyle, View, ViewStyle } from "react-native"
 
 import { Button } from "@/components/Button"
 import { PressableIcon } from "@/components/Icon"
@@ -17,39 +17,45 @@ interface LoginScreenProps extends AppStackScreenProps<"Login"> {}
 export const LoginScreen: FC<LoginScreenProps> = () => {
   const authPasswordInput = useRef<TextInput>(null)
 
-  const [authPassword, setAuthPassword] = useState("")
-  const [isAuthPasswordHidden, setIsAuthPasswordHidden] = useState(true)
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [isPasswordHidden, setIsPasswordHidden] = useState(true)
   const [isSubmitted, setIsSubmitted] = useState(false)
-  const [attemptsCount, setAttemptsCount] = useState(0)
-  const { authEmail, setAuthEmail, setAuthToken, validationError } = useAuth()
+  const [isSignUp, setIsSignUp] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [serverError, setServerError] = useState("")
+  const { signIn, signUp } = useAuth()
 
   const {
     themed,
     theme: { colors },
   } = useAppTheme()
 
-  useEffect(() => {
-    // Pre-fill for development convenience — remove in production
-    setAuthEmail("")
-    setAuthPassword("")
-  }, [setAuthEmail])
+  const emailError = (() => {
+    if (!isSubmitted) return ""
+    if (!email || email.length === 0) return "can't be blank"
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "must be a valid email address"
+    return ""
+  })()
 
-  const error = isSubmitted ? validationError : ""
+  const passwordError = isSubmitted && password.length < 6 ? "Password must be at least 6 characters" : ""
 
-  function login() {
+  async function handleSubmit() {
     setIsSubmitted(true)
-    setAttemptsCount(attemptsCount + 1)
+    setServerError("")
 
-    if (validationError) return
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 6) return
 
-    // Make a request to your server to get an authentication token.
-    // If successful, reset the fields and set the token.
-    setIsSubmitted(false)
-    setAuthPassword("")
-    setAuthEmail("")
+    setIsSubmitting(true)
+    const { error } = isSignUp
+      ? await signUp(email, password)
+      : await signIn(email, password)
 
-    // We'll mock this with a fake token.
-    setAuthToken(String(Date.now()))
+    setIsSubmitting(false)
+
+    if (error) {
+      setServerError(error)
+    }
   }
 
   const PasswordRightAccessory: ComponentType<TextFieldAccessoryProps> = useMemo(
@@ -57,15 +63,15 @@ export const LoginScreen: FC<LoginScreenProps> = () => {
       function PasswordRightAccessory(props: TextFieldAccessoryProps) {
         return (
           <PressableIcon
-            icon={isAuthPasswordHidden ? "view" : "hidden"}
+            icon={isPasswordHidden ? "view" : "hidden"}
             color={colors.palette.neutral800}
             containerStyle={props.style}
             size={20}
-            onPress={() => setIsAuthPasswordHidden(!isAuthPasswordHidden)}
+            onPress={() => setIsPasswordHidden(!isPasswordHidden)}
           />
         )
       },
-    [isAuthPasswordHidden, colors.palette.neutral800],
+    [isPasswordHidden, colors.palette.neutral800],
   )
 
   return (
@@ -74,49 +80,82 @@ export const LoginScreen: FC<LoginScreenProps> = () => {
       contentContainerStyle={themed($screenContentContainer)}
       safeAreaEdges={["top", "bottom"]}
     >
-      <Text testID="login-heading" tx="loginScreen:logIn" preset="heading" style={themed($logIn)} />
-      <Text tx="loginScreen:enterDetails" preset="subheading" style={themed($enterDetails)} />
-      {attemptsCount > 2 && (
-        <Text tx="loginScreen:hint" size="sm" weight="light" style={themed($hint)} />
-      )}
+      <Text text="HerdTrackr" preset="heading" style={themed($appName)} />
+      <Text
+        text={isSignUp ? "Create your account" : "Sign in to your account"}
+        preset="subheading"
+        style={themed($subtitle)}
+      />
+      <Text
+        text="Cattle management, offline-first."
+        preset="default"
+        style={themed($tagline)}
+      />
+
+      {serverError ? (
+        <Text text={serverError} size="sm" style={themed($serverError)} />
+      ) : null}
 
       <TextField
-        value={authEmail}
-        onChangeText={setAuthEmail}
+        value={email}
+        onChangeText={setEmail}
         containerStyle={themed($textField)}
         autoCapitalize="none"
         autoComplete="email"
         autoCorrect={false}
         keyboardType="email-address"
-        labelTx="loginScreen:emailFieldLabel"
-        placeholderTx="loginScreen:emailFieldPlaceholder"
-        helper={error}
-        status={error ? "error" : undefined}
+        label="Email"
+        placeholder="Enter your email address"
+        helper={emailError}
+        status={emailError ? "error" : undefined}
         onSubmitEditing={() => authPasswordInput.current?.focus()}
       />
 
       <TextField
         ref={authPasswordInput}
-        value={authPassword}
-        onChangeText={setAuthPassword}
+        value={password}
+        onChangeText={setPassword}
         containerStyle={themed($textField)}
         autoCapitalize="none"
         autoComplete="password"
         autoCorrect={false}
-        secureTextEntry={isAuthPasswordHidden}
-        labelTx="loginScreen:passwordFieldLabel"
-        placeholderTx="loginScreen:passwordFieldPlaceholder"
-        onSubmitEditing={login}
+        secureTextEntry={isPasswordHidden}
+        label="Password"
+        placeholder={isSignUp ? "Create a password (min 6 chars)" : "Enter your password"}
+        helper={passwordError}
+        status={passwordError ? "error" : undefined}
+        onSubmitEditing={handleSubmit}
         RightAccessory={PasswordRightAccessory}
       />
 
       <Button
         testID="login-button"
-        tx="loginScreen:tapToLogIn"
-        style={themed($tapButton)}
+        text={isSubmitting ? "..." : isSignUp ? "Create Account" : "Sign In"}
+        style={themed($submitButton)}
         preset="reversed"
-        onPress={login}
+        onPress={handleSubmit}
       />
+
+      {isSubmitting && <ActivityIndicator style={themed($loader)} color={colors.tint} />}
+
+      <View style={themed($toggleRow)}>
+        <Text
+          text={isSignUp ? "Already have an account?" : "Don't have an account?"}
+          preset="default"
+          size="sm"
+        />
+        <Button
+          text={isSignUp ? "Sign In" : "Sign Up"}
+          preset="default"
+          style={themed($toggleButton)}
+          textStyle={themed($toggleButtonText)}
+          onPress={() => {
+            setIsSignUp(!isSignUp)
+            setIsSubmitted(false)
+            setServerError("")
+          }}
+        />
+      </View>
     </Screen>
   )
 }
@@ -126,16 +165,22 @@ const $screenContentContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingHorizontal: spacing.lg,
 })
 
-const $logIn: ThemedStyle<TextStyle> = ({ spacing }) => ({
-  marginBottom: spacing.sm,
-})
-
-const $enterDetails: ThemedStyle<TextStyle> = ({ spacing }) => ({
-  marginBottom: spacing.lg,
-})
-
-const $hint: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+const $appName: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   color: colors.tint,
+  marginBottom: spacing.xs,
+})
+
+const $subtitle: ThemedStyle<TextStyle> = ({ spacing }) => ({
+  marginBottom: spacing.xs,
+})
+
+const $tagline: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  color: colors.textDim,
+  marginBottom: spacing.xl,
+})
+
+const $serverError: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  color: colors.error,
   marginBottom: spacing.md,
 })
 
@@ -143,8 +188,28 @@ const $textField: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   marginBottom: spacing.lg,
 })
 
-const $tapButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+const $submitButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   marginTop: spacing.xs,
 })
 
-// @demo remove-file
+const $loader: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  marginTop: spacing.md,
+})
+
+const $toggleRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "center",
+  marginTop: spacing.xl,
+  gap: spacing.xs,
+})
+
+const $toggleButton: ThemedStyle<ViewStyle> = () => ({
+  minHeight: 32,
+  paddingVertical: 4,
+  paddingHorizontal: 8,
+})
+
+const $toggleButtonText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.tint,
+})

@@ -3,12 +3,14 @@ import { View, ViewStyle, TextStyle } from "react-native"
 
 import { Screen, Text, ListItem, Button } from "@/components"
 import { useAuth } from "@/context/AuthContext"
+import { useDatabase } from "@/context/DatabaseContext"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
 export const SettingsScreen: FC = () => {
   const { themed } = useAppTheme()
-  const { logout, authEmail } = useAuth()
+  const { logout, user } = useAuth()
+  const { currentOrg } = useDatabase()
 
   const handleLogout = useCallback(() => {
     logout()
@@ -20,7 +22,8 @@ export const SettingsScreen: FC = () => {
 
       <View style={themed($section)}>
         <Text preset="formLabel" text="ACCOUNT" style={themed($sectionLabel)} />
-        <ListItem text={authEmail || "Not signed in"} bottomSeparator />
+        <ListItem text={user?.email || "Not signed in"} bottomSeparator />
+        <ListItem text={`Org: ${currentOrg?.name || "None"}`} bottomSeparator />
         <ListItem text="Organization" bottomSeparator rightIcon="caretRight" />
         <ListItem text="Team Members" bottomSeparator rightIcon="caretRight" />
       </View>
