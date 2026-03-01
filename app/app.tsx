@@ -43,8 +43,12 @@ const config = {
         Settings: "settings",
       },
     },
+    OrgSetup: "org/setup",
     AnimalDetail: "animal/:animalId",
     AnimalForm: "animal/form",
+    HealthRecordForm: "animal/:animalId/health/new",
+    WeightRecordForm: "animal/:animalId/weight/new",
+    BreedingRecordForm: "animal/:animalId/breeding/new",
   },
 }
 

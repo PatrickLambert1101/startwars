@@ -2,6 +2,7 @@ import { FC, useCallback, useEffect, useState } from "react"
 import { Alert, Pressable, View, ViewStyle, TextStyle } from "react-native"
 
 import { Screen, Text, TextField, Button } from "@/components"
+import { DateField } from "@/components/DateField"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
@@ -24,6 +25,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
   const [breed, setBreed] = useState("")
   const [sex, setSex] = useState<AnimalSex>("cow")
   const [status, setStatus] = useState<AnimalStatus>("active")
+  const [dateOfBirth, setDateOfBirth] = useState<Date | null>(null)
   const [registrationNumber, setRegistrationNumber] = useState("")
   const [notes, setNotes] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -37,6 +39,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
       setBreed(animal.breed)
       setSex(animal.sex)
       setStatus(animal.status)
+      setDateOfBirth(animal.dateOfBirth || null)
       setRegistrationNumber(animal.registrationNumber || "")
       setNotes(animal.notes || "")
     }
@@ -64,6 +67,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
         name: name.trim() || undefined,
         breed: breed.trim(),
         sex,
+        dateOfBirth: dateOfBirth || undefined,
         status,
         registrationNumber: registrationNumber.trim() || undefined,
         notes: notes.trim() || undefined,
@@ -79,7 +83,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
       Alert.alert("Error", "Failed to save animal. Please try again.")
     }
     setIsSubmitting(false)
-  }, [rfidTag, visualTag, name, breed, sex, status, registrationNumber, notes, isEditing, animalId, createAnimal, updateAnimal, navigation])
+  }, [rfidTag, visualTag, name, breed, sex, dateOfBirth, status, registrationNumber, notes, isEditing, animalId, createAnimal, updateAnimal, navigation])
 
   const cycleSex = useCallback(() => {
     const idx = SEX_OPTIONS.indexOf(sex)
@@ -140,6 +144,13 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
             </Pressable>
           </View>
         </View>
+
+        <DateField
+          label="Date of Birth"
+          value={dateOfBirth}
+          onChange={setDateOfBirth}
+          placeholder="DD/MM/YYYY"
+        />
 
         <TextField
           label="Registration Number"

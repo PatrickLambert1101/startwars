@@ -1,6 +1,7 @@
 export { AutoImage } from "./AutoImage"
 export { Button } from "./Button"
 export { Card } from "./Card"
+export { DateField } from "./DateField"
 export { EmptyState } from "./EmptyState"
 export { Header } from "./Header"
 export { Icon, PressableIcon, iconRegistry } from "./Icon"
