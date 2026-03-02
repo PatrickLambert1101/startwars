@@ -1,12 +1,18 @@
 import { createContext, FC, PropsWithChildren, useCallback, useContext, useEffect, useState } from "react"
 import { Q } from "@nozbe/watermelondb"
 import { database } from "@/db"
-import { Organization } from "@/db/models/Organization"
+import { Organization, LivestockType } from "@/db/models/Organization"
+
+export type CreateOrgParams = {
+  name: string
+  livestockTypes: LivestockType[]
+  location?: string
+}
 
 export type DatabaseContextType = {
   currentOrg: Organization | null
   isOrgLoading: boolean
-  createOrganization: (name: string) => Promise<Organization>
+  createOrganization: (params: CreateOrgParams) => Promise<Organization>
   switchOrganization: (orgId: string) => Promise<void>
 }
 
@@ -34,10 +40,12 @@ export const DatabaseProvider: FC<PropsWithChildren> = ({ children }) => {
     loadOrg()
   }, [])
 
-  const createOrganization = useCallback(async (name: string): Promise<Organization> => {
+  const createOrganization = useCallback(async (params: CreateOrgParams): Promise<Organization> => {
     const org = await database.write(async () => {
       return database.get<Organization>("organizations").create((o) => {
-        o.name = name
+        o.name = params.name
+        o.livestockTypes = params.livestockTypes
+        o.location = params.location ?? null
         o.isDeleted = false
       })
     })
