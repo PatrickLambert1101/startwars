@@ -3,6 +3,7 @@ import { Pressable, View, ViewStyle, TextStyle } from "react-native"
 import { format } from "date-fns"
 
 import { Screen, Text, Button } from "@/components"
+import { WeightChart } from "@/components/WeightChart"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
@@ -126,7 +127,7 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
             style={themed($addRecordButton)}
             onPress={() => navigation.navigate("WeightRecordForm", { animalId })}
           />
-          {weightRecords.length >= 2 && <WeightTrend records={weightRecords} themed={themed} />}
+          {weightRecords.length >= 2 && <WeightChart records={weightRecords} />}
           {weightRecords.length === 0 ? (
             <Text text="No weight records yet." style={themed($dimText)} />
           ) : (
@@ -173,55 +174,8 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
   )
 }
 
-// Weight trend mini-chart using bar visualization
-function WeightTrend({ records, themed }: { records: any[]; themed: any }) {
-  // Sort oldest → newest for trend display
-  const sorted = [...records].sort(
-    (a, b) => (a.recordDate?.getTime() ?? 0) - (b.recordDate?.getTime() ?? 0),
-  )
-  const weights = sorted.map((r) => r.weightKg)
-  const min = Math.min(...weights)
-  const max = Math.max(...weights)
-  const range = max - min || 1
-  const latest = weights[weights.length - 1]
-  const first = weights[0]
-  const change = latest - first
-  const changeLabel = change >= 0 ? `+${change.toFixed(0)} kg` : `${change.toFixed(0)} kg`
-
-  return (
-    <View style={themed($trendCard)}>
-      <View style={themed($trendHeader)}>
-        <Text preset="bold" text="Weight Trend" />
-        <Text
-          text={changeLabel}
-          size="sm"
-          preset="bold"
-          style={{ color: change >= 0 ? "#4A8C3F" : "#D64220" }}
-        />
-      </View>
-      <View style={themed($trendBars)}>
-        {sorted.map((r, i) => {
-          const pct = range > 0 ? ((r.weightKg - min) / range) * 100 : 50
-          const height = Math.max(pct * 0.6 + 20, 20) // min 20%, max 80% height
-          return (
-            <View key={r.id || i} style={themed($trendBarCol)}>
-              <View style={[themed($trendBar), { height: `${height}%` }]} />
-              <Text text={`${r.weightKg}`} size="xxs" style={themed($dimText)} />
-            </View>
-          )
-        })}
-      </View>
-      <View style={themed($trendFooter)}>
-        <Text text={`Min: ${min.toFixed(0)} kg`} size="xxs" style={themed($dimText)} />
-        <Text text={`Latest: ${latest.toFixed(0)} kg`} size="xxs" preset="bold" />
-        <Text text={`Max: ${max.toFixed(0)} kg`} size="xxs" style={themed($dimText)} />
-      </View>
-    </View>
-  )
-}
-
 // Simple detail row component
-function DetailRow({ label, value, themed }: { label: string; value: string; themed: any }) {
+function DetailRow({ label, value, themed }: { label: string; value: string; themed: (style: ThemedStyle<any>) => any }) {
   return (
     <View style={themed($detailRow)}>
       <Text text={label} size="sm" style={themed($detailLabel)} />
@@ -339,41 +293,3 @@ const $deleteText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.error,
 })
 
-const $trendCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  backgroundColor: colors.palette.neutral100,
-  borderRadius: 12,
-  padding: spacing.md,
-})
-
-const $trendHeader: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginBottom: spacing.sm,
-})
-
-const $trendBars: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flexDirection: "row",
-  alignItems: "flex-end",
-  height: 80,
-  gap: spacing.xs,
-})
-
-const $trendBarCol: ThemedStyle<ViewStyle> = () => ({
-  flex: 1,
-  alignItems: "center",
-  justifyContent: "flex-end",
-  height: "100%",
-})
-
-const $trendBar: ThemedStyle<ViewStyle> = ({ colors }) => ({
-  width: "70%",
-  borderRadius: 4,
-  backgroundColor: colors.tint,
-})
-
-const $trendFooter: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flexDirection: "row",
-  justifyContent: "space-between",
-  marginTop: spacing.xs,
-})
