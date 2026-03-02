@@ -2,19 +2,12 @@ import { FC, useCallback, useState } from "react"
 import { FlatList, Pressable, View, ViewStyle, TextStyle } from "react-native"
 
 import { Screen, Text, Button, EmptyState, TextField } from "@/components"
-import { CowHeadIcon } from "@/components/icons"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import type { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { useAnimals } from "@/hooks/useAnimals"
 import { Animal } from "@/db/models/Animal"
-
-const STATUS_COLORS: Record<string, string> = {
-  active: "#4A8C3F",
-  sold: "#96805F",
-  deceased: "#D64220",
-  transferred: "#F5AD1C",
-}
+import { STATUS_COLORS } from "@/theme/colors"
 
 export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation }) => {
   const { themed, theme } = useAppTheme()

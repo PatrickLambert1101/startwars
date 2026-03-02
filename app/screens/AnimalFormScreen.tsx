@@ -9,7 +9,8 @@ import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { useAnimal, useAnimalActions, AnimalFormData } from "@/hooks/useAnimals"
 import { AnimalSex, AnimalStatus } from "@/db/models/Animal"
 
-const SEX_OPTIONS: AnimalSex[] = ["bull", "cow", "steer", "heifer", "calf"]
+const SEX_OPTIONS: AnimalSex[] = ["male", "female", "castrated", "unknown"]
+const SEX_DISPLAY: Record<AnimalSex, string> = { male: "Bull", female: "Cow", castrated: "Steer/Ox", unknown: "Unknown" }
 const STATUS_OPTIONS: AnimalStatus[] = ["active", "sold", "deceased", "transferred"]
 
 export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route, navigation }) => {
@@ -23,7 +24,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
   const [visualTag, setVisualTag] = useState("")
   const [name, setName] = useState("")
   const [breed, setBreed] = useState("")
-  const [sex, setSex] = useState<AnimalSex>("cow")
+  const [sex, setSex] = useState<AnimalSex>("female")
   const [status, setStatus] = useState<AnimalStatus>("active")
   const [dateOfBirth, setDateOfBirth] = useState<Date | null>(null)
   const [registrationNumber, setRegistrationNumber] = useState("")
@@ -134,7 +135,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
           <View style={themed($halfField)}>
             <Text preset="formLabel" text="Sex *" style={themed($pickerLabel)} />
             <Pressable onPress={cycleSex} style={themed($pickerButton)}>
-              <Text text={sex} />
+              <Text text={SEX_DISPLAY[sex]} />
             </Pressable>
           </View>
           <View style={themed($halfField)}>

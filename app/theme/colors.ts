@@ -85,4 +85,18 @@ export const colors = {
    * Error Background.
    */
   errorBackground: palette.angry100,
+  /**
+   * Animal status colors.
+   */
+  statusActive: palette.primary500,
+  statusSold: palette.secondary400,
+  statusDeceased: palette.angry500,
+  statusTransferred: palette.accent500,
 } as const
+
+export const STATUS_COLORS: Record<string, string> = {
+  active: colors.statusActive,
+  sold: colors.statusSold,
+  deceased: colors.statusDeceased,
+  transferred: colors.statusTransferred,
+}

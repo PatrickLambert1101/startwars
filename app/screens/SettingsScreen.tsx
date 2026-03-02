@@ -52,15 +52,7 @@ export const SettingsScreen: FC = () => {
 
       <View style={themed($section)}>
         <Text preset="formLabel" text="APP" style={themed($sectionLabel)} />
-        <ListItem text="Appearance" bottomSeparator rightIcon="caretRight" />
-        <ListItem text="Units (kg/lbs)" bottomSeparator rightIcon="caretRight" />
         <ListItem text="RFID Scanner Setup" bottomSeparator rightIcon="caretRight" />
-      </View>
-
-      <View style={themed($section)}>
-        <Text preset="formLabel" text="DATA" style={themed($sectionLabel)} />
-        <ListItem text="Export Data (CSV)" bottomSeparator rightIcon="caretRight" />
-        <ListItem text="Import Data" bottomSeparator rightIcon="caretRight" />
       </View>
 
       <Button text="Sign Out" preset="default" onPress={handleLogout} style={themed($logoutButton)} />
