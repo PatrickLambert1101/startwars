@@ -1,5 +1,5 @@
 import { FC, useCallback, useState } from "react"
-import { Alert, Pressable, ScrollView, View, ViewStyle, TextStyle } from "react-native"
+import { Alert, Pressable, View, ViewStyle, TextStyle } from "react-native"
 
 import { Screen, Text, TextField, Button } from "@/components"
 import { useAppTheme } from "@/theme/context"
@@ -28,15 +28,37 @@ const LIVESTOCK_OPTIONS: LivestockOption[] = [
   { type: "poultry", label: "Poultry", emoji: "🐔", desc: "Boschveld, Potch Koekoek, Venda..." },
 ]
 
+type HerdSize = "small" | "medium" | "large" | "xlarge"
+type Purpose = "breeding" | "fattening" | "dairy" | "mixed" | "game"
+
+const HERD_SIZES: { key: HerdSize; label: string; desc: string }[] = [
+  { key: "small", label: "1 – 50", desc: "Smallholding / starter herd" },
+  { key: "medium", label: "50 – 200", desc: "Medium operation" },
+  { key: "large", label: "200 – 500", desc: "Large commercial" },
+  { key: "xlarge", label: "500+", desc: "Enterprise scale" },
+]
+
+const PURPOSE_OPTIONS: { key: Purpose; label: string; emoji: string }[] = [
+  { key: "breeding", label: "Breeding / Stud", emoji: "🐂" },
+  { key: "fattening", label: "Fattening / Feedlot", emoji: "🥩" },
+  { key: "dairy", label: "Dairy", emoji: "🥛" },
+  { key: "mixed", label: "Mixed Farming", emoji: "🌾" },
+  { key: "game", label: "Game Farming", emoji: "🦌" },
+]
+
+const TOTAL_STEPS = 4
+
 export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation }) => {
   const { themed, theme: { colors } } = useAppTheme()
   const { createOrganization } = useDatabase()
   const { user } = useAuth()
 
-  const [step, setStep] = useState<1 | 2>(1)
+  const [step, setStep] = useState(1)
   const [orgName, setOrgName] = useState("")
   const [location, setLocation] = useState("")
   const [selectedTypes, setSelectedTypes] = useState<LivestockType[]>([])
+  const [herdSize, setHerdSize] = useState<HerdSize | null>(null)
+  const [purpose, setPurpose] = useState<Purpose | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const toggleType = useCallback((type: LivestockType) => {
@@ -45,7 +67,7 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
     )
   }, [])
 
-  const handleNext = useCallback(() => {
+  const handleNextFromStep1 = useCallback(() => {
     const name = orgName.trim()
     if (!name) {
       Alert.alert("Required", "Give your farm or ranch a name")
@@ -54,9 +76,17 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
     setStep(2)
   }, [orgName])
 
-  const handleCreate = useCallback(async () => {
+  const handleNextFromStep2 = useCallback(() => {
     if (selectedTypes.length === 0) {
       Alert.alert("Select at least one", "Choose the types of animals you manage")
+      return
+    }
+    setStep(3)
+  }, [selectedTypes])
+
+  const handleNextFromStep3 = useCallback(async () => {
+    if (!herdSize) {
+      Alert.alert("Required", "Select your approximate herd size")
       return
     }
 
@@ -67,35 +97,55 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
         livestockTypes: selectedTypes,
         location: location.trim() || undefined,
       })
-      navigation.replace("Main", { screen: "Dashboard" })
+      setStep(4)
     } catch {
       Alert.alert("Error", "Failed to create organization. Please try again.")
     }
     setIsSubmitting(false)
-  }, [orgName, location, selectedTypes, createOrganization, navigation])
+  }, [orgName, location, selectedTypes, herdSize, createOrganization])
+
+  const handleGoToDashboard = useCallback(() => {
+    navigation.replace("Main", { screen: "Dashboard" })
+  }, [navigation])
+
+  const handleGoToAddAnimals = useCallback(() => {
+    navigation.replace("Main", { screen: "HerdList" })
+    setTimeout(() => navigation.navigate("AnimalForm", { mode: "create" }), 100)
+  }, [navigation])
+
+  const handleGoToChute = useCallback(() => {
+    navigation.replace("Main", { screen: "Chute" })
+  }, [navigation])
 
   return (
     <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top", "bottom"]}>
       {/* Header */}
       <View style={themed($hero)}>
-        <HerdTrackrLogo size={80} color={colors.tint} accentColor={colors.tint} />
+        <HerdTrackrLogo size={64} color={colors.tint} accentColor={colors.tint} />
         <Text text="HerdTrackr" preset="heading" style={themed($appName)} />
-        <Text text="Set up your operation" size="sm" style={themed($subtitle)} />
+        <Text
+          text={step <= 3 ? "Set up your operation" : "You're all set!"}
+          size="sm"
+          style={themed($subtitle)}
+        />
       </View>
 
       {/* Step indicator */}
       <View style={themed($stepRow)}>
-        <View style={[themed($stepDot), step >= 1 && themed($stepDotActive)]} />
-        <View style={themed($stepLine)} />
-        <View style={[themed($stepDot), step >= 2 && themed($stepDotActive)]} />
+        {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+          <View key={i} style={{ flexDirection: "row", alignItems: "center" }}>
+            <View style={[themed($stepDot), step > i && themed($stepDotActive)]} />
+            {i < TOTAL_STEPS - 1 && <View style={[themed($stepLine), step > i + 1 && themed($stepLineActive)]} />}
+          </View>
+        ))}
       </View>
 
-      {step === 1 ? (
-        /* Step 1: Farm details */
+      {/* ─── STEP 1: Farm Details ─── */}
+      {step === 1 && (
         <View style={themed($card)}>
           <Text text="Your Farm" preset="bold" size="lg" />
           <Text
-            text="Tell us about your operation. This creates a shared workspace for your team."
+            text="Tell us about your operation. This creates your workspace."
             size="sm"
             style={themed($cardDesc)}
           />
@@ -123,18 +173,20 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
           ) : null}
 
           <Button
-            text="Next — Choose Your Animals"
+            text="Next"
             preset="reversed"
             style={themed($nextButton)}
-            onPress={handleNext}
+            onPress={handleNextFromStep1}
           />
         </View>
-      ) : (
-        /* Step 2: Livestock types */
+      )}
+
+      {/* ─── STEP 2: Livestock Types ─── */}
+      {step === 2 && (
         <View style={themed($card)}>
           <Text text="What do you farm?" preset="bold" size="lg" />
           <Text
-            text="Select all the types of animals you manage. This customises breeds, terminology, and forms for your operation."
+            text="Select all the types of animals you manage."
             size="sm"
             style={themed($cardDesc)}
           />
@@ -170,26 +222,133 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
           </View>
 
           <View style={themed($buttonRow)}>
+            <Button text="Back" preset="default" onPress={() => setStep(1)} style={themed($backButton)} />
             <Button
-              text="Back"
-              preset="default"
-              onPress={() => setStep(1)}
-              style={themed($backButton)}
-            />
-            <Button
-              text={isSubmitting ? "Creating..." : `Let's Go (${selectedTypes.length} selected)`}
+              text={`Next (${selectedTypes.length} selected)`}
               preset="reversed"
-              style={themed($createButton)}
-              onPress={handleCreate}
+              style={themed($flexButton)}
+              onPress={handleNextFromStep2}
             />
           </View>
         </View>
       )}
 
+      {/* ─── STEP 3: Herd Profile ─── */}
+      {step === 3 && (
+        <View style={themed($card)}>
+          <Text text="Tell us about your herd" preset="bold" size="lg" />
+          <Text
+            text="This helps us tailor the experience for your operation."
+            size="sm"
+            style={themed($cardDesc)}
+          />
+
+          <Text text="Approximate herd size" preset="formLabel" />
+          <View style={themed($sizeGrid)}>
+            {HERD_SIZES.map((s) => (
+              <Pressable
+                key={s.key}
+                onPress={() => setHerdSize(s.key)}
+                style={[
+                  themed($sizeCard),
+                  herdSize === s.key && themed($sizeCardSelected),
+                ]}
+              >
+                <Text
+                  text={s.label}
+                  preset="bold"
+                  style={herdSize === s.key ? themed($selectedText) : undefined}
+                />
+                <Text text={s.desc} size="xxs" style={herdSize === s.key ? themed($selectedTextDim) : themed($dimText)} />
+              </Pressable>
+            ))}
+          </View>
+
+          <Text text="Primary purpose (optional)" preset="formLabel" />
+          <View style={themed($purposeGrid)}>
+            {PURPOSE_OPTIONS.map((p) => (
+              <Pressable
+                key={p.key}
+                onPress={() => setPurpose(purpose === p.key ? null : p.key)}
+                style={[
+                  themed($purposeCard),
+                  purpose === p.key && themed($purposeCardSelected),
+                ]}
+              >
+                <Text text={p.emoji} style={{ fontSize: 22 }} />
+                <Text
+                  text={p.label}
+                  size="xs"
+                  preset="bold"
+                  style={purpose === p.key ? themed($selectedText) : undefined}
+                />
+              </Pressable>
+            ))}
+          </View>
+
+          <View style={themed($buttonRow)}>
+            <Button text="Back" preset="default" onPress={() => setStep(2)} style={themed($backButton)} />
+            <Button
+              text={isSubmitting ? "Creating..." : "Create Farm"}
+              preset="reversed"
+              style={themed($flexButton)}
+              onPress={handleNextFromStep3}
+            />
+          </View>
+        </View>
+      )}
+
+      {/* ─── STEP 4: Get Started ─── */}
+      {step === 4 && (
+        <View style={themed($card)}>
+          <View style={themed($successIcon)}>
+            <Text text="✓" style={themed($successCheck)} />
+          </View>
+          <Text text={`${orgName.trim()} is ready!`} preset="bold" size="lg" style={{ textAlign: "center" }} />
+          <Text
+            text="What would you like to do first?"
+            size="sm"
+            style={[themed($cardDesc), { textAlign: "center" }]}
+          />
+
+          <Pressable onPress={handleGoToAddAnimals} style={themed($getStartedCard)}>
+            <View style={themed($getStartedIcon)}>
+              <Text text="🐄" style={{ fontSize: 28 }} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text text="Start adding animals" preset="bold" />
+              <Text text="Register your cows, bulls, and calves one by one" size="xs" style={themed($dimText)} />
+            </View>
+          </Pressable>
+
+          <Pressable onPress={handleGoToChute} style={themed($getStartedCard)}>
+            <View style={themed($getStartedIcon)}>
+              <Text text="📋" style={{ fontSize: 28 }} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text text="Start scanning & recording" preset="bold" />
+              <Text text="Go to Chute Mode to scan tags, weigh, and vaccinate" size="xs" style={themed($dimText)} />
+            </View>
+          </Pressable>
+
+          <Pressable onPress={handleGoToDashboard} style={themed($getStartedCard)}>
+            <View style={themed($getStartedIcon)}>
+              <Text text="🏠" style={{ fontSize: 28 }} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text text="Explore on my own" preset="bold" />
+              <Text text="Go to the dashboard and look around" size="xs" style={themed($dimText)} />
+            </View>
+          </Pressable>
+        </View>
+      )}
+
       {/* Pasture illustration */}
-      <View style={themed($pastureContainer)}>
-        <PastureIcon size={280} color={colors.tint} />
-      </View>
+      {step <= 3 && (
+        <View style={themed($pastureContainer)}>
+          <PastureIcon size={240} color={colors.tint} />
+        </View>
+      )}
     </Screen>
   )
 }
@@ -218,7 +377,6 @@ const $stepRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   alignItems: "center",
   justifyContent: "center",
   marginBottom: spacing.lg,
-  gap: 0,
 })
 
 const $stepDot: ThemedStyle<ViewStyle> = ({ colors }) => ({
@@ -233,9 +391,13 @@ const $stepDotActive: ThemedStyle<ViewStyle> = ({ colors }) => ({
 })
 
 const $stepLine: ThemedStyle<ViewStyle> = ({ colors }) => ({
-  width: 40,
+  width: 30,
   height: 2,
   backgroundColor: colors.palette.neutral300,
+})
+
+const $stepLineActive: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  backgroundColor: colors.tint,
 })
 
 const $card: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
@@ -335,8 +497,96 @@ const $backButton: ThemedStyle<ViewStyle> = () => ({
   minWidth: 70,
 })
 
-const $createButton: ThemedStyle<ViewStyle> = () => ({
+const $flexButton: ThemedStyle<ViewStyle> = () => ({
   flex: 1,
+})
+
+// Step 3: Herd size
+const $sizeGrid: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  flexWrap: "wrap",
+  gap: spacing.xs,
+})
+
+const $sizeCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  width: "48%",
+  backgroundColor: colors.palette.neutral200,
+  borderRadius: 12,
+  padding: spacing.sm,
+  borderWidth: 2,
+  borderColor: "transparent",
+  alignItems: "center",
+})
+
+const $sizeCardSelected: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  borderColor: colors.tint,
+  backgroundColor: colors.tint + "12",
+})
+
+const $selectedText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.tint,
+})
+
+const $selectedTextDim: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.tint + "88",
+})
+
+// Step 3: Purpose
+const $purposeGrid: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  flexWrap: "wrap",
+  gap: spacing.xs,
+})
+
+const $purposeCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  width: "48%",
+  backgroundColor: colors.palette.neutral200,
+  borderRadius: 12,
+  padding: spacing.sm,
+  borderWidth: 2,
+  borderColor: "transparent",
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.xs,
+})
+
+const $purposeCardSelected: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  borderColor: colors.tint,
+  backgroundColor: colors.tint + "12",
+})
+
+// Step 4: Get started
+const $successIcon: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  width: 56,
+  height: 56,
+  borderRadius: 28,
+  backgroundColor: colors.tint,
+  alignItems: "center",
+  justifyContent: "center",
+  alignSelf: "center",
+})
+
+const $successCheck: ThemedStyle<TextStyle> = () => ({
+  color: "#FFFFFF",
+  fontSize: 28,
+  fontWeight: "bold",
+})
+
+const $getStartedCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.md,
+  backgroundColor: colors.palette.neutral200,
+  borderRadius: 14,
+  padding: spacing.md,
+})
+
+const $getStartedIcon: ThemedStyle<ViewStyle> = () => ({
+  width: 48,
+  height: 48,
+  borderRadius: 12,
+  alignItems: "center",
+  justifyContent: "center",
 })
 
 const $pastureContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
