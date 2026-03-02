@@ -1,8 +1,7 @@
 import { FC, useCallback } from "react"
 import { Pressable, View, ViewStyle, TextStyle } from "react-native"
 
-import { Screen, Text } from "@/components"
-import { HerdTrackrLogo, CattleSilhouette } from "@/components/icons"
+import { Screen, Text, Button } from "@/components"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { useDashboardStats } from "@/hooks/useDashboardStats"
@@ -33,17 +32,12 @@ export const DashboardScreen: FC<MainTabScreenProps<"Dashboard">> = ({ navigatio
 
       {!currentOrg ? (
         <View style={themed($setupCard)}>
-          <View style={{ alignItems: "center", marginBottom: 12 }}>
-            <HerdTrackrLogo size={80} color={colors.tint} accentColor={colors.tint} />
-          </View>
           <Text preset="subheading" text="Welcome to HerdTrackr" />
           <Text
-            text="Set up your organization to start managing your herd."
+            text="Set up your farm to start managing your herd."
             style={themed($dimText)}
           />
-          <Pressable onPress={handleSetupOrg} style={themed($setupButton)}>
-            <Text text="Create Organization" preset="bold" style={themed($setupButtonText)} />
-          </Pressable>
+          <Button text="Set Up Farm" preset="reversed" onPress={handleSetupOrg} />
         </View>
       ) : (
         <>
@@ -119,18 +113,6 @@ const $setupCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   padding: spacing.lg,
   marginTop: spacing.lg,
   gap: spacing.sm,
-})
-
-const $setupButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  backgroundColor: colors.tint,
-  borderRadius: 8,
-  padding: spacing.sm,
-  alignItems: "center",
-  marginTop: spacing.sm,
-})
-
-const $setupButtonText: ThemedStyle<TextStyle> = () => ({
-  color: "#FFFFFF",
 })
 
 const $statsRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({

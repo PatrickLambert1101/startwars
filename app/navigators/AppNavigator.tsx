@@ -7,6 +7,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack"
 
 import Config from "@/config"
 import { useAuth } from "@/context/AuthContext"
+import { useDatabase } from "@/context/DatabaseContext"
 import { ErrorBoundary } from "@/screens/ErrorScreen/ErrorBoundary"
 import { LoginScreen } from "@/screens/LoginScreen"
 import { AnimalDetailScreen } from "@/screens/AnimalDetailScreen/AnimalDetailScreen"
@@ -27,9 +28,14 @@ const Stack = createNativeStackNavigator<AppStackParamList>()
 
 const AppStack = () => {
   const { isAuthenticated } = useAuth()
+  const { currentOrg, isOrgLoading } = useDatabase()
   const {
     theme: { colors },
   } = useAppTheme()
+
+  // New users (authenticated but no org) go straight to onboarding
+  const needsOnboarding = isAuthenticated && !isOrgLoading && !currentOrg
+  const initialRoute = !isAuthenticated ? "Login" : needsOnboarding ? "OrgSetup" : "Main"
 
   return (
     <Stack.Navigator
@@ -40,12 +46,13 @@ const AppStack = () => {
           backgroundColor: colors.background,
         },
       }}
-      initialRouteName={isAuthenticated ? "Main" : "Login"}
+      initialRouteName={initialRoute}
     >
       {isAuthenticated ? (
         <>
+          {needsOnboarding && <Stack.Screen name="OrgSetup" component={OrgSetupScreen} />}
           <Stack.Screen name="Main" component={MainTabNavigator} />
-          <Stack.Screen name="OrgSetup" component={OrgSetupScreen} />
+          {!needsOnboarding && <Stack.Screen name="OrgSetup" component={OrgSetupScreen} />}
           <Stack.Screen name="AnimalDetail" component={AnimalDetailScreen} />
           <Stack.Screen name="AnimalForm" component={AnimalFormScreen} />
           <Stack.Screen name="HealthRecordForm" component={HealthRecordFormScreen} />
