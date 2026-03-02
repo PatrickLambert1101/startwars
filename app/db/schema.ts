@@ -1,13 +1,15 @@
 import { appSchema, tableSchema } from "@nozbe/watermelondb"
 
 export const schema = appSchema({
-  version: 1,
+  version: 2,
   tables: [
     tableSchema({
       name: "organizations",
       columns: [
         { name: "remote_id", type: "string", isOptional: true },
         { name: "name", type: "string" },
+        { name: "livestock_types", type: "string" }, // JSON array: ["cattle","horses",...]
+        { name: "location", type: "string", isOptional: true },
         { name: "created_at", type: "number" },
         { name: "updated_at", type: "number" },
         { name: "is_deleted", type: "boolean" },
@@ -18,11 +20,12 @@ export const schema = appSchema({
       columns: [
         { name: "remote_id", type: "string", isOptional: true },
         { name: "organization_id", type: "string", isIndexed: true },
+        { name: "species", type: "string" }, // cattle | buffalo | horse | sheep | goat | game | pig
         { name: "rfid_tag", type: "string", isIndexed: true },
         { name: "visual_tag", type: "string" },
         { name: "name", type: "string", isOptional: true },
         { name: "breed", type: "string" },
-        { name: "sex", type: "string" }, // bull | cow | steer | heifer | calf
+        { name: "sex", type: "string" }, // varies by species
         { name: "date_of_birth", type: "number", isOptional: true },
         { name: "sire_id", type: "string", isOptional: true },
         { name: "dam_id", type: "string", isOptional: true },

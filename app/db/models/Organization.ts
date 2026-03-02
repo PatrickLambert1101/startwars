@@ -1,5 +1,12 @@
 import { Model } from "@nozbe/watermelondb"
-import { field, date, readonly, children } from "@nozbe/watermelondb/decorators"
+import { field, date, readonly, children, json } from "@nozbe/watermelondb/decorators"
+
+export type LivestockType = "cattle" | "buffalo" | "horses" | "sheep" | "goats" | "game" | "pigs" | "poultry"
+
+const sanitizeLivestockTypes = (raw: any): LivestockType[] => {
+  if (Array.isArray(raw)) return raw
+  return []
+}
 
 export class Organization extends Model {
   static table = "organizations"
@@ -13,6 +20,8 @@ export class Organization extends Model {
 
   @field("remote_id") remoteId!: string | null
   @field("name") name!: string
+  @json("livestock_types", sanitizeLivestockTypes) livestockTypes!: LivestockType[]
+  @field("location") location!: string | null
   @readonly @date("created_at") createdAt!: Date
   @date("updated_at") updatedAt!: Date
   @field("is_deleted") isDeleted!: boolean
