@@ -35,8 +35,10 @@ Copy `.env.example` to `.env` and fill in your Supabase credentials:
 
 ```
 EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
 ```
+
+> **Where do I find these?** See [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) for a full walkthrough.
 
 ## Project Structure
 
@@ -55,6 +57,9 @@ app/
 ├── services/         # External services (Supabase client)
 ├── theme/            # Design tokens, colors, typography
 └── utils/            # Utility functions
+supabase/
+├── migrations/       # SQL migrations (run in Supabase SQL editor)
+└── seed/             # Demo data you can load into your project
 ```
 
 ## Data Model
@@ -64,3 +69,12 @@ app/
 - **HealthRecord** — vaccinations, treatments, vet visits
 - **WeightRecord** — weight history, condition scores
 - **BreedingRecord** — breeding, pregnancy, calving tracking
+
+## Supabase Setup
+
+See [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) for step-by-step instructions on:
+
+1. Creating a Supabase project
+2. Finding your API keys (publishable + secret)
+3. Running migrations
+4. Loading demo/seed data

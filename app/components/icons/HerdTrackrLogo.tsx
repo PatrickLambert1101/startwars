@@ -1,7 +1,13 @@
 /**
- * HerdTrackr Logo — Cattle silhouette with tracking ring
+ * HerdTrackr Logo — Modern bold bull silhouette with tracking arc
+ *
+ * Design goals:
+ *  - Strong, confident profile (side-facing bull — power and motion)
+ *  - Clean geometric lines — modern agri-tech feel
+ *  - Tracking arc suggests GPS/connectivity without clutter
+ *  - Earthy green palette that resonates with SA pastoral landscape
  */
-import Svg, { Path, Circle, G } from "react-native-svg"
+import Svg, { Path, Circle, G, Defs, LinearGradient, Stop } from "react-native-svg"
 
 type LogoProps = {
   size?: number
@@ -9,69 +15,129 @@ type LogoProps = {
   accentColor?: string
 }
 
-export function HerdTrackrLogo({ size = 120, color = "#2D5A27", accentColor = "#4A8C3F" }: LogoProps) {
+export function HerdTrackrLogo({
+  size = 120,
+  color = "#1B4332",
+  accentColor = "#40916C",
+}: LogoProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 120 120">
-      {/* Outer tracking ring */}
-      <Circle cx="60" cy="60" r="56" stroke={accentColor} strokeWidth="3" fill="none" strokeDasharray="8 4" />
-      <Circle cx="60" cy="60" r="48" stroke={color} strokeWidth="2" fill={color + "10"} />
+      <Defs>
+        <LinearGradient id="logoGrad" x1="0" y1="0" x2="1" y2="1">
+          <Stop offset="0" stopColor={accentColor} />
+          <Stop offset="1" stopColor={color} />
+        </LinearGradient>
+      </Defs>
 
-      {/* Cow head silhouette — front-facing */}
-      <G transform="translate(30, 22)">
-        {/* Horns */}
+      {/* Outer circle — clean border */}
+      <Circle
+        cx="60"
+        cy="60"
+        r="56"
+        stroke={color}
+        strokeWidth="2.5"
+        fill="none"
+      />
+
+      {/* Bull silhouette — powerful side profile facing right */}
+      <G transform="translate(14, 18)">
+        {/* Horn — single bold swept-back horn (side view) */}
         <Path
-          d="M8 28 Q2 18 6 8 Q10 12 14 20"
+          d="M52 30 Q56 18 64 10 Q68 8 70 12 Q66 20 58 30"
+          fill={color}
+        />
+
+        {/* Ear */}
+        <Path
+          d="M54 32 Q60 26 62 30 Q60 36 54 36Z"
+          fill={color}
+        />
+
+        {/* Head + neck + massive shoulder (one bold shape) */}
+        <Path
+          d="M30 50
+             Q28 42 34 34
+             Q40 28 50 30
+             Q56 32 56 38
+             Q56 44 52 48
+             L48 52
+             Q44 56 40 58
+             Q36 60 30 58
+             Q26 54 30 50Z"
+          fill="url(#logoGrad)"
+        />
+
+        {/* Body — broad muscular torso */}
+        <Path
+          d="M30 50
+             Q24 48 18 50
+             Q10 54 8 62
+             Q6 70 10 76
+             Q14 82 22 82
+             L68 82
+             Q78 82 82 74
+             Q84 66 80 58
+             Q76 50 66 48
+             Q56 46 48 48
+             L40 50
+             Q36 52 30 50Z"
+          fill={color}
+        />
+
+        {/* Eye — bold white dot */}
+        <Circle cx="48" cy="36" r="2.5" fill="white" />
+        <Circle cx="48" cy="36" r="1" fill={color} />
+
+        {/* Nostril */}
+        <Circle cx="34" cy="52" r="1.8" fill={color} opacity={0.5} />
+
+        {/* Front legs — strong, planted */}
+        <Path
+          d="M24 78 L22 94 Q22 96 24 96 L28 96 Q30 96 30 94 L28 78"
+          fill={color}
+        />
+        <Path
+          d="M36 80 L34 94 Q34 96 36 96 L40 96 Q42 96 42 94 L40 80"
+          fill={color}
+        />
+
+        {/* Hind legs */}
+        <Path
+          d="M60 80 L58 94 Q58 96 60 96 L64 96 Q66 96 66 94 L64 80"
+          fill={color}
+        />
+        <Path
+          d="M72 78 L70 94 Q70 96 72 96 L76 96 Q78 96 78 94 L76 78"
+          fill={color}
+        />
+
+        {/* Tail — confident upward flick */}
+        <Path
+          d="M80 60 Q86 52 88 44 Q89 40 87 42 Q84 48 78 56"
           stroke={color}
-          strokeWidth="3"
+          strokeWidth="2.5"
           strokeLinecap="round"
           fill="none"
         />
-        <Path
-          d="M52 28 Q58 18 54 8 Q50 12 46 20"
-          stroke={color}
-          strokeWidth="3"
-          strokeLinecap="round"
-          fill="none"
-        />
-
-        {/* Ears */}
-        <Path
-          d="M10 30 Q4 26 8 20 Q14 24 14 30"
-          fill={color}
-        />
-        <Path
-          d="M50 30 Q56 26 52 20 Q46 24 46 30"
-          fill={color}
-        />
-
-        {/* Head shape */}
-        <Path
-          d="M14 30 Q14 24 20 22 Q26 20 30 20 Q34 20 40 22 Q46 24 46 30 Q46 40 44 48 Q42 56 38 62 Q34 68 30 70 Q26 68 22 62 Q18 56 16 48 Q14 40 14 30Z"
-          fill={color}
-        />
-
-        {/* Eyes */}
-        <Circle cx="22" cy="34" r="3" fill="white" />
-        <Circle cx="38" cy="34" r="3" fill="white" />
-        <Circle cx="22" cy="34.5" r="1.5" fill="#1a1a1a" />
-        <Circle cx="38" cy="34.5" r="1.5" fill="#1a1a1a" />
-
-        {/* Nose/muzzle */}
-        <Path
-          d="M22 48 Q22 44 26 42 Q30 41 34 42 Q38 44 38 48 Q38 54 34 58 Q30 60 26 58 Q22 54 22 48Z"
-          fill={accentColor}
-          opacity={0.8}
-        />
-
-        {/* Nostrils */}
-        <Circle cx="26" cy="50" r="2" fill={color} opacity={0.6} />
-        <Circle cx="34" cy="50" r="2" fill={color} opacity={0.6} />
       </G>
 
-      {/* GPS/tracking dot */}
-      <Circle cx="96" cy="24" r="8" fill={accentColor} />
-      <Circle cx="96" cy="24" r="4" fill="white" />
-      <Circle cx="96" cy="24" r="2" fill={accentColor} />
+      {/* Tracking signal arcs — top-right, modern GPS feel */}
+      <Path
+        d="M88 20 Q96 24 100 32"
+        stroke={accentColor}
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        fill="none"
+      />
+      <Path
+        d="M92 14 Q102 20 108 30"
+        stroke={accentColor}
+        strokeWidth="2"
+        strokeLinecap="round"
+        fill="none"
+        opacity={0.6}
+      />
+      <Circle cx="86" cy="22" r="3" fill={accentColor} />
     </Svg>
   )
 }
