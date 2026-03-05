@@ -12,6 +12,7 @@ import { Animal } from "@/db/models/Animal"
 import { WeightRecord } from "@/db/models/WeightRecord"
 import { HealthRecord } from "@/db/models/HealthRecord"
 import { useDatabase } from "@/context/DatabaseContext"
+import { useSubscription } from "@/context/SubscriptionContext"
 import { useWeightRecordActions, useHealthRecordActions } from "@/hooks/useRecords"
 import { Q } from "@nozbe/watermelondb"
 
@@ -25,9 +26,10 @@ type ProcessedEntry = {
   timestamp: Date
 }
 
-export const ChuteScreen: FC = () => {
+export const ChuteScreen: FC<any> = ({ navigation }: any) => {
   const { themed, theme } = useAppTheme()
   const { currentOrg } = useDatabase()
+  const { hasFeature } = useSubscription()
   const { createWeightRecord } = useWeightRecordActions()
   const { createHealthRecord } = useHealthRecordActions()
 
@@ -439,10 +441,23 @@ export const ChuteScreen: FC = () => {
               <View style={themed($formCard)}>
                 <View style={themed($typeToggle)}>
                   <Pressable
-                    onPress={() => setTreatmentType("vaccination")}
+                    onPress={() => {
+                      if (!hasFeature("vaccines")) {
+                        Alert.alert("Pro Feature", "Vaccine protocols require HerdTrackr Pro.", [
+                          { text: "Cancel" },
+                          { text: "Upgrade", onPress: () => navigation?.navigate("Upgrade") },
+                        ])
+                        return
+                      }
+                      setTreatmentType("vaccination")
+                    }}
                     style={[themed($typeBtn), treatmentType === "vaccination" && { backgroundColor: "#3B82F6" }]}
                   >
-                    <Text text="Vaccination" size="xs" style={treatmentType === "vaccination" ? { color: "#FFF" } : themed($dimText)} />
+                    <Text
+                      text={hasFeature("vaccines") ? "Vaccination" : "Vaccination (PRO)"}
+                      size="xs"
+                      style={treatmentType === "vaccination" ? { color: "#FFF" } : themed($dimText)}
+                    />
                   </Pressable>
                   <Pressable
                     onPress={() => setTreatmentType("treatment")}

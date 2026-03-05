@@ -12,12 +12,14 @@ export type MainTabParamList = {
   Dashboard: undefined
   HerdList: undefined
   Chute: undefined
+  Pastures: undefined
   Reports: undefined
   Settings: undefined
 }
 
 // App Stack Navigator types
 export type AppStackParamList = {
+  Landing: undefined
   Login: undefined
   Main: NavigatorScreenParams<MainTabParamList>
   OrgSetup: undefined
@@ -26,6 +28,7 @@ export type AppStackParamList = {
   HealthRecordForm: { animalId: string; recordId?: string }
   WeightRecordForm: { animalId: string; recordId?: string }
   BreedingRecordForm: { animalId: string; recordId?: string }
+  Upgrade: undefined
 }
 
 export type AppStackScreenProps<T extends keyof AppStackParamList> = NativeStackScreenProps<

@@ -9,6 +9,7 @@ import Config from "@/config"
 import { useAuth } from "@/context/AuthContext"
 import { useDatabase } from "@/context/DatabaseContext"
 import { ErrorBoundary } from "@/screens/ErrorScreen/ErrorBoundary"
+import { LandingScreen } from "@/screens/LandingScreen"
 import { LoginScreen } from "@/screens/LoginScreen"
 import { AnimalDetailScreen } from "@/screens/AnimalDetailScreen/AnimalDetailScreen"
 import { AnimalFormScreen } from "@/screens/AnimalFormScreen"
@@ -16,6 +17,7 @@ import { HealthRecordFormScreen } from "@/screens/HealthRecordFormScreen"
 import { WeightRecordFormScreen } from "@/screens/WeightRecordFormScreen"
 import { BreedingRecordFormScreen } from "@/screens/BreedingRecordFormScreen"
 import { OrgSetupScreen } from "@/screens/OrgSetupScreen"
+import { UpgradeScreen } from "@/screens/UpgradeScreen"
 import { useAppTheme } from "@/theme/context"
 
 import { MainTabNavigator } from "./MainTabNavigator"
@@ -35,7 +37,7 @@ const AppStack = () => {
 
   // New users (authenticated but no org) go straight to onboarding
   const needsOnboarding = isAuthenticated && !isOrgLoading && !currentOrg
-  const initialRoute = !isAuthenticated ? "Login" : needsOnboarding ? "OrgSetup" : "Main"
+  const initialRoute = !isAuthenticated ? "Landing" : needsOnboarding ? "OrgSetup" : "Main"
 
   return (
     <Stack.Navigator
@@ -58,9 +60,11 @@ const AppStack = () => {
           <Stack.Screen name="HealthRecordForm" component={HealthRecordFormScreen} />
           <Stack.Screen name="WeightRecordForm" component={WeightRecordFormScreen} />
           <Stack.Screen name="BreedingRecordForm" component={BreedingRecordFormScreen} />
+          <Stack.Screen name="Upgrade" component={UpgradeScreen} />
         </>
       ) : (
         <>
+          <Stack.Screen name="Landing" component={LandingScreen} />
           <Stack.Screen name="Login" component={LoginScreen} />
         </>
       )}
