@@ -10,3 +10,13 @@ export {
   RfidTagIcon,
   PastureIcon,
 } from "./CattleIcons"
+export {
+  PhoneMockup,
+  ScannerDevice,
+  OfflineSyncIcon,
+  TrustShieldIcon,
+  RanchLandscape,
+  VsBadge,
+  CheckBadge,
+  LockBadge,
+} from "./LandingIllustrations"

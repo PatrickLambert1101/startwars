@@ -1,7 +1,8 @@
-import { FC } from "react"
-import { View, ViewStyle, TextStyle } from "react-native"
+import { FC, useState } from "react"
+import { ActivityIndicator, Pressable, View, ViewStyle, TextStyle } from "react-native"
 
 import { Screen, Text, Button } from "@/components"
+import { CheckBadge, LockBadge } from "@/components/icons"
 import { useAppTheme } from "@/theme/context"
 import { useSubscription } from "@/context/SubscriptionContext"
 import type { ThemedStyle } from "@/theme/types"
@@ -10,25 +11,67 @@ import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 const PRO_PERKS = [
   "Vaccine scheduling & withdrawal tracking",
   "Pasture rotation management",
-  "Automated reminders",
+  "Automated deadline reminders",
+  "Advanced analytics & exports",
   "Priority support",
 ]
 
 export const UpgradeScreen: FC<AppStackScreenProps<"Upgrade">> = ({ navigation }) => {
   const { themed, theme: { colors } } = useAppTheme()
-  const { upgradeToPro, restorePurchases } = useSubscription()
+  const {
+    isLoading,
+    packages,
+    purchaseProMonthly,
+    purchaseProAnnual,
+    restorePurchases,
+    upgradeToPro,
+  } = useSubscription()
 
-  const handleUpgrade = () => {
-    upgradeToPro()
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly")
+
+  // Try to get real prices from RevenueCat packages
+  const monthlyPkg = packages.find(
+    (p) => p.packageType === "MONTHLY" || p.identifier === "$rc_monthly",
+  )
+  const annualPkg = packages.find(
+    (p) => p.packageType === "ANNUAL" || p.identifier === "$rc_annual",
+  )
+
+  const monthlyPrice = monthlyPkg?.product.priceString ?? "$9.99"
+  const annualPrice = annualPkg?.product.priceString ?? "$95.88"
+  const annualMonthly = annualPkg
+    ? `${(annualPkg.product.price / 12).toFixed(2)}`
+    : "7.99"
+
+  const handlePurchase = async () => {
+    if (billingCycle === "annual") {
+      if (annualPkg) {
+        await purchaseProAnnual()
+      } else {
+        upgradeToPro() // fallback for dev
+      }
+    } else {
+      if (monthlyPkg) {
+        await purchaseProMonthly()
+      } else {
+        upgradeToPro() // fallback for dev
+      }
+    }
     navigation.goBack()
+  }
+
+  const handleRestore = async () => {
+    await restorePurchases()
   }
 
   return (
     <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top", "bottom"]}>
+      {/* Close */}
       <View style={themed($header)}>
         <Button text="Close" preset="default" onPress={() => navigation.goBack()} />
       </View>
 
+      {/* Hero */}
       <View style={themed($hero)}>
         <View style={themed($proBadge)}>
           <Text text="PRO" style={themed($proBadgeText)} />
@@ -40,39 +83,84 @@ export const UpgradeScreen: FC<AppStackScreenProps<"Upgrade">> = ({ navigation }
         />
       </View>
 
+      {/* Perks list */}
       <View style={themed($perksContainer)}>
         {PRO_PERKS.map((perk, i) => (
           <View key={i} style={themed($perkRow)}>
-            <View style={themed($checkCircle)}>
-              <Text text="✓" style={themed($checkText)} />
-            </View>
+            <CheckBadge size={22} color={colors.tint} variant="filled" />
             <Text text={perk} style={themed($perkText)} />
           </View>
         ))}
       </View>
 
-      <View style={themed($priceSection)}>
-        <Text text="$9.99" preset="heading" style={themed($price)} />
-        <Text text="/month" size="sm" style={themed($pricePeriod)} />
+      {/* Billing toggle */}
+      <View style={themed($billingToggle)}>
+        <Pressable
+          onPress={() => setBillingCycle("monthly")}
+          style={[themed($billingOption), billingCycle === "monthly" && themed($billingActive)]}
+        >
+          <Text
+            text="Monthly"
+            size="sm"
+            style={billingCycle === "monthly" ? themed($billingTextActive) : themed($billingText)}
+          />
+          <Text text={monthlyPrice} size="xs" style={billingCycle === "monthly" ? themed($billingPriceActive) : themed($billingPrice)} />
+        </Pressable>
+        <Pressable
+          onPress={() => setBillingCycle("annual")}
+          style={[themed($billingOption), billingCycle === "annual" && themed($billingActive)]}
+        >
+          <View style={themed($annualHeader)}>
+            <Text
+              text="Annual"
+              size="sm"
+              style={billingCycle === "annual" ? themed($billingTextActive) : themed($billingText)}
+            />
+            <View style={themed($saveBadge)}>
+              <Text text="SAVE 20%" size="xxs" style={themed($saveBadgeText)} />
+            </View>
+          </View>
+          <Text
+            text={`$${annualMonthly}/mo`}
+            size="xs"
+            style={billingCycle === "annual" ? themed($billingPriceActive) : themed($billingPrice)}
+          />
+          <Text text={`Billed ${annualPrice}/year`} size="xxs" style={themed($billedAnnually)} />
+        </Pressable>
       </View>
 
-      <Button
-        text="Upgrade to Pro"
-        preset="reversed"
-        style={themed($upgradeButton)}
-        onPress={handleUpgrade}
+      {/* Purchase button */}
+      {isLoading ? (
+        <ActivityIndicator size="large" color={colors.tint} style={{ marginVertical: 20 }} />
+      ) : (
+        <Button
+          text={billingCycle === "annual" ? `Subscribe — $${annualMonthly}/mo` : `Subscribe — ${monthlyPrice}/mo`}
+          preset="reversed"
+          style={themed($purchaseBtn)}
+          onPress={handlePurchase}
+        />
+      )}
+
+      {/* Fine print */}
+      <Text
+        text={
+          billingCycle === "annual"
+            ? "Annual subscription. Cancel anytime. Payment charged through your App Store or Google Play account."
+            : "Monthly subscription. Cancel anytime. Payment charged through your App Store or Google Play account."
+        }
+        size="xxs"
+        style={themed($finePrint)}
       />
 
-      <Button
-        text="Restore Purchases"
-        preset="default"
-        style={themed($restoreButton)}
-        textStyle={themed($restoreText)}
-        onPress={restorePurchases}
-      />
+      {/* Restore */}
+      <Pressable onPress={handleRestore} style={themed($restoreBtn)}>
+        <Text text="Restore Purchases" size="sm" style={themed($restoreText)} />
+      </Pressable>
     </Screen>
   )
 }
+
+// ─── Styles ─────────────────────────────────────────────────────────
 
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingHorizontal: spacing.lg,
@@ -82,12 +170,12 @@ const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   alignItems: "flex-start",
   marginTop: spacing.md,
-  marginBottom: spacing.lg,
+  marginBottom: spacing.md,
 })
 
 const $hero: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   alignItems: "center",
-  marginBottom: spacing.xl,
+  marginBottom: spacing.lg,
 })
 
 const $proBadge: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
@@ -114,6 +202,7 @@ const $subtitle: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.textDim,
   textAlign: "center",
   lineHeight: 22,
+  maxWidth: 300,
 })
 
 const $perksContainer: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
@@ -121,28 +210,13 @@ const $perksContainer: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   borderRadius: 16,
   padding: spacing.lg,
   gap: spacing.md,
-  marginBottom: spacing.xl,
+  marginBottom: spacing.lg,
 })
 
 const $perkRow: ThemedStyle<ViewStyle> = () => ({
   flexDirection: "row",
   alignItems: "center",
-  gap: 12,
-})
-
-const $checkCircle: ThemedStyle<ViewStyle> = ({ colors }) => ({
-  width: 24,
-  height: 24,
-  borderRadius: 12,
-  backgroundColor: colors.tint,
-  alignItems: "center",
-  justifyContent: "center",
-})
-
-const $checkText: ThemedStyle<TextStyle> = () => ({
-  color: "#FFF",
-  fontWeight: "700",
-  fontSize: 14,
+  gap: 10,
 })
 
 const $perkText: ThemedStyle<TextStyle> = () => ({
@@ -150,32 +224,93 @@ const $perkText: ThemedStyle<TextStyle> = () => ({
   fontSize: 15,
 })
 
-const $priceSection: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+// Billing toggle
+const $billingToggle: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
-  alignItems: "baseline",
-  justifyContent: "center",
+  gap: spacing.sm,
   marginBottom: spacing.lg,
 })
 
-const $price: ThemedStyle<TextStyle> = ({ colors }) => ({
-  color: colors.tint,
-  fontSize: 40,
+const $billingOption: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flex: 1,
+  backgroundColor: colors.palette.neutral100,
+  borderRadius: 14,
+  padding: spacing.md,
+  alignItems: "center",
+  borderWidth: 2,
+  borderColor: "transparent",
 })
 
-const $pricePeriod: ThemedStyle<TextStyle> = ({ colors }) => ({
+const $billingActive: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  borderColor: colors.tint,
+  backgroundColor: colors.palette.primary100,
+})
+
+const $annualHeader: ThemedStyle<ViewStyle> = () => ({
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 6,
+})
+
+const $billingText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.textDim,
-  marginLeft: 4,
 })
 
-const $upgradeButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  marginBottom: spacing.md,
+const $billingTextActive: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.tint,
+  fontWeight: "600",
 })
 
-const $restoreButton: ThemedStyle<ViewStyle> = () => ({
+const $billingPrice: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.text,
+  fontWeight: "700",
+  fontSize: 18,
+  marginTop: 4,
+})
+
+const $billingPriceActive: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.tint,
+  fontWeight: "700",
+  fontSize: 18,
+  marginTop: 4,
+})
+
+const $billedAnnually: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.textDim,
+  marginTop: 2,
+})
+
+const $saveBadge: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  backgroundColor: colors.palette.accent500,
+  borderRadius: 4,
+  paddingHorizontal: 5,
+  paddingVertical: 1,
+})
+
+const $saveBadgeText: ThemedStyle<TextStyle> = () => ({
+  color: "#FFF",
+  fontWeight: "700",
+  letterSpacing: 0.3,
+})
+
+// Purchase
+const $purchaseBtn: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  marginBottom: spacing.sm,
+})
+
+const $finePrint: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  color: colors.textDim,
+  textAlign: "center",
+  marginBottom: spacing.lg,
+  lineHeight: 16,
+})
+
+const $restoreBtn: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   alignSelf: "center",
+  paddingVertical: spacing.sm,
 })
 
 const $restoreText: ThemedStyle<TextStyle> = ({ colors }) => ({
-  color: colors.textDim,
-  fontSize: 13,
+  color: colors.tint,
+  textDecorationLine: "underline",
 })
