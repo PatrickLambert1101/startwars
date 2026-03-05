@@ -18,6 +18,7 @@ import { initialWindowMetrics, SafeAreaProvider } from "react-native-safe-area-c
 
 import { AuthProvider } from "./context/AuthContext"
 import { DatabaseProvider } from "./context/DatabaseContext"
+import { SubscriptionProvider } from "./context/SubscriptionContext"
 import { initI18n } from "./i18n"
 import { AppNavigator } from "./navigators/AppNavigator"
 import { useNavigationPersistence } from "./navigators/navigationUtilities"
@@ -31,19 +32,22 @@ export const NAVIGATION_PERSISTENCE_KEY = "NAVIGATION_STATE"
 const prefix = Linking.createURL("/")
 const config = {
   screens: {
-    Login: {
+    Landing: {
       path: "",
     },
+    Login: "login",
     Main: {
       screens: {
         Dashboard: "dashboard",
         HerdList: "herd",
         Chute: "chute",
+        Pastures: "pastures",
         Reports: "reports",
         Settings: "settings",
       },
     },
     OrgSetup: "org/setup",
+    Upgrade: "upgrade",
     AnimalDetail: "animal/:animalId",
     AnimalForm: "animal/form",
     HealthRecordForm: "animal/:animalId/health/new",
@@ -82,13 +86,15 @@ export function App() {
       <KeyboardProvider>
         <AuthProvider>
           <DatabaseProvider>
-            <ThemeProvider>
-              <AppNavigator
-                linking={linking}
-                initialState={initialNavigationState}
-                onStateChange={onNavigationStateChange}
-              />
-            </ThemeProvider>
+            <SubscriptionProvider>
+              <ThemeProvider>
+                <AppNavigator
+                  linking={linking}
+                  initialState={initialNavigationState}
+                  onStateChange={onNavigationStateChange}
+                />
+              </ThemeProvider>
+            </SubscriptionProvider>
           </DatabaseProvider>
         </AuthProvider>
       </KeyboardProvider>

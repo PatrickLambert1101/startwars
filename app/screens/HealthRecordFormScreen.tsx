@@ -7,6 +7,7 @@ import type { ThemedStyle } from "@/theme/types"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { useHealthRecordActions } from "@/hooks/useRecords"
 import { HealthRecordType } from "@/db/models/HealthRecord"
+import { useSubscription } from "@/context/SubscriptionContext"
 
 const RECORD_TYPES: HealthRecordType[] = ["vaccination", "treatment", "vet_visit", "condition_score", "other"]
 
@@ -14,6 +15,7 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
   const { themed } = useAppTheme()
   const { animalId } = route.params
   const { createHealthRecord } = useHealthRecordActions()
+  const { hasFeature } = useSubscription()
 
   const [recordType, setRecordType] = useState<HealthRecordType>("treatment")
   const [description, setDescription] = useState("")
@@ -59,19 +61,28 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
       <View style={themed($form)}>
         <Text preset="formLabel" text="Type" />
         <View style={themed($typeRow)}>
-          {RECORD_TYPES.map((t) => (
-            <Pressable
-              key={t}
-              onPress={() => setRecordType(t)}
-              style={themed(recordType === t ? $typeChipActive : $typeChip)}
-            >
-              <Text
-                text={t.replace("_", " ")}
-                size="xs"
-                style={themed(recordType === t ? $typeChipTextActive : $typeChipText)}
-              />
-            </Pressable>
-          ))}
+          {RECORD_TYPES.map((t) => {
+            const locked = t === "vaccination" && !hasFeature("vaccines")
+            return (
+              <Pressable
+                key={t}
+                onPress={() => {
+                  if (locked) {
+                    navigation.navigate("Upgrade" as any)
+                    return
+                  }
+                  setRecordType(t)
+                }}
+                style={themed(recordType === t ? $typeChipActive : locked ? $typeChipLocked : $typeChip)}
+              >
+                <Text
+                  text={locked ? `${t.replace("_", " ")} (PRO)` : t.replace("_", " ")}
+                  size="xs"
+                  style={themed(recordType === t ? $typeChipTextActive : $typeChipText)}
+                />
+              </Pressable>
+            )
+          })}
         </View>
 
         <TextField
@@ -154,6 +165,16 @@ const $typeChipActive: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   borderRadius: 16,
   paddingVertical: spacing.xxs,
   paddingHorizontal: spacing.sm,
+})
+
+const $typeChipLocked: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.palette.neutral100,
+  borderRadius: 16,
+  paddingVertical: spacing.xxs,
+  paddingHorizontal: spacing.sm,
+  borderWidth: 1,
+  borderColor: colors.palette.accent500,
+  borderStyle: "dashed",
 })
 
 const $typeChipText: ThemedStyle<TextStyle> = ({ colors }) => ({

@@ -4,9 +4,10 @@ import { TextStyle, ViewStyle } from "react-native"
 import { DashboardScreen } from "@/screens/DashboardScreen"
 import { HerdListScreen } from "@/screens/HerdListScreen"
 import { ChuteScreen } from "@/screens/ChuteScreen"
+import { PasturesScreen } from "@/screens/PasturesScreen"
 import { ReportsScreen } from "@/screens/ReportsScreen"
 import { SettingsScreen } from "@/screens/SettingsScreen"
-import { BarnIcon, CowHeadIcon, ChuteIcon, ReportsIcon, SettingsIcon } from "@/components/icons"
+import { BarnIcon, CowHeadIcon, ChuteIcon, PastureIcon, ReportsIcon, SettingsIcon } from "@/components/icons"
 import { useAppTheme } from "@/theme/context"
 
 import type { MainTabParamList } from "./navigationTypes"
@@ -51,6 +52,14 @@ export const MainTabNavigator = () => {
         options={{
           tabBarLabel: "Chute",
           tabBarIcon: ({ color }) => <ChuteIcon color={color} size={24} />,
+        }}
+      />
+      <Tab.Screen
+        name="Pastures"
+        component={PasturesScreen}
+        options={{
+          tabBarLabel: "Pastures",
+          tabBarIcon: ({ color }) => <PastureIcon color={color} size={24} />,
         }}
       />
       <Tab.Screen
