@@ -1,6 +1,9 @@
 import { createContext, FC, PropsWithChildren, useCallback, useContext, useEffect, useState } from "react"
 import { Session, User } from "@supabase/supabase-js"
+import * as Linking from "expo-linking"
 import { supabase } from "@/services/supabase"
+
+const AUTH_REDIRECT_URL = Linking.createURL("auth-callback")
 
 export type AuthContextType = {
   isAuthenticated: boolean
@@ -35,6 +38,33 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
     return () => subscription.unsubscribe()
   }, [])
 
+  // Handle auth deep links (email confirmation, magic links, etc.)
+  useEffect(() => {
+    const handleDeepLink = async (url: string) => {
+      const hashIndex = url.indexOf("#")
+      if (hashIndex === -1) return
+
+      const params = new URLSearchParams(url.substring(hashIndex + 1))
+      const accessToken = params.get("access_token")
+      const refreshToken = params.get("refresh_token")
+
+      if (accessToken && refreshToken) {
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        })
+        if (error) console.warn("[Auth] Failed to set session from deep link:", error.message)
+      }
+    }
+
+    Linking.getInitialURL().then((url) => {
+      if (url) handleDeepLink(url)
+    })
+
+    const sub = Linking.addEventListener("url", ({ url }) => handleDeepLink(url))
+    return () => sub.remove()
+  }, [])
+
   const signIn = useCallback(async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) return { error: error.message }
@@ -42,7 +72,11 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
   }, [])
 
   const signUp = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({ email, password })
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: AUTH_REDIRECT_URL },
+    })
     if (error) return { error: error.message }
     return { error: null }
   }, [])
