@@ -60,18 +60,17 @@ export const SubscriptionProvider: FC<PropsWithChildren> = ({ children }) => {
   useEffect(() => {
     const init = async () => {
       try {
-        if (__DEV__) {
-          Purchases.setLogLevel(LOG_LEVEL.DEBUG)
-        }
-
         const apiKey =
           Platform.OS === "ios" ? REVENUECAT_API_KEY_APPLE : REVENUECAT_API_KEY_GOOGLE
 
-        // Only configure if we have real keys (skip in dev with placeholder keys)
         if (apiKey.includes("YOUR_REVENUECAT")) {
           console.log("[Subscriptions] Using placeholder API keys — skipping RevenueCat init")
           setIsLoading(false)
           return
+        }
+
+        if (__DEV__) {
+          Purchases.setLogLevel(LOG_LEVEL.DEBUG)
         }
 
         await Purchases.configure({ apiKey })
