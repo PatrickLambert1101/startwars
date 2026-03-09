@@ -1,5 +1,5 @@
 import { FC, useState } from "react"
-import { Alert, Pressable, View, ViewStyle, TextStyle, useWindowDimensions } from "react-native"
+import { Alert, Pressable, View, ViewStyle, TextStyle, useWindowDimensions, Image, ImageStyle } from "react-native"
 
 import { Screen, Text, TextField, Button } from "@/components"
 import {
@@ -20,6 +20,8 @@ import {
   LockBadge,
 } from "@/components/icons"
 import { useAppTheme } from "@/theme/context"
+
+const herdLogo = require("../../assets/images/herd-logo.png")
 import type { ThemedStyle } from "@/theme/types"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 
@@ -145,7 +147,7 @@ export const LandingScreen: FC<AppStackScreenProps<"Landing">> = ({ navigation }
           accentColor={colors.palette.accent500}
         />
         <View style={themed($heroContent)}>
-          <HerdTrackrLogo size={64} color={colors.tint} accentColor={colors.tint} />
+          <Image source={herdLogo} style={[themed($logoImage), { tintColor: colors.tint }]} resizeMode="contain" />
           <Text text="HerdTrackr" preset="heading" style={themed($heroTitle)} />
           <Text
             text="Cattle management that works where you do — offline-first, built for real ranchers."
@@ -296,7 +298,8 @@ export const LandingScreen: FC<AppStackScreenProps<"Landing">> = ({ navigation }
       </View>
 
       {/* ─── PRICING ───────────────────────────────────────────── */}
-      <View style={themed($section)}>
+      {/* TEMP: Pricing hidden while billing is disabled */}
+      {false && <View style={themed($section)}>
         <Text text="Simple, Transparent Pricing" preset="subheading" style={themed($sectionTitle)} />
 
         {/* Billing toggle */}
@@ -390,7 +393,7 @@ export const LandingScreen: FC<AppStackScreenProps<"Landing">> = ({ navigation }
             onPress={() => Alert.alert("Contact Sales", "Email us at sales@herdtrackr.com")}
           />
         </View>
-      </View>
+      </View>}
 
       {/* ─── CONTACT FORM ──────────────────────────────────────── */}
       <View style={themed($section)}>
@@ -435,7 +438,7 @@ export const LandingScreen: FC<AppStackScreenProps<"Landing">> = ({ navigation }
 
       {/* ─── BOTTOM CTA ────────────────────────────────────────── */}
       <View style={themed($bottomCta)}>
-        <HerdTrackrLogo size={48} color={colors.tint} accentColor={colors.tint} />
+        <Image source={herdLogo} style={[themed($logoImageSmall), { tintColor: colors.tint }]} resizeMode="contain" />
         <Text
           text="Join ranchers who trust HerdTrackr to run their operation."
           style={themed($bottomCtaText)}
@@ -935,4 +938,14 @@ const $bottomCtaBtn: ThemedStyle<ViewStyle> = () => ({
 const $bottomLink: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.tint,
   textDecorationLine: "underline",
+})
+
+const $logoImage: ThemedStyle<ImageStyle> = () => ({
+  width: 80,
+  height: 80,
+})
+
+const $logoImageSmall: ThemedStyle<ImageStyle> = () => ({
+  width: 60,
+  height: 60,
 })

@@ -50,51 +50,18 @@ const PRO_ENTITLEMENT_ID = "pro"
 export const SubscriptionContext = createContext<SubscriptionContextType | null>(null)
 
 export const SubscriptionProvider: FC<PropsWithChildren> = ({ children }) => {
-  const [plan, setPlan] = useState<PlanTier>("free")
+  // TEMP: Give everyone Pro access while billing is disabled
+  const [plan, setPlan] = useState<PlanTier>("pro")
   const [packages, setPackages] = useState<PurchasesPackage[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
 
-  const isPro = plan === "pro"
+  const isPro = true // TEMP: Always true while billing is disabled
 
   // ── Initialise RevenueCat ─────────────────────────────────
   useEffect(() => {
-    const init = async () => {
-      try {
-        const apiKey =
-          Platform.OS === "ios" ? REVENUECAT_API_KEY_APPLE : REVENUECAT_API_KEY_GOOGLE
-
-        if (apiKey.includes("YOUR_REVENUECAT")) {
-          console.log("[Subscriptions] Using placeholder API keys — skipping RevenueCat init")
-          setIsLoading(false)
-          return
-        }
-
-        if (__DEV__) {
-          Purchases.setLogLevel(LOG_LEVEL.DEBUG)
-        }
-
-        await Purchases.configure({ apiKey })
-
-        // Fetch current customer info
-        const info = await Purchases.getCustomerInfo()
-        updatePlanFromCustomerInfo(info)
-
-        // Fetch available packages
-        const offerings = await Purchases.getOfferings()
-        if (offerings.current?.availablePackages) {
-          setPackages(offerings.current.availablePackages)
-        }
-
-        // Listen for subscription changes
-        Purchases.addCustomerInfoUpdateListener(updatePlanFromCustomerInfo)
-      } catch (e) {
-        console.warn("[Subscriptions] Failed to initialise RevenueCat:", e)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    init()
+    // TEMP: Disabled RevenueCat initialization while billing is disabled
+    console.log("[Subscriptions] Billing temporarily disabled - all users have Pro access")
+    setIsLoading(false)
   }, [])
 
   // ── Helpers ───────────────────────────────────────────────
@@ -105,8 +72,8 @@ export const SubscriptionProvider: FC<PropsWithChildren> = ({ children }) => {
 
   const hasFeature = useCallback(
     (feature: PremiumFeature) => {
-      if (isPro) return true
-      return !PREMIUM_FEATURES.includes(feature)
+      // TEMP: Allow all features while billing is disabled
+      return true
     },
     [isPro],
   )

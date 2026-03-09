@@ -89,7 +89,10 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation 
           content="Tap '+ Add' to register your first animal, or scan an RFID tag in Chute mode."
           button={isLoading ? undefined : "Add First Animal"}
           buttonOnPress={handleAddAnimal}
+          imageSource={null}
           style={themed($emptyState)}
+          headingStyle={themed($emptyHeading)}
+          contentStyle={themed($emptyContent)}
         />
       )}
     </Screen>
@@ -157,5 +160,16 @@ const $dimText: ThemedStyle<TextStyle> = ({ colors }) => ({
 })
 
 const $emptyState: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  marginTop: spacing.xxl,
+  marginTop: spacing.md,
+  alignItems: "flex-start",
+})
+
+const $emptyHeading: ThemedStyle<TextStyle> = () => ({
+  textAlign: "left",
+  paddingHorizontal: 0,
+})
+
+const $emptyContent: ThemedStyle<TextStyle> = () => ({
+  textAlign: "left",
+  paddingHorizontal: 0,
 })

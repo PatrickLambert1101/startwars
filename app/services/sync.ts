@@ -11,7 +11,7 @@ import { synchronize, SyncPullArgs, SyncPushArgs } from "@nozbe/watermelondb/syn
 import { database } from "@/db"
 import { supabase } from "@/services/supabase"
 
-const SYNC_TABLES = ["organizations", "animals", "health_records", "weight_records", "breeding_records"] as const
+const SYNC_TABLES = ["organizations", "animals", "health_records", "weight_records", "breeding_records", "treatment_protocols"] as const
 
 type SyncTable = (typeof SYNC_TABLES)[number]
 
@@ -180,7 +180,7 @@ export async function syncDatabase(): Promise<{ success: boolean; error?: string
       database,
       pullChanges,
       pushChanges,
-      migrationsEnabledAtVersion: 1,
+      migrationsEnabledAtVersion: 4, // Updated to match current schema version
     })
     return { success: true }
   } catch (error: any) {

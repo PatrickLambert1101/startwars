@@ -29,11 +29,15 @@ export const DatabaseProvider: FC<PropsWithChildren> = ({ children }) => {
         const orgs = await database.get<Organization>("organizations")
           .query(Q.where("is_deleted", false))
           .fetch()
+        console.log("[DatabaseContext] Found", orgs.length, "organizations")
         if (orgs.length > 0) {
+          console.log("[DatabaseContext] Setting current org:", orgs[0].name)
           setCurrentOrg(orgs[0])
+        } else {
+          console.log("[DatabaseContext] No organizations found")
         }
-      } catch {
-        // DB not ready yet or no orgs
+      } catch (error) {
+        console.error("[DatabaseContext] Error loading orgs:", error)
       }
       setIsOrgLoading(false)
     }

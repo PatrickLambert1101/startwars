@@ -223,30 +223,37 @@ const $tabRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   gap: spacing.xs,
   marginBottom: spacing.lg,
+  flexWrap: "wrap",
 })
 
 const $tab: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flex: 1,
   backgroundColor: colors.palette.neutral100,
   borderRadius: 8,
-  padding: spacing.sm,
+  paddingVertical: spacing.sm,
+  paddingHorizontal: spacing.xs,
   alignItems: "center",
+  justifyContent: "center",
 })
 
 const $tabActive: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flex: 1,
   backgroundColor: colors.tint,
   borderRadius: 8,
-  padding: spacing.sm,
+  paddingVertical: spacing.sm,
+  paddingHorizontal: spacing.xs,
   alignItems: "center",
+  justifyContent: "center",
 })
 
 const $tabText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.text,
+  fontSize: 12,
 })
 
 const $tabTextActive: ThemedStyle<TextStyle> = () => ({
   color: "#FFFFFF",
+  fontSize: 12,
 })
 
 const $section: ThemedStyle<ViewStyle> = ({ spacing }) => ({

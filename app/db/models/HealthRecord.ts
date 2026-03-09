@@ -9,11 +9,13 @@ export class HealthRecord extends Model {
   static associations = {
     organizations: { type: "belongs_to" as const, key: "organization_id" },
     animals: { type: "belongs_to" as const, key: "animal_id" },
+    treatment_protocols: { type: "belongs_to" as const, key: "protocol_id" },
   }
 
   @field("remote_id") remoteId!: string | null
   @field("organization_id") organizationId!: string
   @field("animal_id") animalId!: string
+  @field("protocol_id") protocolId!: string | null
   @date("record_date") recordDate!: Date
   @field("record_type") recordType!: HealthRecordType
   @field("description") description!: string
@@ -27,4 +29,5 @@ export class HealthRecord extends Model {
   @field("is_deleted") isDeleted!: boolean
 
   @relation("animals", "animal_id") animal: any
+  @relation("treatment_protocols", "protocol_id") protocol: any
 }

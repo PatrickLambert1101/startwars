@@ -19,15 +19,25 @@ export type MainTabParamList = {
 
 // App Stack Navigator types
 export type AppStackParamList = {
+  Auth: undefined
   Landing: undefined
   Login: undefined
   Main: NavigatorScreenParams<MainTabParamList>
   OrgSetup: undefined
+  Team: undefined
   AnimalDetail: { animalId: string }
   AnimalForm: { mode: "create" | "edit"; animalId?: string }
   HealthRecordForm: { animalId: string; recordId?: string }
   WeightRecordForm: { animalId: string; recordId?: string }
   BreedingRecordForm: { animalId: string; recordId?: string }
+  TreatmentProtocols: undefined
+  ProtocolForm: { protocolId?: string }
+  ProtocolDetail: { protocolId: string }
+  PastureDetail: { pastureId: string }
+  PastureForm: { pastureId?: string }
+  PastureWizard: undefined
+  MovementForm: { pastureId?: string; movementType?: "move_in" | "move_out" }
+  TagScanner: { onTagScanned?: (tagNumber: string) => void }
   Upgrade: undefined
 }
 

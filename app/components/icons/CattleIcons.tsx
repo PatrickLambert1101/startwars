@@ -39,45 +39,46 @@ export function BarnIcon({ size = 24, color = "#333" }: IconProps) {
 }
 
 /**
- * Herd — Cow head icon (side profile)
+ * Herd — Simplified cow/cattle icon
  */
 export function CowHeadIcon({ size = 24, color = "#333" }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      {/* Ear */}
+      {/* Body */}
       <Path
-        d="M5 6L2 3L4 7"
+        d="M4 10C4 8 5 6 7 5C8 3 10 2 12 2C14 2 16 3 17 5C19 6 20 8 20 10V14C20 16 19 18 17 19C16 20 14 21 12 21C10 21 8 20 7 19C5 18 4 16 4 14V10Z"
         stroke={color}
         strokeWidth="1.8"
-        strokeLinecap="round"
         strokeLinejoin="round"
-      />
-      {/* Horn */}
-      <Path
-        d="M8 4L6 1"
-        stroke={color}
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-      {/* Head shape */}
-      <Path
-        d="M5 7C4 8 3 10 3 12C3 14 4 16 5 17L7 19C8 20 10 21 12 21C14 21 16 20 17 19L19 17C20 16 21 14 21 12C21 10 20 8 19 7C17 5 14 4 12 4C9 4 7 5 5 7Z"
-        stroke={color}
-        strokeWidth="1.8"
         fill="none"
       />
-      {/* Eye */}
-      <Circle cx="9" cy="10" r="1.5" fill={color} />
-      {/* Nose area */}
+      {/* Left horn */}
       <Path
-        d="M14 14C14 16 13 17 12 17C11 17 10 16 10 14C10 13 11 12 12 12C13 12 14 13 14 14Z"
+        d="M8 5L6 2"
+        stroke={color}
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+      {/* Right horn */}
+      <Path
+        d="M16 5L18 2"
+        stroke={color}
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+      {/* Eyes */}
+      <Circle cx="9" cy="10" r="1.2" fill={color} />
+      <Circle cx="15" cy="10" r="1.2" fill={color} />
+      {/* Nose */}
+      <Path
+        d="M10 15H14"
         stroke={color}
         strokeWidth="1.5"
-        fill="none"
+        strokeLinecap="round"
       />
       {/* Nostrils */}
-      <Circle cx="11" cy="15" r="0.8" fill={color} />
-      <Circle cx="13" cy="15" r="0.8" fill={color} />
+      <Circle cx="10.5" cy="16" r="0.7" fill={color} />
+      <Circle cx="13.5" cy="16" r="0.7" fill={color} />
     </Svg>
   )
 }
@@ -190,44 +191,89 @@ export function CattleSilhouette({ size = 200, color = "#2D5A27" }: IconProps) {
 }
 
 /**
- * RFID Tag icon
+ * RFID Tag icon - Modern RFID card/reader design
  */
 export function RfidTagIcon({ size = 24, color = "#333" }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      {/* Tag shape */}
-      <Path
-        d="M4 8C4 6.9 4.9 6 6 6H18C19.1 6 20 6.9 20 8V16C20 17.1 19.1 18 18 18H6C4.9 18 4 17.1 4 16V8Z"
+      {/* Card body */}
+      <Rect
+        x="2"
+        y="6"
+        width="20"
+        height="12"
+        rx="2"
         stroke={color}
-        strokeWidth="1.8"
+        strokeWidth="2"
+        fill="none"
       />
-      {/* Ear tag hole */}
-      <Circle cx="7" cy="12" r="2" stroke={color} strokeWidth="1.5" />
-      {/* Signal waves */}
-      <Path d="M14 9.5C15.2 10.2 16 11 16 12C16 13 15.2 13.8 14 14.5" stroke={color} strokeWidth="1.3" strokeLinecap="round" />
-      <Path d="M16.5 8C18.2 9.2 19.5 10.5 19.5 12C19.5 13.5 18.2 14.8 16.5 16" stroke={color} strokeWidth="1.3" strokeLinecap="round" />
+      {/* RFID chip */}
+      <Rect
+        x="5"
+        y="9"
+        width="5"
+        height="6"
+        rx="0.5"
+        fill={color}
+        opacity="0.3"
+      />
+      {/* Chip contact lines */}
+      <Line x1="6" y1="10.5" x2="9" y2="10.5" stroke={color} strokeWidth="0.8" />
+      <Line x1="6" y1="12" x2="9" y2="12" stroke={color} strokeWidth="0.8" />
+      <Line x1="6" y1="13.5" x2="9" y2="13.5" stroke={color} strokeWidth="0.8" />
+      {/* Radio waves */}
+      <Path
+        d="M13 10C14 10.5 14.5 11 14.5 12C14.5 13 14 13.5 13 14"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        fill="none"
+      />
+      <Path
+        d="M15 8.5C16.5 9.5 17.5 10.5 17.5 12C17.5 13.5 16.5 14.5 15 15.5"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        fill="none"
+      />
+      <Path
+        d="M17 7C19 8.5 20 10 20 12C20 14 19 15.5 17 17"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        fill="none"
+      />
     </Svg>
   )
 }
 
 /**
- * Pasture/field landscape icon
+ * Pasture/field landscape icon - simplified for navigation
  */
-export function PastureIcon({ size = 80, color = "#4A8C3F" }: IconProps) {
+export function PastureIcon({ size = 24, color = "#333" }: IconProps) {
   return (
-    <Svg width={size} height={size * 0.6} viewBox="0 0 80 48" fill="none">
-      {/* Hills */}
-      <Path d="M0 35 Q20 20 40 30 Q60 20 80 35 V48 H0Z" fill={color} opacity={0.1} />
-      <Path d="M0 40 Q30 28 50 36 Q65 28 80 38 V48 H0Z" fill={color} opacity={0.15} />
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {/* Ground/hills */}
+      <Path
+        d="M2 18L6 14L10 16L14 12L18 14L22 10V22H2V18Z"
+        fill={color}
+        opacity={0.15}
+      />
+      <Path
+        d="M2 18L6 14L10 16L14 12L18 14L22 10"
+        stroke={color}
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
       {/* Fence posts */}
-      <Line x1="10" y1="32" x2="10" y2="42" stroke={color} strokeWidth="1.5" opacity={0.3} />
-      <Line x1="25" y1="30" x2="25" y2="40" stroke={color} strokeWidth="1.5" opacity={0.3} />
-      <Line x1="40" y1="31" x2="40" y2="41" stroke={color} strokeWidth="1.5" opacity={0.3} />
-      <Line x1="55" y1="29" x2="55" y2="39" stroke={color} strokeWidth="1.5" opacity={0.3} />
-      <Line x1="70" y1="31" x2="70" y2="41" stroke={color} strokeWidth="1.5" opacity={0.3} />
+      <Line x1="5" y1="14" x2="5" y2="20" stroke={color} strokeWidth="1.5" />
+      <Line x1="12" y1="12" x2="12" y2="20" stroke={color} strokeWidth="1.5" />
+      <Line x1="19" y1="10" x2="19" y2="20" stroke={color} strokeWidth="1.5" />
       {/* Fence wire */}
-      <Path d="M10 35 L25 33 L40 34 L55 32 L70 34" stroke={color} strokeWidth="0.8" opacity={0.25} />
-      <Path d="M10 38 L25 36 L40 37 L55 35 L70 37" stroke={color} strokeWidth="0.8" opacity={0.25} />
+      <Path d="M5 16L12 14L19 12" stroke={color} strokeWidth="1" />
+      {/* Sun/sky element */}
+      <Circle cx="19" cy="5" r="2" stroke={color} strokeWidth="1.3" fill="none" />
     </Svg>
   )
 }

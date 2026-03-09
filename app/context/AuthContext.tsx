@@ -14,6 +14,9 @@ export type AuthContextType = {
   setAuthEmail: (email: string) => void
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
   signUp: (email: string, password: string) => Promise<{ error: string | null }>
+  signInWithMagicLink: (email: string) => Promise<{ error: string | null; success?: boolean }>
+  signInWithOTP: (email: string) => Promise<{ error: string | null; success?: boolean }>
+  verifyOTP: (email: string, token: string) => Promise<{ error: string | null }>
   logout: () => Promise<void>
   validationError: string
 }
@@ -81,6 +84,39 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
     return { error: null }
   }, [])
 
+  const signInWithMagicLink = useCallback(async (email: string) => {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: AUTH_REDIRECT_URL,
+        shouldCreateUser: true,
+      },
+    })
+    if (error) return { error: error.message }
+    return { error: null, success: true }
+  }, [])
+
+  const signInWithOTP = useCallback(async (email: string) => {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        shouldCreateUser: true,
+      },
+    })
+    if (error) return { error: error.message }
+    return { error: null, success: true }
+  }, [])
+
+  const verifyOTP = useCallback(async (email: string, token: string) => {
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token,
+      type: "email",
+    })
+    if (error) return { error: error.message }
+    return { error: null }
+  }, [])
+
   const logout = useCallback(async () => {
     await supabase.auth.signOut()
     setSession(null)
@@ -102,6 +138,9 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
     setAuthEmail,
     signIn,
     signUp,
+    signInWithMagicLink,
+    signInWithOTP,
+    verifyOTP,
     logout,
     validationError,
   }
