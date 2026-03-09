@@ -1,9 +1,11 @@
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { View, ViewStyle, TextStyle, Image, ImageStyle } from "react-native"
 import { Screen, Text, TextField, Button } from "@/components"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { useAuth } from "@/context/AuthContext"
+
+const DEV_SKIP_AUTH = process.env.EXPO_PUBLIC_DEV_SKIP_AUTH === "true"
 
 export function AuthScreen() {
   const { themed } = useAppTheme()
@@ -35,8 +37,8 @@ export function AuthScreen() {
   }
 
   const handleVerifyCode = async () => {
-    if (code.length !== 6) {
-      setError("Code must be 6 digits")
+    if (!DEV_SKIP_AUTH && code.length !== 7) {
+      setError("Code must be 7 digits")
       return
     }
 
@@ -52,15 +54,28 @@ export function AuthScreen() {
     // If successful, user will be signed in and navigation will handle it
   }
 
+  // Auto-verify in dev mode
+  useEffect(() => {
+    if (DEV_SKIP_AUTH && codeSent && !isVerifying) {
+      console.log("[AuthScreen] DEV MODE: Auto-verifying")
+      handleVerifyCode()
+    }
+  }, [codeSent, DEV_SKIP_AUTH])
+
   if (codeSent) {
     return (
       <Screen preset="fixed" safeAreaEdges={["top", "bottom"]} contentContainerStyle={themed($container)}>
         <View style={themed($content)}>
           <View style={themed($logoContainer)}>
             <Text style={themed($logo)}>🔒</Text>
-            <Text preset="heading" style={themed($title)}>Enter Code</Text>
+            <Text preset="heading" style={themed($title)}>
+              {DEV_SKIP_AUTH ? "Dev Mode: Auto-Signing In..." : "Enter Code"}
+            </Text>
             <Text style={themed($subtitle)}>
-              Check your email for the 6-digit code
+              {DEV_SKIP_AUTH
+                ? "Authentication bypassed for development"
+                : "Check your email for the 7-digit code"
+              }
             </Text>
           </View>
 
@@ -68,15 +83,15 @@ export function AuthScreen() {
             <Text style={themed($formTitle)}>Sent to {authEmail}</Text>
 
             <TextField
-              label="6-Digit Code"
+              label="7-Digit Code"
               value={code}
               onChangeText={(text) => {
                 setCode(text.replace(/[^0-9]/g, ""))
                 setError("")
               }}
-              placeholder="000000"
+              placeholder="0000000"
               keyboardType="number-pad"
-              maxLength={6}
+              maxLength={7}
               helper={error}
               status={error ? "error" : undefined}
               containerStyle={themed($field)}
@@ -88,7 +103,7 @@ export function AuthScreen() {
               text={isVerifying ? "Verifying..." : "Verify Code"}
               preset="filled"
               onPress={handleVerifyCode}
-              disabled={isVerifying || code.length !== 6}
+              disabled={isVerifying || code.length !== 7}
               style={themed($button)}
             />
 
@@ -130,9 +145,17 @@ export function AuthScreen() {
         </View>
 
         <View style={themed($form)}>
+          {DEV_SKIP_AUTH && (
+            <View style={themed($devBanner)}>
+              <Text style={themed($devBannerText)}>🚧 DEV MODE - Auth Bypassed</Text>
+            </View>
+          )}
           <Text style={themed($formTitle)}>Sign in with your email</Text>
           <Text style={themed($formSubtitle)}>
-            We'll send you a 6-digit code - no password needed!
+            {DEV_SKIP_AUTH
+              ? "Enter any email - you'll be auto-signed in (no OTP needed)"
+              : "We'll send you a 7-digit code - no password needed!"
+            }
           </Text>
 
           <TextField
@@ -347,4 +370,20 @@ const $backLink: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $linkText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.palette.primary500,
   fontWeight: "600",
+})
+
+const $devBanner: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.palette.angry100,
+  borderRadius: 8,
+  padding: spacing.sm,
+  marginBottom: spacing.md,
+  borderWidth: 1,
+  borderColor: colors.palette.angry300,
+})
+
+const $devBannerText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 13,
+  fontWeight: "700",
+  color: colors.palette.angry700,
+  textAlign: "center",
 })

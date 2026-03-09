@@ -480,15 +480,124 @@ git commit -m "docs: add deployment guide"
 git commit -m "chore: bump version to 1.0.1"
 ```
 
+## Supabase + WatermelonDB Sync Patterns
+
+### ID Management
+```typescript
+// WatermelonDB uses short TEXT IDs (e.g., "phKpvugYk5ISReFe")
+// Supabase should use TEXT for primary keys to match
+// EXCEPT for auth.users references which MUST be UUID
+
+// ✅ CORRECT Schema
+CREATE TABLE organizations (
+  id TEXT PRIMARY KEY,  -- WatermelonDB short ID
+  remote_id TEXT,       -- Unused but kept for compatibility
+  user_id UUID REFERENCES auth.users(id)  -- Auth references MUST be UUID
+);
+```
+
+### RLS Policy Patterns for Sync
+```sql
+-- ❌ WRONG: This blocks upsert because user isn't a member YET
+CREATE POLICY "Members can view organizations"
+  ON organizations FOR SELECT
+  USING (public.is_org_member(id));
+
+-- ✅ CORRECT: Allow viewing newly created orgs briefly
+CREATE POLICY "Members can view organizations"
+  ON organizations FOR SELECT
+  USING (
+    public.is_org_member(id) OR
+    created_at > NOW() - INTERVAL '10 seconds'
+  );
+```
+
+### Helper Functions to Avoid RLS Recursion
+```sql
+-- Use SECURITY DEFINER functions to check membership without recursion
+CREATE OR REPLACE FUNCTION public.is_org_member(org_id TEXT, user_id UUID DEFAULT auth.uid())
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.memberships
+    WHERE organization_id = org_id
+      AND memberships.user_id = is_org_member.user_id
+      AND is_active = TRUE
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
+```
+
+### Sync Implementation
+```typescript
+// Convert WatermelonDB record → Supabase row
+function watermelonToSupabase(record: any, _table: string) {
+  const row: any = { ...record }
+
+  // Convert timestamps (ms) to ISO strings for Supabase
+  for (const key of Object.keys(row)) {
+    if (key.endsWith("_at") || key.endsWith("_date")) {
+      if (row[key] && typeof row[key] === "number") {
+        row[key] = new Date(row[key]).toISOString()
+      }
+    }
+  }
+
+  return row  // No ID transformation needed - WatermelonDB IDs are TEXT
+}
+
+// Convert Supabase row → WatermelonDB record
+function supabaseToWatermelon(row: any) {
+  const record: any = { ...row }
+
+  // Convert ISO strings to timestamps (ms) for WatermelonDB
+  for (const key of Object.keys(record)) {
+    if (key.endsWith("_at") || key.endsWith("_date")) {
+      if (record[key] && typeof record[key] === "string") {
+        record[key] = new Date(record[key]).getTime()
+      }
+    }
+  }
+
+  return record
+}
+```
+
+### Trigger Pattern for Auto-Admin
+```sql
+-- Auto-add creator as admin when org is created
+CREATE OR REPLACE FUNCTION public.auto_add_org_owner()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.memberships (
+    user_id, organization_id, role, joined_at, is_active
+  )
+  SELECT auth.uid(), NEW.id, 'admin', NOW(), TRUE
+  FROM auth.users WHERE id = auth.uid();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER org_auto_membership
+  AFTER INSERT ON organizations
+  FOR EACH ROW
+  EXECUTE FUNCTION public.auto_add_org_owner();
+```
+
 ## Common Gotchas
 
 1. **Always use `themed($style)` not `themed.$style`**
 2. **contentContainerStyle only works with preset="scroll" or "auto"**
 3. **Icons must be registered in `iconRegistry` before use**
-4. **WatermelonDB creates short IDs, not UUIDs**
+4. **WatermelonDB creates short TEXT IDs, not UUIDs**
 5. **Soft delete with `isDeleted` flag, don't hard delete**
 6. **Clear cache when styles don't update**
 7. **Use `Q.where()` for queries, not plain objects**
 8. **Subscribe to observables in useEffect with cleanup**
 9. **Back buttons must be added manually (no Header component)**
 10. **Check `safeAreaEdges` prop for proper insets**
+11. **Supabase auth.users has UUID IDs - use UUID for all user_id foreign keys**
+12. **RLS policies must allow viewing newly created records during upsert operations**
+13. **Use SECURITY DEFINER functions to avoid infinite RLS recursion**
+14. **Always drop existing triggers before recreating to avoid "already exists" errors**
+15. **TEXT IDs from WatermelonDB can be used directly in Supabase (no UUID conversion needed)**

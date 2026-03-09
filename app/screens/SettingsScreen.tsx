@@ -4,11 +4,12 @@ import { View, ViewStyle, TextStyle, Pressable, Platform, NativeModules } from "
 import { Screen, Text, ListItem, Button, Icon } from "@/components"
 import { useAuth } from "@/context/AuthContext"
 import { useDatabase } from "@/context/DatabaseContext"
-import { useSync } from "@/hooks/useSync"
 import { useRfidReader } from "@/hooks/useRfidReader"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { loadString, saveString } from "@/utils/storage"
+import { database } from "@/db"
+import { Alert } from "react-native"
 
 const STORAGE_KEY_POWER = "rfid_reader_power"
 const POWER_MIN = 18
@@ -21,7 +22,6 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
   const { themed } = useAppTheme()
   const { logout, user } = useAuth()
   const { currentOrg } = useDatabase()
-  const { sync, status, lastSynced, error: syncError } = useSync()
   const { setOutputPower, isInitialized, initialize } = useRfidReader()
 
   const [readerPower, setReaderPower] = useState(POWER_DEFAULT)
@@ -61,16 +61,29 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
     logout()
   }, [logout])
 
-  const syncLabel = (() => {
-    if (status === "syncing") return "Syncing..."
-    if (status === "success") return "Sync complete!"
-    if (status === "error") return `Sync failed: ${syncError}`
-    return "Sync Now"
-  })()
-
-  const lastSyncedLabel = lastSynced
-    ? `Last synced: ${lastSynced.toLocaleTimeString()}`
-    : "Last synced: Never"
+  const handleResetDatabase = useCallback(async () => {
+    Alert.alert(
+      "Reset Local Database",
+      "This will delete ALL local data including your organization, animals, and records. This cannot be undone!\n\nOnly do this if you're starting fresh after wiping Supabase.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "WIPE EVERYTHING",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await database.write(async () => {
+                await database.unsafeResetDatabase()
+              })
+              Alert.alert("Success", "Local database reset! Please restart the app.")
+            } catch (error) {
+              Alert.alert("Error", `Failed to reset database: ${error}`)
+            }
+          },
+        },
+      ],
+    )
+  }, [])
 
   const powerPercent = Math.round(((readerPower - POWER_MIN) / (POWER_MAX - POWER_MIN)) * 100)
 
@@ -82,17 +95,6 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
         <Text preset="formLabel" text="ACCOUNT" style={themed($sectionLabel)} />
         <ListItem text={user?.email || "Not signed in"} bottomSeparator />
         <ListItem text={`Org: ${currentOrg?.name || "None"}`} bottomSeparator />
-      </View>
-
-      <View style={themed($section)}>
-        <Text preset="formLabel" text="SYNC" style={themed($sectionLabel)} />
-        <ListItem text={lastSyncedLabel} bottomSeparator />
-        <Button
-          text={syncLabel}
-          preset="filled"
-          onPress={sync}
-          style={themed($syncButton)}
-        />
       </View>
 
       <View style={themed($section)}>
@@ -195,6 +197,22 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
         )}
       </View>
 
+      <View style={themed($section)}>
+        <Text preset="formLabel" text="DANGER ZONE" style={themed($dangerLabel)} />
+        <View style={themed($dangerCard)}>
+          <Text style={themed($dangerTitle)}>Reset Local Database</Text>
+          <Text style={themed($dangerText)}>
+            Wipes ALL local data. Only use if starting fresh after wiping Supabase.
+          </Text>
+          <Button
+            text="Wipe Local Database"
+            preset="filled"
+            onPress={handleResetDatabase}
+            style={themed($dangerButton)}
+          />
+        </View>
+      </View>
+
       <Button text="Sign Out" preset="default" onPress={handleLogout} style={themed($logoutButton)} />
 
       <Text preset="formHelper" text="HerdTrackr v0.1.0" style={themed($version)} />
@@ -220,10 +238,6 @@ const $sectionLabel: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   color: colors.textDim,
   marginBottom: spacing.xs,
   letterSpacing: 1,
-})
-
-const $syncButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  marginTop: spacing.xs,
 })
 
 const $logoutButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -390,4 +404,38 @@ const $rfidDisabledText: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 14,
   color: colors.textDim,
   lineHeight: 20,
+})
+
+// --- DANGER ZONE styles ---
+
+const $dangerLabel: ThemedStyle<TextStyle> = ({ spacing }) => ({
+  color: "#E53E3E",
+  marginBottom: spacing.xs,
+  letterSpacing: 1,
+})
+
+const $dangerCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: "#FFF5F5",
+  borderRadius: 12,
+  borderWidth: 2,
+  borderColor: "#FEB2B2",
+  padding: spacing.md,
+})
+
+const $dangerTitle: ThemedStyle<TextStyle> = ({ spacing }) => ({
+  fontSize: 16,
+  fontWeight: "700",
+  color: "#E53E3E",
+  marginBottom: spacing.xs,
+})
+
+const $dangerText: ThemedStyle<TextStyle> = ({ spacing }) => ({
+  fontSize: 14,
+  color: "#9B2C2C",
+  lineHeight: 20,
+  marginBottom: spacing.md,
+})
+
+const $dangerButton: ThemedStyle<ViewStyle> = () => ({
+  backgroundColor: "#E53E3E",
 })
