@@ -1,5 +1,5 @@
 import { FC, useCallback, useState } from "react"
-import { FlatList, Pressable, View, ViewStyle, TextStyle } from "react-native"
+import { FlatList, Pressable, View, ViewStyle, TextStyle, Image, ImageStyle } from "react-native"
 
 import { Screen, Text, Button, EmptyState, TextField } from "@/components"
 import { useAppTheme } from "@/theme/context"
@@ -8,6 +8,7 @@ import type { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { useAnimals } from "@/hooks/useAnimals"
 import { Animal } from "@/db/models/Animal"
 import { STATUS_COLORS } from "@/theme/colors"
+import { parsePhotos } from "@/types/Photo"
 
 export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation }) => {
   const { themed, theme } = useAppTheme()
@@ -36,17 +37,31 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation 
 
   const renderAnimal = useCallback(({ item }: { item: Animal }) => {
     const statusColor = STATUS_COLORS[item.status] || theme.colors.textDim
+    const photos = parsePhotos(item.photos)
+    const firstPhoto = photos.length > 0 ? photos[0] : null
+
     return (
       <Pressable onPress={() => handleAnimalPress(item)} style={themed($animalCard)}>
-        <View style={themed($animalCardHeader)}>
-          <Text preset="bold" text={item.displayName} />
-          <View style={[$statusBadge, { backgroundColor: statusColor + "22" }]}>
-            <Text text={item.status} size="xxs" style={{ color: statusColor }} />
+        <View style={themed($animalCardRow)}>
+          {firstPhoto && (
+            <Image
+              source={{ uri: firstPhoto.thumbnailUri || firstPhoto.uri }}
+              style={$animalPhoto}
+              resizeMode="cover"
+            />
+          )}
+          <View style={themed($animalCardContent)}>
+            <View style={themed($animalCardHeader)}>
+              <Text preset="bold" text={item.displayName} />
+              <View style={[$statusBadge, { backgroundColor: statusColor + "22" }]}>
+                <Text text={item.status} size="xxs" style={{ color: statusColor }} />
+              </View>
+            </View>
+            <View style={themed($animalCardBody)}>
+              <Text size="xs" text={`RFID: ${item.rfidTag}`} style={themed($dimText)} />
+              <Text size="xs" text={`${item.breed} | ${item.sex}`} style={themed($dimText)} />
+            </View>
           </View>
-        </View>
-        <View style={themed($animalCardBody)}>
-          <Text size="xs" text={`RFID: ${item.rfidTag}`} style={themed($dimText)} />
-          <Text size="xs" text={`${item.breed} | ${item.sex}`} style={themed($dimText)} />
         </View>
       </Pressable>
     )
@@ -136,6 +151,21 @@ const $animalCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   borderRadius: 12,
   padding: spacing.md,
   marginBottom: spacing.sm,
+})
+
+const $animalCardRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  gap: spacing.sm,
+})
+
+const $animalPhoto: ImageStyle = {
+  width: 60,
+  height: 60,
+  borderRadius: 8,
+}
+
+const $animalCardContent: ThemedStyle<ViewStyle> = () => ({
+  flex: 1,
 })
 
 const $animalCardHeader: ThemedStyle<ViewStyle> = () => ({

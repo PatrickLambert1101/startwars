@@ -122,11 +122,88 @@ export const migrations = schemaMigrations({
         },
       ],
     },
+    {
+      toVersion: 7,
+      steps: [
+        {
+          type: "add_columns",
+          table: "weight_records",
+          columns: [
+            { name: "created_by_user_id", type: "string", isOptional: true },
+            { name: "created_by_name", type: "string", isOptional: true },
+          ],
+        },
+        {
+          type: "add_columns",
+          table: "health_records",
+          columns: [
+            { name: "created_by_user_id", type: "string", isOptional: true },
+            { name: "created_by_name", type: "string", isOptional: true },
+          ],
+        },
+        {
+          type: "add_columns",
+          table: "breeding_records",
+          columns: [
+            { name: "created_by_user_id", type: "string", isOptional: true },
+            { name: "created_by_name", type: "string", isOptional: true },
+          ],
+        },
+        {
+          type: "add_columns",
+          table: "pasture_movements",
+          columns: [
+            { name: "created_by_user_id", type: "string", isOptional: true },
+            { name: "created_by_name", type: "string", isOptional: true },
+          ],
+        },
+      ],
+    },
+    {
+      toVersion: 8,
+      steps: [
+        {
+          type: "add_columns",
+          table: "weight_records",
+          columns: [
+            { name: "photos", type: "string", isOptional: true }, // JSON array of photo objects
+          ],
+        },
+        {
+          type: "add_columns",
+          table: "health_records",
+          columns: [
+            { name: "photos", type: "string", isOptional: true }, // JSON array of photo objects
+          ],
+        },
+        {
+          type: "add_columns",
+          table: "breeding_records",
+          columns: [
+            { name: "photos", type: "string", isOptional: true }, // JSON array of photo objects
+          ],
+        },
+        {
+          type: "add_columns",
+          table: "animals",
+          columns: [
+            { name: "photos", type: "string", isOptional: true }, // JSON array of photo objects
+          ],
+        },
+        {
+          type: "add_columns",
+          table: "pastures",
+          columns: [
+            { name: "photos", type: "string", isOptional: true }, // JSON array of photo objects
+          ],
+        },
+      ],
+    },
   ],
 })
 
 export const schema = appSchema({
-  version: 6,
+  version: 8,
   tables: [
     tableSchema({
       name: "organizations",
@@ -158,6 +235,7 @@ export const schema = appSchema({
         { name: "current_pasture_id", type: "string", isOptional: true, isIndexed: true },
         { name: "status", type: "string" }, // active | sold | deceased | transferred
         { name: "notes", type: "string", isOptional: true },
+        { name: "photos", type: "string", isOptional: true }, // JSON array of photo objects
         { name: "created_at", type: "number" },
         { name: "updated_at", type: "number" },
         { name: "is_deleted", type: "boolean" },
@@ -178,6 +256,9 @@ export const schema = appSchema({
         { name: "administered_by", type: "string", isOptional: true },
         { name: "withdrawal_date", type: "number", isOptional: true },
         { name: "notes", type: "string", isOptional: true },
+        { name: "created_by_user_id", type: "string", isOptional: true },
+        { name: "created_by_name", type: "string", isOptional: true },
+        { name: "photos", type: "string", isOptional: true }, // JSON array of photo objects
         { name: "created_at", type: "number" },
         { name: "updated_at", type: "number" },
         { name: "is_deleted", type: "boolean" },
@@ -193,6 +274,9 @@ export const schema = appSchema({
         { name: "weight_kg", type: "number" },
         { name: "condition_score", type: "number", isOptional: true },
         { name: "notes", type: "string", isOptional: true },
+        { name: "created_by_user_id", type: "string", isOptional: true },
+        { name: "created_by_name", type: "string", isOptional: true },
+        { name: "photos", type: "string", isOptional: true }, // JSON array of photo objects
         { name: "created_at", type: "number" },
         { name: "updated_at", type: "number" },
         { name: "is_deleted", type: "boolean" },
@@ -212,6 +296,9 @@ export const schema = appSchema({
         { name: "calf_id", type: "string", isOptional: true },
         { name: "outcome", type: "string" }, // pending | live_calf | stillborn | aborted | open
         { name: "notes", type: "string", isOptional: true },
+        { name: "created_by_user_id", type: "string", isOptional: true },
+        { name: "created_by_name", type: "string", isOptional: true },
+        { name: "photos", type: "string", isOptional: true }, // JSON array of photo objects
         { name: "created_at", type: "number" },
         { name: "updated_at", type: "number" },
         { name: "is_deleted", type: "boolean" },
@@ -260,6 +347,7 @@ export const schema = appSchema({
         { name: "available_from_date", type: "number", isOptional: true },
         { name: "is_active", type: "boolean" },
         { name: "notes", type: "string", isOptional: true },
+        { name: "photos", type: "string", isOptional: true }, // JSON array of photo objects
         { name: "created_at", type: "number" },
         { name: "updated_at", type: "number" },
         { name: "is_deleted", type: "boolean" },
@@ -276,6 +364,8 @@ export const schema = appSchema({
         { name: "movement_type", type: "string" },
         { name: "moved_by", type: "string", isOptional: true },
         { name: "notes", type: "string", isOptional: true },
+        { name: "created_by_user_id", type: "string", isOptional: true },
+        { name: "created_by_name", type: "string", isOptional: true },
         { name: "created_at", type: "number" },
         { name: "updated_at", type: "number" },
         { name: "is_deleted", type: "boolean" },

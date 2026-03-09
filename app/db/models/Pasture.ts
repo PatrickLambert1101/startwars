@@ -29,6 +29,7 @@ export class Pasture extends Model {
   @date("available_from_date") availableFromDate!: Date | null
   @field("is_active") isActive!: boolean
   @field("notes") notes!: string | null
+  @field("photos") photos!: string | null // JSON array of photo objects
   @readonly @date("created_at") createdAt!: Date
   @date("updated_at") updatedAt!: Date
   @field("is_deleted") isDeleted!: boolean

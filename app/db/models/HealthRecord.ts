@@ -24,6 +24,9 @@ export class HealthRecord extends Model {
   @field("administered_by") administeredBy!: string | null
   @date("withdrawal_date") withdrawalDate!: Date | null
   @field("notes") notes!: string | null
+  @field("created_by_user_id") createdByUserId!: string | null
+  @field("created_by_name") createdByName!: string | null
+  @field("photos") photos!: string | null // JSON array of photo objects
   @readonly @date("created_at") createdAt!: Date
   @date("updated_at") updatedAt!: Date
   @field("is_deleted") isDeleted!: boolean
