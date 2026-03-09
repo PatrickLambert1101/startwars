@@ -43,7 +43,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
   const { animal } = useAnimal(animalId ?? "")
   const { createAnimal, updateAnimal } = useAnimalActions()
   const { animals } = useAnimals()
-  const { isScanning, scannedTag, startScanning, stopScanning, initialize, isInitialized } = useRfidReader()
+  const { isScanning, scannedTag, startScanning, stopScanning, initialize, isInitialized, hasRfidHardware } = useRfidReader()
   const { currentOrg } = useDatabase()
   const { user } = useAuth()
 
@@ -66,14 +66,12 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
   const [showDamePicker, setShowDamePicker] = useState(false)
   const [parentSearch, setParentSearch] = useState("")
 
-  const isHandScanner = Platform.OS === "android"
-
   // Initialize RFID scanner
   useEffect(() => {
-    if (isHandScanner && !isInitialized) {
+    if (hasRfidHardware && !isInitialized) {
       initialize()
     }
-  }, [isHandScanner, isInitialized, initialize])
+  }, [hasRfidHardware, isInitialized, initialize])
 
   // Handle scanned RFID tag
   useEffect(() => {
@@ -235,7 +233,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
         {/* RFID Tag Field with Scanner */}
         <View>
           <Text preset="formLabel" text="RFID Tag" style={themed($pickerLabel)} />
-          {isHandScanner ? (
+          {hasRfidHardware ? (
             <View>
               {isScanning ? (
                 <View style={themed($scanningBox)}>
