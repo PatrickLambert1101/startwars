@@ -7,4 +7,5 @@ export type RfidReaderHook = {
   isScanning: boolean
   scannedTag: { data: string } | null
   error: string | null
+  hasRfidHardware: boolean
 }

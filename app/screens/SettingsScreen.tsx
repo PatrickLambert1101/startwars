@@ -16,13 +16,11 @@ const POWER_MIN = 18
 const POWER_MAX = 27
 const POWER_DEFAULT = 18
 
-const hasUhfHardware = Platform.OS === "android" && !!NativeModules.UHFModule
-
 export const SettingsScreen: FC<any> = ({ navigation }) => {
   const { themed } = useAppTheme()
   const { logout, user } = useAuth()
   const { currentOrg } = useDatabase()
-  const { setOutputPower, isInitialized, initialize } = useRfidReader()
+  const { setOutputPower, isInitialized, initialize, hasRfidHardware } = useRfidReader()
 
   const [readerPower, setReaderPower] = useState(POWER_DEFAULT)
   const [powerSaved, setPowerSaved] = useState(false)

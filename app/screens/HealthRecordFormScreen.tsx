@@ -1,7 +1,7 @@
-import { FC, useCallback, useState } from "react"
-import { Alert, Pressable, View, ViewStyle, TextStyle } from "react-native"
+import { FC, useCallback, useState, useMemo } from "react"
+import { Alert, Pressable, View, ViewStyle, TextStyle, ScrollView } from "react-native"
 
-import { Screen, Text, TextField, Button } from "@/components"
+import { Screen, Text, TextField, Button, Icon } from "@/components"
 import { PhotoPicker } from "@/components/PhotoPicker"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -14,6 +14,7 @@ import { useAuth } from "@/context/AuthContext"
 import { uploadPhoto } from "@/services/photoStorage"
 import type { PhotoWithMetadata } from "@/types/Photo"
 import { serializePhotos } from "@/types/Photo"
+import { useProtocols } from "@/hooks/useProtocols"
 
 const RECORD_TYPES: HealthRecordType[] = ["vaccination", "treatment", "vet_visit", "condition_score", "other"]
 
@@ -24,8 +25,11 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
   const { hasFeature } = useSubscription()
   const { currentOrg } = useDatabase()
   const { user } = useAuth()
+  const { protocols } = useProtocols()
 
   const [recordType, setRecordType] = useState<HealthRecordType>("treatment")
+  const [selectedProtocolId, setSelectedProtocolId] = useState<string | null>(null)
+  const [showProtocolPicker, setShowProtocolPicker] = useState(false)
   const [description, setDescription] = useState("")
   const [productName, setProductName] = useState("")
   const [dosage, setDosage] = useState("")
@@ -33,6 +37,44 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
   const [notes, setNotes] = useState("")
   const [photos, setPhotos] = useState<PhotoWithMetadata[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Filter protocols based on record type
+  const relevantProtocols = useMemo(() => {
+    return protocols.filter(p => {
+      if (!p.isActive) return false
+      if (recordType === "vaccination") return p.protocolType === "vaccination"
+      if (recordType === "treatment") return p.protocolType === "treatment" || p.protocolType === "deworming"
+      return false
+    })
+  }, [protocols, recordType])
+
+  const selectedProtocol = useMemo(() => {
+    if (!selectedProtocolId) return null
+    return protocols.find(p => p.id === selectedProtocolId) || null
+  }, [selectedProtocolId, protocols])
+
+  // Auto-fill from protocol when selected
+  const handleSelectProtocol = useCallback((protocolId: string) => {
+    const protocol = protocols.find(p => p.id === protocolId)
+    if (!protocol) return
+
+    setSelectedProtocolId(protocolId)
+    setDescription(protocol.name)
+    setProductName(protocol.productName)
+    setDosage(protocol.dosage)
+    if (protocol.description) {
+      setNotes(protocol.description)
+    }
+    setShowProtocolPicker(false)
+  }, [protocols])
+
+  const handleClearProtocol = useCallback(() => {
+    setSelectedProtocolId(null)
+    setDescription("")
+    setProductName("")
+    setDosage("")
+    setNotes("")
+  }, [])
 
   const handleSave = useCallback(async () => {
     if (!description.trim()) {
@@ -129,6 +171,7 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
                     return
                   }
                   setRecordType(t)
+                  setSelectedProtocolId(null) // Reset protocol when type changes
                 }}
                 style={themed(recordType === t ? $typeChipActive : locked ? $typeChipLocked : $typeChip)}
               >
@@ -141,6 +184,67 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
             )
           })}
         </View>
+
+        {/* Protocol Picker */}
+        {relevantProtocols.length > 0 && (
+          <View style={themed($protocolSection)}>
+            {selectedProtocol ? (
+              <View style={themed($selectedProtocol)}>
+                <View style={themed($selectedProtocolInfo)}>
+                  <Icon icon="check" size={20} color="#4A8C3F" />
+                  <View style={themed($selectedProtocolText)}>
+                    <Text style={themed($selectedProtocolName)}>{selectedProtocol.name}</Text>
+                    <Text style={themed($selectedProtocolDetail)}>{selectedProtocol.productName} • {selectedProtocol.dosage}</Text>
+                  </View>
+                </View>
+                <Pressable onPress={handleClearProtocol} style={themed($clearButton)}>
+                  <Icon icon="x" size={20} color="#999" />
+                </Pressable>
+              </View>
+            ) : (
+              <Pressable
+                style={themed($selectProtocolButton)}
+                onPress={() => setShowProtocolPicker(!showProtocolPicker)}
+              >
+                <Icon icon="medical" size={20} color="#666" />
+                <Text style={themed($selectProtocolText)}>
+                  Select from {relevantProtocols.length} saved protocol{relevantProtocols.length !== 1 ? 's' : ''}
+                </Text>
+                <Icon icon="caretRight" size={16} color="#999" />
+              </Pressable>
+            )}
+
+            {/* Protocol List */}
+            {showProtocolPicker && !selectedProtocol && (
+              <ScrollView style={themed($protocolList)} nestedScrollEnabled>
+                {relevantProtocols.map((protocol) => (
+                  <Pressable
+                    key={protocol.id}
+                    style={themed($protocolItem)}
+                    onPress={() => handleSelectProtocol(protocol.id)}
+                  >
+                    <View style={themed($protocolItemContent)}>
+                      <Text style={themed($protocolItemName)}>{protocol.name}</Text>
+                      <Text style={themed($protocolItemDetail)}>{protocol.productName} • {protocol.dosage}</Text>
+                    </View>
+                    <Icon icon="caretRight" size={16} color="#999" />
+                  </Pressable>
+                ))}
+              </ScrollView>
+            )}
+          </View>
+        )}
+
+        {relevantProtocols.length === 0 && (recordType === "vaccination" || recordType === "treatment") && (
+          <Pressable
+            style={themed($noProtocolsButton)}
+            onPress={() => navigation.navigate("TreatmentProtocols")}
+          >
+            <Text style={themed($noProtocolsText)}>
+              No protocols found. Create one in Settings → Treatment Protocols
+            </Text>
+          </Pressable>
+        )}
 
         <TextField
           label="Description *"
@@ -251,4 +355,114 @@ const $typeChipTextActive: ThemedStyle<TextStyle> = () => ({
 
 const $saveButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   marginTop: spacing.lg,
+})
+
+const $protocolSection: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  marginBottom: spacing.sm,
+})
+
+const $selectedProtocol: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+  backgroundColor: "#E2EDDF",
+  borderRadius: 12,
+  padding: spacing.md,
+  borderWidth: 2,
+  borderColor: "#4A8C3F",
+})
+
+const $selectedProtocolInfo: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.sm,
+  flex: 1,
+})
+
+const $selectedProtocolText: ThemedStyle<ViewStyle> = () => ({
+  flex: 1,
+})
+
+const $selectedProtocolName: ThemedStyle<TextStyle> = () => ({
+  fontSize: 16,
+  fontWeight: "600",
+  color: "#36712D",
+  marginBottom: 2,
+})
+
+const $selectedProtocolDetail: ThemedStyle<TextStyle> = () => ({
+  fontSize: 13,
+  color: "#5A8C51",
+})
+
+const $clearButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  padding: spacing.xxs,
+})
+
+const $selectProtocolButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.sm,
+  backgroundColor: colors.palette.neutral100,
+  borderRadius: 12,
+  padding: spacing.md,
+  borderWidth: 1,
+  borderColor: colors.palette.neutral300,
+})
+
+const $selectProtocolText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  flex: 1,
+  fontSize: 15,
+  color: colors.text,
+  fontWeight: "500",
+})
+
+const $protocolList: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  maxHeight: 240,
+  backgroundColor: colors.palette.neutral100,
+  borderRadius: 12,
+  marginTop: spacing.xs,
+  borderWidth: 1,
+  borderColor: colors.palette.neutral300,
+})
+
+const $protocolItem: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+  padding: spacing.md,
+  borderBottomWidth: 1,
+  borderBottomColor: colors.palette.neutral200,
+})
+
+const $protocolItemContent: ThemedStyle<ViewStyle> = () => ({
+  flex: 1,
+})
+
+const $protocolItemName: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 15,
+  fontWeight: "600",
+  color: colors.text,
+  marginBottom: 2,
+})
+
+const $protocolItemDetail: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 13,
+  color: colors.textDim,
+})
+
+const $noProtocolsButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.palette.accent100,
+  borderRadius: 12,
+  padding: spacing.md,
+  borderWidth: 1,
+  borderColor: colors.palette.accent300,
+  marginBottom: spacing.sm,
+})
+
+const $noProtocolsText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 14,
+  color: colors.palette.accent600,
+  textAlign: "center",
+  lineHeight: 20,
 })

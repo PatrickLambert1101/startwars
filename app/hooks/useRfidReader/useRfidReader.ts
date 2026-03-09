@@ -19,6 +19,9 @@ export const useRfidReader = (): RfidReaderHook => {
   const [scannedTag, setScannedTag] = useState<{ data: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  // Check if RFID hardware is available
+  const hasRfidHardware = Platform.OS === "android" && !!UHFReader
+
   const initialize = useCallback(async () => {
     try {
       // Only initialize on Android
@@ -129,5 +132,6 @@ export const useRfidReader = (): RfidReaderHook => {
     isScanning,
     scannedTag,
     error,
+    hasRfidHardware,
   }
 }
