@@ -2,11 +2,12 @@ import { FC, useCallback, useEffect, useRef, useState } from "react"
 import { Alert, FlatList, Pressable, ScrollView, TextInput, View, ViewStyle, TextStyle } from "react-native"
 import { format } from "date-fns"
 
-import { Screen, Text, TextField, Button } from "@/components"
+import { Screen, Text, TextField, Button, ScanTagButton } from "@/components"
 import { WeightChart } from "@/components/WeightChart"
 import { RfidTagIcon } from "@/components/icons"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
+import { spacing } from "@/theme/spacing"
 import { database } from "@/db"
 import { Animal } from "@/db/models/Animal"
 import { WeightRecord } from "@/db/models/WeightRecord"
@@ -14,9 +15,11 @@ import { HealthRecord } from "@/db/models/HealthRecord"
 import { useDatabase } from "@/context/DatabaseContext"
 import { useSubscription } from "@/context/SubscriptionContext"
 import { useWeightRecordActions, useHealthRecordActions } from "@/hooks/useRecords"
+import { useActiveProtocols } from "@/hooks/useProtocols"
+import { TreatmentProtocol } from "@/db/models"
 import { Q } from "@nozbe/watermelondb"
 
-type SessionMode = "weight" | "treatment" | "condition"
+type SessionMode = "weight" | "treatment" | "condition" | "weight_and_treatment" | "protocol"
 
 type ProcessedEntry = {
   id: string
@@ -32,12 +35,16 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
   const { hasFeature } = useSubscription()
   const { createWeightRecord } = useWeightRecordActions()
   const { createHealthRecord } = useHealthRecordActions()
+  const { protocols } = useActiveProtocols()
 
   const rfidInputRef = useRef<TextInput>(null)
   const weightInputRef = useRef<TextInput>(null)
 
   // Session mode — pre-select the action for batch processing
   const [sessionMode, setSessionMode] = useState<SessionMode | null>(null)
+
+  // Protocol mode state
+  const [selectedProtocol, setSelectedProtocol] = useState<TreatmentProtocol | null>(null)
 
   // Scan state
   const [rfidInput, setRfidInput] = useState("")
@@ -149,6 +156,7 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
     setDosage("")
     setConditionValue("")
     setRfidInput("")
+    // Don't reset selected protocol — keep it for batch processing
     setTimeout(() => rfidInputRef.current?.focus(), 100)
   }, [])
 
@@ -259,6 +267,34 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
     resetForNextAnimal()
   }, [resetForNextAnimal])
 
+  const handleApplyProtocol = useCallback(async () => {
+    if (!scannedAnimal || !selectedProtocol) return
+
+    try {
+      await createHealthRecord({
+        animalId: scannedAnimal.id,
+        recordDate: new Date(),
+        recordType: selectedProtocol.protocolType,
+        description: selectedProtocol.name,
+        productName: selectedProtocol.productName,
+        dosage: selectedProtocol.dosage,
+        protocolId: selectedProtocol.id,
+      })
+
+      setProcessedLog((prev) => [{
+        id: `${Date.now()}`,
+        animalName: scannedAnimal.displayName,
+        action: "protocol" as any,
+        value: selectedProtocol.name,
+        timestamp: new Date(),
+      }, ...prev])
+
+      resetForNextAnimal()
+    } catch {
+      Alert.alert("Error", "Failed to apply protocol")
+    }
+  }, [scannedAnimal, selectedProtocol, createHealthRecord, resetForNextAnimal])
+
   const activeMode = sessionMode
 
   // ─── No session mode selected — show mode picker ───
@@ -273,22 +309,29 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
             onPress={() => setSessionMode("weight")}
             style={[themed($modeCard), { borderColor: "#4A8C3F" }]}
           >
-            <Text preset="subheading" text="Weigh" style={{ color: "#4A8C3F" }} />
-            <Text size="xs" text="Scan, see weight history, record new weight" style={themed($dimText)} />
+            <Text preset="subheading" text="⚖️ Weigh" style={{ color: "#4A8C3F" }} />
+            <Text size="xs" text="Record weight and optional condition score" style={themed($dimText)} />
           </Pressable>
           <Pressable
             onPress={() => setSessionMode("treatment")}
             style={[themed($modeCard), { borderColor: "#3B82F6" }]}
           >
-            <Text preset="subheading" text="Vaccinate / Treat" style={{ color: "#3B82F6" }} />
-            <Text size="xs" text="Scan, administer vaccine or treatment" style={themed($dimText)} />
+            <Text preset="subheading" text="💉 Vaccinate / Treat" style={{ color: "#3B82F6" }} />
+            <Text size="xs" text="Administer vaccines or treatments" style={themed($dimText)} />
           </Pressable>
           <Pressable
-            onPress={() => setSessionMode("condition")}
-            style={[themed($modeCard), { borderColor: "#F59E0B" }]}
+            onPress={() => setSessionMode("weight_and_treatment")}
+            style={[themed($modeCard), { borderColor: "#8B5CF6" }]}
           >
-            <Text preset="subheading" text="Condition Score" style={{ color: "#F59E0B" }} />
-            <Text size="xs" text="Scan, score body condition 1-9" style={themed($dimText)} />
+            <Text preset="subheading" text="⚖️💉 Weigh + Treat" style={{ color: "#8B5CF6" }} />
+            <Text size="xs" text="Record weight and administer treatment in one go" style={themed($dimText)} />
+          </Pressable>
+          <Pressable
+            onPress={() => setSessionMode("protocol")}
+            style={[themed($modeCard), { borderColor: "#10B981" }]}
+          >
+            <Text preset="subheading" text="📋 Apply Protocol" style={{ color: "#10B981" }} />
+            <Text size="xs" text="Quick-apply a treatment protocol to multiple animals" style={themed($dimText)} />
           </Pressable>
         </View>
 
@@ -302,8 +345,8 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
     )
   }
 
-  const modeColor = activeMode === "weight" ? "#4A8C3F" : activeMode === "treatment" ? "#3B82F6" : "#F59E0B"
-  const modeLabel = activeMode === "weight" ? "Weigh Session" : activeMode === "treatment" ? "Vaccine / Treatment Session" : "Condition Score Session"
+  const modeColor = activeMode === "weight" ? "#4A8C3F" : activeMode === "treatment" ? "#3B82F6" : activeMode === "weight_and_treatment" ? "#8B5CF6" : activeMode === "protocol" ? "#10B981" : "#F59E0B"
+  const modeLabel = activeMode === "weight" ? "Weigh Session" : activeMode === "treatment" ? "Vaccine / Treatment Session" : activeMode === "weight_and_treatment" ? "Weigh + Treat Session" : activeMode === "protocol" ? "Protocol Application" : "Condition Score Session"
 
   return (
     <Screen preset="fixed" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
@@ -332,12 +375,21 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
               autoFocus
               onSubmitEditing={handleScanSubmit}
             />
-            <Button
-              text={isSearching ? "Searching..." : "Look Up"}
-              preset="reversed"
-              style={themed($lookupButton)}
-              onPress={handleScanSubmit}
-            />
+            <View style={themed($scanButtons)}>
+              <ScanTagButton
+                onTagScanned={(tagNumber) => {
+                  setRfidInput(tagNumber)
+                  lookupAnimal(tagNumber)
+                }}
+                style={themed($scanTagBtn)}
+              />
+              <Button
+                text={isSearching ? "Searching..." : "Look Up"}
+                preset="reversed"
+                style={themed($lookupButton)}
+                onPress={handleScanSubmit}
+              />
+            </View>
           </View>
         </View>
       ) : (
@@ -418,6 +470,127 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
             </View>
           )}
 
+          {/* ─── WEIGHT + TREATMENT COMBINED MODE ─── */}
+          {activeMode === "weight_and_treatment" && (
+            <View style={themed($actionSection)}>
+              {/* Weight section */}
+              {weightHistory.length >= 2 && (
+                <WeightChart records={weightHistory} />
+              )}
+              <View style={themed($formCard)}>
+                <Text preset="bold" text="Weight" size="md" style={{ color: "#4A8C3F" }} />
+                <TextField
+                  label="Weight (kg)"
+                  value={weightValue}
+                  onChangeText={setWeightValue}
+                  placeholder="e.g. 450"
+                  keyboardType="numeric"
+                  autoFocus
+                />
+                <TextField
+                  label="Condition Score (1-9)"
+                  value={conditionScore}
+                  onChangeText={setConditionScore}
+                  placeholder="Optional, e.g. 6"
+                  keyboardType="numeric"
+                />
+              </View>
+
+              {/* Treatment section */}
+              <View style={themed($formCard)}>
+                <Text preset="bold" text="Treatment" size="md" style={{ color: "#3B82F6" }} />
+                <View style={themed($typeToggle)}>
+                  <Pressable
+                    onPress={() => setTreatmentType("vaccination")}
+                    style={[themed($typeBtn), treatmentType === "vaccination" && { backgroundColor: "#3B82F6" }]}
+                  >
+                    <Text
+                      text="Vaccination"
+                      size="xs"
+                      style={treatmentType === "vaccination" ? { color: "#FFF" } : themed($dimText)}
+                    />
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setTreatmentType("treatment")}
+                    style={[themed($typeBtn), treatmentType === "treatment" && { backgroundColor: "#3B82F6" }]}
+                  >
+                    <Text text="Treatment" size="xs" style={treatmentType === "treatment" ? { color: "#FFF" } : themed($dimText)} />
+                  </Pressable>
+                </View>
+                <TextField
+                  label="Product Name"
+                  value={productName}
+                  onChangeText={setProductName}
+                  placeholder="e.g. Covexin 10, Ivermectin"
+                />
+                <TextField
+                  label="Dosage"
+                  value={dosage}
+                  onChangeText={setDosage}
+                  placeholder="e.g. 2ml SC"
+                />
+                <TextField
+                  label="Description"
+                  value={treatmentDesc}
+                  onChangeText={setTreatmentDesc}
+                  placeholder="Additional details..."
+                />
+              </View>
+
+              <View style={themed($formButtons)}>
+                <Button text="Skip" preset="default" onPress={handleClearAnimal} />
+                <Button text="Save Both & Next" preset="reversed" onPress={async () => {
+                  // Save weight first
+                  const kg = parseFloat(weightValue)
+                  if (isNaN(kg) || kg <= 0) {
+                    Alert.alert("Invalid", "Enter a valid weight in kg")
+                    return
+                  }
+                  const cs = conditionScore ? parseInt(conditionScore, 10) : undefined
+
+                  // Save treatment
+                  if (!treatmentDesc.trim() && !productName.trim()) {
+                    Alert.alert("Required", "Enter a treatment description or product name")
+                    return
+                  }
+
+                  try {
+                    await createWeightRecord({
+                      animalId: scannedAnimal.id,
+                      recordDate: new Date(),
+                      weightKg: kg,
+                      conditionScore: cs,
+                    })
+
+                    const desc = treatmentDesc.trim() || productName.trim()
+                    const fullDesc = [desc, dosage.trim() ? `Dosage: ${dosage.trim()}` : ""].filter(Boolean).join(" — ")
+
+                    await createHealthRecord({
+                      animalId: scannedAnimal.id,
+                      recordDate: new Date(),
+                      recordType: treatmentType,
+                      description: fullDesc,
+                      productName: productName.trim() || undefined,
+                      dosage: dosage.trim() || undefined,
+                    })
+
+                    setProcessedLog((prev) => [{
+                      id: `${Date.now()}`,
+                      animalName: scannedAnimal.displayName,
+                      action: "weight_and_treatment" as any,
+                      value: `${kg}kg + ${treatmentType}`,
+                      timestamp: new Date(),
+                    }, ...prev])
+
+                    resetForNextAnimal()
+                  } catch {
+                    Alert.alert("Error", "Failed to save records")
+                  }
+                }} style={themed($saveNextButton)} />
+              </View>
+            </View>
+          )}
+
           {/* ─── TREATMENT / VACCINE MODE ─── */}
           {activeMode === "treatment" && (
             <View style={themed($actionSection)}>
@@ -441,20 +614,11 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
               <View style={themed($formCard)}>
                 <View style={themed($typeToggle)}>
                   <Pressable
-                    onPress={() => {
-                      if (!hasFeature("vaccines")) {
-                        Alert.alert("Pro Feature", "Vaccine protocols require HerdTrackr Pro.", [
-                          { text: "Cancel" },
-                          { text: "Upgrade", onPress: () => navigation?.navigate("Upgrade") },
-                        ])
-                        return
-                      }
-                      setTreatmentType("vaccination")
-                    }}
+                    onPress={() => setTreatmentType("vaccination")}
                     style={[themed($typeBtn), treatmentType === "vaccination" && { backgroundColor: "#3B82F6" }]}
                   >
                     <Text
-                      text={hasFeature("vaccines") ? "Vaccination" : "Vaccination (PRO)"}
+                      text="Vaccination"
                       size="xs"
                       style={treatmentType === "vaccination" ? { color: "#FFF" } : themed($dimText)}
                     />
@@ -527,6 +691,69 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
                   <Button text="Save & Next" preset="reversed" onPress={handleSaveCondition} style={themed($saveNextButton)} />
                 </View>
               </View>
+            </View>
+          )}
+
+          {/* ─── PROTOCOL MODE ─── */}
+          {activeMode === "protocol" && (
+            <View style={themed($actionSection)}>
+              {!selectedProtocol ? (
+                /* Protocol selection */
+                <View style={themed($formCard)}>
+                  <Text preset="bold" text="Select Protocol" size="md" style={{ color: "#10B981" }} />
+                  {protocols.length === 0 ? (
+                    <View style={{ paddingVertical: spacing.md, alignItems: "center" }}>
+                      <Text text="No active protocols available" size="sm" style={themed($dimText)} />
+                      <Button
+                        text="Manage Protocols"
+                        preset="default"
+                        onPress={() => navigation.navigate("TreatmentProtocols")}
+                        style={{ marginTop: spacing.sm }}
+                      />
+                    </View>
+                  ) : (
+                    <View style={{ gap: spacing.xs }}>
+                      {protocols.map((protocol) => (
+                        <Pressable
+                          key={protocol.id}
+                          onPress={() => setSelectedProtocol(protocol)}
+                          style={[
+                            themed($protocolOption),
+                            selectedProtocol?.id === protocol.id && { borderColor: "#10B981", backgroundColor: "#10B98122" }
+                          ]}
+                        >
+                          <View style={{ flex: 1 }}>
+                            <Text preset="bold" text={protocol.name} size="sm" />
+                            <Text text={`${protocol.productName} - ${protocol.dosage}`} size="xs" style={themed($dimText)} />
+                          </View>
+                        </Pressable>
+                      ))}
+                    </View>
+                  )}
+                  <Button text="Cancel" preset="default" onPress={handleClearAnimal} style={{ marginTop: spacing.sm }} />
+                </View>
+              ) : (
+                /* Protocol selected - ready to apply */
+                <View style={themed($formCard)}>
+                  <View style={{ backgroundColor: "#10B98122", borderRadius: 8, padding: spacing.md, marginBottom: spacing.sm }}>
+                    <Text preset="bold" text={selectedProtocol.name} size="md" style={{ color: "#10B981" }} />
+                    <View style={{ marginTop: spacing.xs, gap: spacing.xxs }}>
+                      <Text text={`Product: ${selectedProtocol.productName}`} size="xs" />
+                      <Text text={`Dosage: ${selectedProtocol.dosage}`} size="xs" />
+                      {selectedProtocol.administrationMethod && (
+                        <Text text={`Method: ${selectedProtocol.administrationMethod}`} size="xs" />
+                      )}
+                      {selectedProtocol.withdrawalDays && (
+                        <Text text={`Withdrawal: ${selectedProtocol.withdrawalDays} days`} size="xs" />
+                      )}
+                    </View>
+                  </View>
+                  <View style={themed($formButtons)}>
+                    <Button text="Change Protocol" preset="default" onPress={() => setSelectedProtocol(null)} />
+                    <Button text="Apply & Next" preset="reversed" onPress={handleApplyProtocol} style={themed($saveNextButton)} />
+                  </View>
+                </View>
+              )}
             </View>
           )}
         </ScrollView>
@@ -616,9 +843,19 @@ const $scanInput: ThemedStyle<ViewStyle> = () => ({
   width: "100%",
 })
 
-const $lookupButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+const $scanButtons: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  gap: spacing.sm,
   marginTop: spacing.sm,
   width: "100%",
+})
+
+const $scanTagBtn: ThemedStyle<ViewStyle> = () => ({
+  flex: 1,
+})
+
+const $lookupButton: ThemedStyle<ViewStyle> = () => ({
+  flex: 2,
 })
 
 const $scrollContent: ThemedStyle<ViewStyle> = () => ({
@@ -771,4 +1008,14 @@ const $logEntry: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
 
 const $dimText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.textDim,
+})
+
+const $protocolOption: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.palette.neutral100,
+  borderRadius: 8,
+  padding: spacing.md,
+  borderWidth: 2,
+  borderColor: colors.palette.neutral300,
+  flexDirection: "row",
+  alignItems: "center",
 })

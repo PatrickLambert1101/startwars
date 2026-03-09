@@ -1,129 +1,256 @@
-# Supabase Project Setup
+# Supabase Database Setup
 
-Step-by-step guide to get your HerdTrackr backend running on Supabase.
+## Problem: Database Resets on Refresh
 
----
+Your app is losing data because:
+1. **Local database (IndexedDB) is resetting** - This is a separate issue with LokiJS adapter
+2. **Supabase is missing WatermelonDB sync columns** - Even if local DB worked, sync won't work without `_changed` and `_status` columns
 
-## 1. Create a Supabase Project
+## Solution: Apply Database Migrations
 
-1. Go to [supabase.com](https://supabase.com) and sign in (or create an account).
-2. Click **New Project**.
-3. Choose an organization (or create one — e.g. "My Farm").
-4. Fill in:
-   - **Project name:** `herdtrackr` (or whatever you like)
-   - **Database password:** pick something strong and save it — you'll need it for direct DB access.
-   - **Region:** choose the one closest to you (e.g. *Africa (Cape Town)* for South African farms).
-5. Click **Create new project** and wait for it to spin up (~60 seconds).
+### Option 1: Manual SQL (Easiest - Recommended)
 
----
+1. Go to your Supabase Dashboard: https://supabase.com/dashboard
+2. Select your HerdTrackr project
+3. Click **"SQL Editor"** in the left sidebar
+4. Click **"New query"**
 
-## 2. Find Your API Keys
+5. **Copy and paste the ENTIRE contents of this file:**
+   `supabase/migrations/00002_add_watermelondb_sync.sql`
 
-Once your project is ready, go to **Project Settings > API** (in the left sidebar).
+6. Click **"Run"** (or press Cmd+Enter)
 
-You'll see two keys:
+7. You should see: ✅ Success. No rows returned
 
-| Key | Env variable | Use |
-|---|---|---|
-| **Publishable key** (previously called "anon key") | `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Embedded in the mobile app. All queries go through Row-Level Security. Safe to ship. |
-| **Secret key** (previously called "service_role key") | `SUPABASE_SECRET_KEY` | Full admin access — bypasses RLS. **Never embed this in a client app.** Use it for seed scripts, Edge Functions, and CI. |
-
-You'll also need the **Project URL** shown at the top of the same page:
-
-```
-https://abcdefghij.supabase.co
-```
-
----
-
-## 3. Configure Your Environment
-
-Copy the example env file and paste your values:
+### Option 2: Using Supabase CLI
 
 ```bash
-cp .env.example .env
+# First, link your project (one-time setup)
+npx supabase link --project-ref YOUR_PROJECT_REF
+
+# Find your project ref:
+# Go to https://supabase.com/dashboard → Your Project → Settings → General
+# Look for "Reference ID"
+
+# Then apply migrations
+npx supabase db push
 ```
 
-Then edit `.env`:
+### Option 3: Run Setup Script
 
 ```bash
-# Client-safe keys (bundled into the Expo app)
-EXPO_PUBLIC_SUPABASE_URL=https://abcdefghij.supabase.co
-EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=eyJhbGciOi...  # your publishable key
-
-# Server-only key (used by seed scripts — NOT bundled into the app)
-SUPABASE_SECRET_KEY=eyJhbGciOi...  # your secret key
+./scripts/setup-supabase.sh
 ```
-
-> **Important:** Keys prefixed with `EXPO_PUBLIC_` are bundled into the JS
-> bundle. Never add `EXPO_PUBLIC_` to the secret key.
 
 ---
 
-## 4. Run the Database Migrations
+## What This Migration Does
 
-Open the **SQL Editor** in your Supabase dashboard and paste the contents of:
+Adds the following to ALL tables:
+- `_changed` column (required by WatermelonDB sync)
+- `_status` column (required by WatermelonDB sync)
+- Indexes on these columns for performance
 
-```
-supabase/migrations/00001_initial_schema.sql
-```
+Adds to `organizations` table specifically:
+- `livestock_types` column (was missing!)
+- `location` column (was missing!)
 
-Click **Run** to create all tables, indexes, RLS policies, and triggers.
+Creates new `treatment_protocols` table (was completely missing!)
 
-Alternatively, if you have the Supabase CLI installed:
+---
 
+## After Running Migration
+
+### Step 1: Verify Migration Success
+
+Go to Supabase Dashboard → **Table Editor** → **organizations**
+
+You should see these columns:
+- ✓ id
+- ✓ remote_id
+- ✓ name
+- ✓ livestock_types (NEW)
+- ✓ location (NEW)
+- ✓ created_at
+- ✓ updated_at
+- ✓ is_deleted
+- ✓ _changed (NEW)
+- ✓ _status (NEW)
+
+### Step 2: Clear Local Database
+
+Your local IndexedDB still has the old schema and corrupted data. Clear it:
+
+**Option A: Browser DevTools (Web/Simulator)**
+1. Open Chrome DevTools (Cmd+Option+I)
+2. Go to **Application** tab
+3. Expand **IndexedDB** in left sidebar
+4. Right-click **herdtrackr** → Delete
+5. Close DevTools
+6. Refresh page (Cmd+R)
+
+**Option B: iOS Simulator**
 ```bash
-supabase db push
+# Clear all simulator data
+xcrun simctl erase all
+
+# Or reset just Safari data
+xcrun simctl privacy booted reset all com.apple.mobilesafari
+
+# Then restart app
+npm start -- --ios
 ```
+
+**Option C: Add Clear DB Script**
+```bash
+# Add this to package.json scripts:
+"clear-db": "node -e \"indexedDB.deleteDatabase('herdtrackr')\""
+
+# Then run:
+npm run clear-db
+```
+
+### Step 3: Test Organization Creation
+
+1. Refresh your app
+2. Create a new organization
+3. Add an animal
+4. **Press R to refresh**
+5. Organization should still be there! ✅
 
 ---
 
-## 5. Enable Auth Providers
+## Checking Supabase Data
 
-Go to **Authentication > Providers** in the dashboard and enable the ones you want:
+Want to see if your organization is actually in Supabase?
 
-- **Email** (enabled by default) — good for getting started
-- **Google**, **Apple**, etc. — optional, for social login
+### Using Supabase Dashboard
 
-For email auth, you may want to disable "Confirm email" during development:
+1. Go to **Table Editor** → **organizations**
+2. You should see your org in the table
+3. Click **memberships** to see your user is linked to the org
 
-> Authentication > Settings > toggle off **Enable email confirmations**
+### Using SQL Query
 
----
+Go to **SQL Editor** and run:
 
-## 6. Load Demo / Seed Data (Optional)
+```sql
+-- See all organizations
+SELECT * FROM organizations;
 
-If you want to start with a populated database for testing, run the seed script
-in the SQL Editor:
+-- See your organizations (as current user)
+SELECT
+  o.id,
+  o.name,
+  o.livestock_types,
+  o.location,
+  o.created_at,
+  m.role
+FROM organizations o
+JOIN memberships m ON m.organization_id = o.id
+WHERE m.user_id = auth.uid();
 
+-- See all animals in your org
+SELECT
+  a.visual_tag,
+  a.name,
+  a.breed,
+  a.sex,
+  o.name as organization_name
+FROM animals a
+JOIN organizations o ON a.organization_id = o.id
+JOIN memberships m ON m.organization_id = o.id
+WHERE m.user_id = auth.uid();
 ```
-supabase/seed/demo_farm_data.sql
-```
-
-This creates a demo organization ("Bosveld Plaas") with ~50 animals, health
-records, weight records, and breeding records — all modelled on a typical South
-African mixed cattle farm.
-
-> **Note:** The seed script creates its own user (demo@herdtrackr.app). After
-> running the seed, you can sign in with that email and password `DemoFarm123!`
-> (if you have email confirmations disabled).
-
----
-
-## 7. Verify Everything Works
-
-1. Start the app: `npm start`
-2. Sign in with the demo account (or create a new one).
-3. You should see the dashboard with animals, weights, and health data.
-4. Try creating a new animal — it should sync to Supabase when online.
 
 ---
 
 ## Troubleshooting
 
-| Problem | Fix |
-|---|---|
-| "Invalid API key" error | Double-check that `.env` has the **publishable** key (not the secret key) in `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. |
-| RLS blocks everything | Make sure you ran the full migration, including the RLS policies. |
-| Auth emails not arriving | Check **Authentication > Email Templates** and your SMTP settings (or disable confirmations for dev). |
-| Sync not working | Ensure the user is signed in and belongs to an organization. RLS requires a valid `auth.uid()`. |
+### Migration Error: "column already exists"
+
+This is fine! It means you already ran part of the migration. The `IF NOT EXISTS` clauses prevent errors.
+
+### Migration Error: "permission denied"
+
+You need to be the project owner. Check your role in Supabase Dashboard → Settings → Team.
+
+### Still Losing Data After Migration
+
+1. **Verify migration applied:**
+   ```sql
+   SELECT column_name
+   FROM information_schema.columns
+   WHERE table_name = 'organizations'
+   ORDER BY ordinal_position;
+   ```
+
+   Should include `_changed`, `_status`, `livestock_types`, `location`
+
+2. **Clear local IndexedDB** (see Step 2 above)
+
+3. **Check browser console for sync errors** (Cmd+Option+I → Console tab)
+
+4. **Verify Supabase environment variables** in `.env`:
+   ```
+   EXPO_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+   EXPO_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+   ```
+
+### Sync Still Not Working
+
+Check app/services/sync.ts and verify:
+- `migrationsEnabledAtVersion: 4` (should match schema version)
+- All tables have `_changed` column in Supabase
+
+---
+
+## Understanding the Database Reset Issue
+
+The logs show:
+```
+LOG  [🍉] [Loki] Initializing IndexedDB
+LOG  [🍉] [Loki] Database loaded
+LOG  [🍉] [Loki] Empty database, setting up
+LOG  [🍉] [Loki] Database is now reset
+LOG  [🍉] [Loki] Initializing IndexedDB  ← Double initialization!
+```
+
+**Why this happens:**
+1. LokiJS adapter initializes
+2. Finds existing database in IndexedDB
+3. Detects schema version mismatch (expecting v4, found v3 or corrupted data)
+4. **Resets entire database to v4**
+5. You lose all data
+
+**Why it keeps happening:**
+- Each time you refresh, IndexedDB still has old/corrupted data
+- LokiJS detects mismatch again
+- Resets again
+- Endless loop!
+
+**The fix:**
+- Clear IndexedDB completely (see Step 2 above)
+- Start fresh with clean v4 schema
+- From now on, data will persist properly
+
+**Why Supabase matters:**
+- Even if local DB works, without Supabase sync columns, your data won't sync
+- If you reinstall app or switch devices, data is gone forever
+- With proper Supabase setup + sync, data is backed up in cloud
+
+---
+
+## Next Steps After Setup
+
+Once migration is applied and local DB is cleared:
+
+1. ✅ Organizations will persist across refreshes
+2. ✅ Sync will work (data backed up to Supabase)
+3. ✅ You can access data from multiple devices
+4. ✅ Data survives app reinstalls
+
+You can now:
+- Enable AutoSync (uncomment in app/app.tsx line 94)
+- Deploy to production
+- Add more users via memberships table

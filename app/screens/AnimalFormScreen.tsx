@@ -1,24 +1,43 @@
 import { FC, useCallback, useEffect, useState } from "react"
-import { Alert, Pressable, View, ViewStyle, TextStyle } from "react-native"
+import { Alert, Pressable, View, ViewStyle, TextStyle, ActivityIndicator, Modal, FlatList } from "react-native"
 
-import { Screen, Text, TextField, Button } from "@/components"
+import { Screen, Text, TextField, Button, ScanTagButton } from "@/components"
 import { DateField } from "@/components/DateField"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { useAnimal, useAnimalActions, AnimalFormData } from "@/hooks/useAnimals"
-import { AnimalSex, AnimalStatus } from "@/db/models/Animal"
+import { useAnimals } from "@/hooks/useAnimals"
+import { AnimalSex, AnimalStatus, Animal } from "@/db/models/Animal"
+import { useRfidReader } from "@/hooks/useRfidReader"
+import { Platform } from "react-native"
 
 const SEX_OPTIONS: AnimalSex[] = ["male", "female", "castrated", "unknown"]
 const SEX_DISPLAY: Record<AnimalSex, string> = { male: "Bull", female: "Cow", castrated: "Steer/Ox", unknown: "Unknown" }
 const STATUS_OPTIONS: AnimalStatus[] = ["active", "sold", "deceased", "transferred"]
 
+const COMMON_BREEDS = [
+  "Angus",
+  "Hereford",
+  "Brahman",
+  "Bonsmara",
+  "Nguni",
+  "Simmental",
+  "Charolais",
+  "Limousin",
+  "Afrikaner",
+  "Drakensberger",
+  "Other"
+]
+
 export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route, navigation }) => {
-  const { themed } = useAppTheme()
+  const { themed, theme: { colors } } = useAppTheme()
   const isEditing = route.params?.mode === "edit"
   const animalId = route.params?.animalId
   const { animal } = useAnimal(animalId ?? "")
   const { createAnimal, updateAnimal } = useAnimalActions()
+  const { animals } = useAnimals()
+  const { isScanning, scannedTag, startScanning, stopScanning, initialize, isInitialized } = useRfidReader()
 
   const [rfidTag, setRfidTag] = useState("")
   const [visualTag, setVisualTag] = useState("")
@@ -29,7 +48,30 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
   const [dateOfBirth, setDateOfBirth] = useState<Date | null>(null)
   const [registrationNumber, setRegistrationNumber] = useState("")
   const [notes, setNotes] = useState("")
+  const [sireId, setSireId] = useState<string | null>(null)
+  const [dameId, setDameId] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showBreedPicker, setShowBreedPicker] = useState(false)
+  const [showSexPicker, setShowSexPicker] = useState(false)
+  const [showSirePicker, setShowSirePicker] = useState(false)
+  const [showDamePicker, setShowDamePicker] = useState(false)
+  const [parentSearch, setParentSearch] = useState("")
+
+  const isHandScanner = Platform.OS === "android"
+
+  // Initialize RFID scanner
+  useEffect(() => {
+    if (isHandScanner && !isInitialized) {
+      initialize()
+    }
+  }, [isHandScanner, isInitialized, initialize])
+
+  // Handle scanned RFID tag
+  useEffect(() => {
+    if (scannedTag && scannedTag.data) {
+      setRfidTag(scannedTag.data)
+    }
+  }, [scannedTag])
 
   // Pre-fill form when editing
   useEffect(() => {
@@ -45,6 +87,24 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
       setNotes(animal.notes || "")
     }
   }, [animal, isEditing])
+
+  const maleAnimals = animals.filter(a => a.sex === "male")
+  const femaleAnimals = animals.filter(a => a.sex === "female")
+  const filteredSires = parentSearch
+    ? maleAnimals.filter(a =>
+        a.displayName.toLowerCase().includes(parentSearch.toLowerCase()) ||
+        a.rfidTag.toLowerCase().includes(parentSearch.toLowerCase())
+      )
+    : maleAnimals
+  const filteredDames = parentSearch
+    ? femaleAnimals.filter(a =>
+        a.displayName.toLowerCase().includes(parentSearch.toLowerCase()) ||
+        a.rfidTag.toLowerCase().includes(parentSearch.toLowerCase())
+      )
+    : femaleAnimals
+
+  const selectedSire = sireId ? animals.find(a => a.id === sireId) : null
+  const selectedDame = dameId ? animals.find(a => a.id === dameId) : null
 
   const handleSave = useCallback(async () => {
     if (!rfidTag.trim()) {
@@ -86,16 +146,6 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
     setIsSubmitting(false)
   }, [rfidTag, visualTag, name, breed, sex, dateOfBirth, status, registrationNumber, notes, isEditing, animalId, createAnimal, updateAnimal, navigation])
 
-  const cycleSex = useCallback(() => {
-    const idx = SEX_OPTIONS.indexOf(sex)
-    setSex(SEX_OPTIONS[(idx + 1) % SEX_OPTIONS.length])
-  }, [sex])
-
-  const cycleStatus = useCallback(() => {
-    const idx = STATUS_OPTIONS.indexOf(status)
-    setStatus(STATUS_OPTIONS[(idx + 1) % STATUS_OPTIONS.length])
-  }, [status])
-
   return (
     <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
       <View style={themed($headerRow)}>
@@ -105,53 +155,110 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
       </View>
 
       <View style={themed($form)}>
-        <TextField
-          label="RFID Tag *"
-          value={rfidTag}
-          onChangeText={setRfidTag}
-          placeholder="Scan or enter RFID tag number"
-          autoCapitalize="characters"
-        />
-        <TextField
-          label="Visual Tag *"
-          value={visualTag}
-          onChangeText={setVisualTag}
-          placeholder="Ear tag or brand number"
-        />
+        {/* RFID Tag Field with Scanner */}
+        <View>
+          <Text preset="formLabel" text="RFID Tag *" style={themed($pickerLabel)} />
+          {isHandScanner ? (
+            <View>
+              {isScanning ? (
+                <View style={themed($scanningBox)}>
+                  <ActivityIndicator size="small" color={colors.tint} />
+                  <Text text="Pull trigger to scan..." size="sm" style={{ color: colors.tint }} />
+                </View>
+              ) : (
+                <TextField
+                  value={rfidTag}
+                  onChangeText={setRfidTag}
+                  placeholder="Pull trigger to scan RFID tag"
+                  autoCapitalize="characters"
+                  containerStyle={{ marginTop: 0 }}
+                />
+              )}
+            </View>
+          ) : (
+            <TextField
+              value={rfidTag}
+              onChangeText={setRfidTag}
+              placeholder="Enter RFID tag number"
+              autoCapitalize="characters"
+              containerStyle={{ marginTop: 0 }}
+            />
+          )}
+        </View>
+
+        <View>
+          <Text preset="formLabel" text="Visual Tag *" style={themed($pickerLabel)} />
+          <View style={themed($tagInputRow)}>
+            <TextField
+              value={visualTag}
+              onChangeText={setVisualTag}
+              placeholder="Ear tag or brand number"
+              containerStyle={themed($tagInput)}
+            />
+            <ScanTagButton
+              compact
+              onTagScanned={setVisualTag}
+            />
+          </View>
+        </View>
+
         <TextField
           label="Name (optional)"
           value={name}
           onChangeText={setName}
           placeholder="Animal name"
         />
-        <TextField
-          label="Breed *"
-          value={breed}
-          onChangeText={setBreed}
-          placeholder="e.g. Angus, Hereford, Brahman"
-        />
 
+        {/* Breed Picker */}
+        <View>
+          <Text preset="formLabel" text="Breed *" style={themed($pickerLabel)} />
+          <Pressable onPress={() => setShowBreedPicker(true)} style={themed($pickerButton)}>
+            <Text text={breed || "Select breed"} style={!breed && themed($placeholderText)} />
+          </Pressable>
+        </View>
+
+        {/* Sex Picker */}
         <View style={themed($row)}>
           <View style={themed($halfField)}>
             <Text preset="formLabel" text="Sex *" style={themed($pickerLabel)} />
-            <Pressable onPress={cycleSex} style={themed($pickerButton)}>
+            <Pressable onPress={() => setShowSexPicker(true)} style={themed($pickerButton)}>
               <Text text={SEX_DISPLAY[sex]} />
             </Pressable>
           </View>
           <View style={themed($halfField)}>
-            <Text preset="formLabel" text="Status" style={themed($pickerLabel)} />
-            <Pressable onPress={cycleStatus} style={themed($pickerButton)}>
-              <Text text={status} />
-            </Pressable>
+            <DateField
+              label="Date of Birth"
+              value={dateOfBirth}
+              onChange={setDateOfBirth}
+              placeholder="DD/MM/YYYY"
+            />
           </View>
         </View>
 
-        <DateField
-          label="Date of Birth"
-          value={dateOfBirth}
-          onChange={setDateOfBirth}
-          placeholder="DD/MM/YYYY"
-        />
+        {/* Lineage Section */}
+        <View style={themed($lineageSection)}>
+          <Text text="Lineage (optional)" preset="formLabel" />
+
+          <View>
+            <Text text="Sire (Father)" size="xs" style={themed($lineageLabel)} />
+            <Pressable onPress={() => setShowSirePicker(true)} style={themed($pickerButton)}>
+              <Text
+                text={selectedSire ? selectedSire.displayName : "+ Add sire"}
+                style={!selectedSire && themed($placeholderText)}
+              />
+            </Pressable>
+          </View>
+
+          <View>
+            <Text text="Dame (Mother)" size="xs" style={themed($lineageLabel)} />
+            <Pressable onPress={() => setShowDamePicker(true)} style={themed($pickerButton)}>
+              <Text
+                text={selectedDame ? selectedDame.displayName : "+ Add dame"}
+                style={!selectedDame && themed($placeholderText)}
+              />
+            </Pressable>
+          </View>
+        </View>
 
         <TextField
           label="Registration Number"
@@ -159,6 +266,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
           onChangeText={setRegistrationNumber}
           placeholder="Optional"
         />
+
         <TextField
           label="Notes"
           value={notes}
@@ -174,6 +282,121 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
           onPress={handleSave}
         />
       </View>
+
+      {/* Breed Picker Modal */}
+      <Modal visible={showBreedPicker} transparent animationType="slide">
+        <View style={themed($modalOverlay)}>
+          <View style={themed($modalContent)}>
+            <Text preset="heading" text="Select Breed" size="md" />
+            <FlatList
+              data={COMMON_BREEDS}
+              keyExtractor={(item) => item}
+              renderItem={({ item }) => (
+                <Pressable
+                  style={themed($modalItem)}
+                  onPress={() => {
+                    setBreed(item)
+                    setShowBreedPicker(false)
+                  }}
+                >
+                  <Text text={item} />
+                </Pressable>
+              )}
+            />
+            <Button text="Cancel" onPress={() => setShowBreedPicker(false)} />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Sex Picker Modal */}
+      <Modal visible={showSexPicker} transparent animationType="slide">
+        <View style={themed($modalOverlay)}>
+          <View style={themed($modalContent)}>
+            <Text preset="heading" text="Select Sex" size="md" />
+            {SEX_OPTIONS.map((s) => (
+              <Pressable
+                key={s}
+                style={themed($modalItem)}
+                onPress={() => {
+                  setSex(s)
+                  setShowSexPicker(false)
+                }}
+              >
+                <Text text={SEX_DISPLAY[s]} />
+              </Pressable>
+            ))}
+            <Button text="Cancel" onPress={() => setShowSexPicker(false)} />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Sire Picker Modal */}
+      <Modal visible={showSirePicker} transparent animationType="slide">
+        <View style={themed($modalOverlay)}>
+          <View style={themed($modalContent)}>
+            <Text preset="heading" text="Select Sire" size="md" />
+            <TextField
+              value={parentSearch}
+              onChangeText={setParentSearch}
+              placeholder="Search by name or tag..."
+              containerStyle={themed($searchField)}
+            />
+            <FlatList
+              data={filteredSires}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <Pressable
+                  style={themed($modalItem)}
+                  onPress={() => {
+                    setSireId(item.id)
+                    setShowSirePicker(false)
+                    setParentSearch("")
+                  }}
+                >
+                  <Text text={item.displayName} preset="bold" />
+                  <Text text={`RFID: ${item.rfidTag}`} size="xs" style={themed($dimText)} />
+                </Pressable>
+              )}
+              ListEmptyComponent={<Text text="No bulls found" style={themed($emptyText)} />}
+            />
+            <Button text="Cancel" onPress={() => { setShowSirePicker(false); setParentSearch("") }} />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Dame Picker Modal */}
+      <Modal visible={showDamePicker} transparent animationType="slide">
+        <View style={themed($modalOverlay)}>
+          <View style={themed($modalContent)}>
+            <Text preset="heading" text="Select Dame" size="md" />
+            <TextField
+              value={parentSearch}
+              onChangeText={setParentSearch}
+              placeholder="Search by name or tag..."
+              containerStyle={themed($searchField)}
+            />
+            <FlatList
+              data={filteredDames}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <Pressable
+                  style={themed($modalItem)}
+                  onPress={() => {
+                    setDameId(item.id)
+                    setShowDamePicker(false)
+                    setParentSearch("")
+                  }}
+                >
+                  <Text text={item.displayName} preset="bold" />
+                  <Text text={`RFID: ${item.rfidTag}`} size="xs" style={themed($dimText)} />
+                </Pressable>
+              )}
+              ListEmptyComponent={<Text text="No cows found" style={themed($emptyText)} />}
+            />
+            <Button text="Cancel" onPress={() => { setShowDamePicker(false); setParentSearch("") }} />
+          </View>
+        </View>
+      </Modal>
     </Screen>
   )
 }
@@ -219,4 +442,78 @@ const $pickerButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
 
 const $saveButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   marginTop: spacing.lg,
+})
+
+const $scanningBox: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.tint + "10",
+  borderWidth: 1,
+  borderColor: colors.tint,
+  borderRadius: 8,
+  padding: spacing.md,
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.sm,
+})
+
+const $placeholderText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.textDim,
+})
+
+const $lineageSection: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.palette.neutral100,
+  borderRadius: 12,
+  padding: spacing.md,
+  gap: spacing.sm,
+})
+
+const $lineageLabel: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  color: colors.textDim,
+  marginBottom: spacing.xxs,
+})
+
+const $modalOverlay: ThemedStyle<ViewStyle> = () => ({
+  flex: 1,
+  backgroundColor: "rgba(0, 0, 0, 0.5)",
+  justifyContent: "flex-end",
+})
+
+const $modalContent: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.background,
+  borderTopLeftRadius: 20,
+  borderTopRightRadius: 20,
+  padding: spacing.lg,
+  maxHeight: "80%",
+  gap: spacing.sm,
+})
+
+const $modalItem: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.palette.neutral100,
+  padding: spacing.md,
+  borderRadius: 8,
+  marginBottom: spacing.xs,
+})
+
+const $searchField: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  marginBottom: spacing.sm,
+})
+
+const $dimText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.textDim,
+})
+
+const $emptyText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  color: colors.textDim,
+  textAlign: "center",
+  paddingVertical: spacing.lg,
+})
+
+const $tagInputRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  gap: spacing.sm,
+  alignItems: "flex-end",
+})
+
+const $tagInput: ThemedStyle<ViewStyle> = () => ({
+  flex: 1,
+  marginTop: 0,
 })

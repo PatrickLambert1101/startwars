@@ -18,6 +18,7 @@ export type HealthRecordFormData = {
   administeredBy?: string
   withdrawalDate?: Date
   notes?: string
+  protocolId?: string
 }
 
 export function useHealthRecords(animalId: string) {
@@ -47,6 +48,7 @@ export function useHealthRecordActions() {
       return database.get<HealthRecord>("health_records").create((r) => {
         r.organizationId = currentOrg.id
         r.animalId = data.animalId
+        r.protocolId = data.protocolId ?? null
         r.recordDate = data.recordDate
         r.recordType = data.recordType
         r.description = data.description

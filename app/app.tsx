@@ -19,6 +19,8 @@ import { initialWindowMetrics, SafeAreaProvider } from "react-native-safe-area-c
 import { AuthProvider } from "./context/AuthContext"
 import { DatabaseProvider } from "./context/DatabaseContext"
 import { SubscriptionProvider } from "./context/SubscriptionContext"
+import { SyncProvider } from "./context/SyncContext"
+// import { AutoSync } from "./components/AutoSync"
 import { initI18n } from "./i18n"
 import { AppNavigator } from "./navigators/AppNavigator"
 import { useNavigationPersistence } from "./navigators/navigationUtilities"
@@ -86,15 +88,18 @@ export function App() {
       <KeyboardProvider>
         <AuthProvider>
           <DatabaseProvider>
-            <SubscriptionProvider>
-              <ThemeProvider>
-                <AppNavigator
-                  linking={linking}
-                  initialState={initialNavigationState}
-                  onStateChange={onNavigationStateChange}
-                />
-              </ThemeProvider>
-            </SubscriptionProvider>
+            <SyncProvider>
+              <SubscriptionProvider>
+                <ThemeProvider>
+                  {/* <AutoSync /> - Disabled: WatermelonDB uses short IDs but Supabase expects UUIDs */}
+                  <AppNavigator
+                    linking={linking}
+                    initialState={initialNavigationState}
+                    onStateChange={onNavigationStateChange}
+                  />
+                </ThemeProvider>
+              </SubscriptionProvider>
+            </SyncProvider>
           </DatabaseProvider>
         </AuthProvider>
       </KeyboardProvider>

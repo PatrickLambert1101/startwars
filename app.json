@@ -22,12 +22,18 @@
       "backgroundImage": "./assets/images/app-icon-android-adaptive-background.png"
     },
     "allowBackup": false,
-    "edgeToEdgeEnabled": true
+    "edgeToEdgeEnabled": true,
+    "permissions": [
+      "CAMERA"
+    ]
   },
   "ios": {
     "icon": "./assets/images/app-icon-ios.png",
     "supportsTablet": true,
-    "bundleIdentifier": "com.herdtrackr"
+    "bundleIdentifier": "com.herdtrackr",
+    "infoPlist": {
+      "NSCameraUsageDescription": "HerdTrackr uses the camera to scan ear tag numbers for quick animal identification"
+    }
   },
   "web": {
     "favicon": "./assets/images/app-icon-web-favicon.png",
@@ -39,10 +45,10 @@
     [
       "expo-splash-screen",
       {
-        "image": "./assets/images/app-icon-android-adaptive-foreground.png",
-        "imageWidth": 300,
+        "image": "./assets/images/herd-logo.png",
+        "imageWidth": 200,
         "resizeMode": "contain",
-        "backgroundColor": "#2D5A27"
+        "backgroundColor": "#FFFFFF"
       }
     ],
     [
@@ -54,6 +60,13 @@
         }
       }
     ],
+    [
+      "react-native-vision-camera",
+      {
+        "cameraPermissionText": "HerdTrackr uses the camera to scan ear tag numbers for quick animal identification",
+        "enableCodeScanner": false
+      }
+    ],
     "expo-build-properties"
   ],
   "experiments": {
@@ -63,5 +76,10 @@
     "ignite": {
       "version": "UNKNOWN"
     }
+  },
+  "expo": {
+    "android": {},
+    "ios": {},
+    "web": {}
   }
 }

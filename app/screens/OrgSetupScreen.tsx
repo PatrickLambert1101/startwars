@@ -1,5 +1,5 @@
 import { FC, useCallback, useState } from "react"
-import { Alert, Pressable, View, ViewStyle, TextStyle } from "react-native"
+import { Alert, Pressable, View, ViewStyle, TextStyle, Image, ImageStyle } from "react-native"
 
 import { Screen, Text, TextField, Button } from "@/components"
 import { useAppTheme } from "@/theme/context"
@@ -7,8 +7,9 @@ import type { ThemedStyle } from "@/theme/types"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { useDatabase } from "@/context/DatabaseContext"
 import { useAuth } from "@/context/AuthContext"
-import { HerdTrackrLogo, PastureIcon } from "@/components/icons"
 import type { LivestockType } from "@/db/models/Organization"
+
+const herdLogo = require("../../assets/images/herd-logo.png")
 
 type LivestockOption = {
   type: LivestockType
@@ -121,7 +122,7 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
     <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top", "bottom"]}>
       {/* Header */}
       <View style={themed($hero)}>
-        <HerdTrackrLogo size={64} color={colors.tint} accentColor={colors.tint} />
+        <Image source={herdLogo} style={[themed($logoImage), { tintColor: colors.tint }]} resizeMode="contain" />
         <Text text="HerdTrackr" preset="heading" style={themed($appName)} />
         <Text
           text={step <= 3 ? "Set up your operation" : "You're all set!"}
@@ -168,7 +169,7 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
           {user?.email ? (
             <View style={themed($ownerBadge)}>
               <Text text="Owner" size="xxs" preset="bold" style={themed($ownerBadgeText)} />
-              <Text text={user.email} size="xs" style={themed($dimText)} />
+              <Text text={user.email} size="xs" style={themed($dimText)} numberOfLines={1} />
             </View>
           ) : null}
 
@@ -275,12 +276,16 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
                   purpose === p.key && themed($purposeCardSelected),
                 ]}
               >
-                <Text text={p.emoji} style={{ fontSize: 22 }} />
+                <Text text={p.emoji} style={{ fontSize: 22, flexShrink: 0 }} />
                 <Text
                   text={p.label}
                   size="xs"
                   preset="bold"
-                  style={purpose === p.key ? themed($selectedText) : undefined}
+                  style={[
+                    purpose === p.key ? themed($selectedText) : undefined,
+                    { flex: 1, flexWrap: "wrap" }
+                  ]}
+                  numberOfLines={2}
                 />
               </Pressable>
             ))}
@@ -316,18 +321,8 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
               <Text text="🐄" style={{ fontSize: 28 }} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text text="Start adding animals" preset="bold" />
-              <Text text="Register your cows, bulls, and calves one by one" size="xs" style={themed($dimText)} />
-            </View>
-          </Pressable>
-
-          <Pressable onPress={handleGoToChute} style={themed($getStartedCard)}>
-            <View style={themed($getStartedIcon)}>
-              <Text text="📋" style={{ fontSize: 28 }} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text text="Start scanning & recording" preset="bold" />
-              <Text text="Go to Chute Mode to scan tags, weigh, and vaccinate" size="xs" style={themed($dimText)} />
+              <Text text="Add my first animals" preset="bold" />
+              <Text text="Register your herd one by one or import from a list" size="xs" style={themed($dimText)} />
             </View>
           </Pressable>
 
@@ -336,17 +331,10 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
               <Text text="🏠" style={{ fontSize: 28 }} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text text="Explore on my own" preset="bold" />
-              <Text text="Go to the dashboard and look around" size="xs" style={themed($dimText)} />
+              <Text text="Explore the app" preset="bold" />
+              <Text text="Take a look around and see what HerdTrackr can do" size="xs" style={themed($dimText)} />
             </View>
           </Pressable>
-        </View>
-      )}
-
-      {/* Pasture illustration */}
-      {step <= 3 && (
-        <View style={themed($pastureContainer)}>
-          <PastureIcon size={240} color={colors.tint} />
         </View>
       )}
     </Screen>
@@ -419,13 +407,11 @@ const $cardDesc: ThemedStyle<TextStyle> = ({ colors }) => ({
 })
 
 const $ownerBadge: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  flexDirection: "row",
-  alignItems: "center",
-  gap: spacing.xs,
   backgroundColor: colors.tint + "12",
   borderRadius: 8,
   padding: spacing.xs,
   paddingHorizontal: spacing.sm,
+  gap: spacing.xxs,
 })
 
 const $ownerBadgeText: ThemedStyle<TextStyle> = ({ colors }) => ({
@@ -548,6 +534,7 @@ const $purposeCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
   gap: spacing.xs,
+  minHeight: 50,
 })
 
 const $purposeCardSelected: ThemedStyle<ViewStyle> = ({ colors }) => ({
@@ -589,7 +576,7 @@ const $getStartedIcon: ThemedStyle<ViewStyle> = () => ({
   justifyContent: "center",
 })
 
-const $pastureContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  alignItems: "center",
-  marginTop: spacing.sm,
+const $logoImage: ThemedStyle<ImageStyle> = () => ({
+  width: 64,
+  height: 64,
 })

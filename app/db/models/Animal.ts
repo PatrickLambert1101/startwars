@@ -41,6 +41,7 @@ export class Animal extends Model {
 
   static associations = {
     organizations: { type: "belongs_to" as const, key: "organization_id" },
+    pastures: { type: "belongs_to" as const, key: "current_pasture_id" },
     health_records: { type: "has_many" as const, foreignKey: "animal_id" },
     weight_records: { type: "has_many" as const, foreignKey: "animal_id" },
     breeding_records: { type: "has_many" as const, foreignKey: "animal_id" },
@@ -58,6 +59,7 @@ export class Animal extends Model {
   @field("sire_id") sireId!: string | null
   @field("dam_id") damId!: string | null
   @field("registration_number") registrationNumber!: string | null
+  @field("current_pasture_id") currentPastureId!: string | null
   @field("status") status!: AnimalStatus
   @field("notes") notes!: string | null
   @readonly @date("created_at") createdAt!: Date
@@ -65,6 +67,7 @@ export class Animal extends Model {
   @field("is_deleted") isDeleted!: boolean
 
   @relation("organizations", "organization_id") organization: any
+  @relation("pastures", "current_pasture_id") currentPasture: any
 
   @children("health_records") healthRecords!: Query<Model>
   @children("weight_records") weightRecords!: Query<Model>
