@@ -2,12 +2,18 @@ import { FC, useCallback, useState } from "react"
 import { Alert, Pressable, View, ViewStyle, TextStyle } from "react-native"
 
 import { Screen, Text, TextField, Button } from "@/components"
+import { PhotoPicker } from "@/components/PhotoPicker"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { useHealthRecordActions } from "@/hooks/useRecords"
 import { HealthRecordType } from "@/db/models/HealthRecord"
 import { useSubscription } from "@/context/SubscriptionContext"
+import { useDatabase } from "@/context/DatabaseContext"
+import { useAuth } from "@/context/AuthContext"
+import { uploadPhoto } from "@/services/photoStorage"
+import type { PhotoWithMetadata } from "@/types/Photo"
+import { serializePhotos } from "@/types/Photo"
 
 const RECORD_TYPES: HealthRecordType[] = ["vaccination", "treatment", "vet_visit", "condition_score", "other"]
 
@@ -16,6 +22,8 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
   const { animalId } = route.params
   const { createHealthRecord } = useHealthRecordActions()
   const { hasFeature } = useSubscription()
+  const { currentOrg } = useDatabase()
+  const { user } = useAuth()
 
   const [recordType, setRecordType] = useState<HealthRecordType>("treatment")
   const [description, setDescription] = useState("")
@@ -23,6 +31,7 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
   const [dosage, setDosage] = useState("")
   const [administeredBy, setAdministeredBy] = useState("")
   const [notes, setNotes] = useState("")
+  const [photos, setPhotos] = useState<PhotoWithMetadata[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleSave = useCallback(async () => {
@@ -31,9 +40,14 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
       return
     }
 
+    if (!currentOrg) {
+      Alert.alert("Error", "No organization selected")
+      return
+    }
+
     setIsSubmitting(true)
     try {
-      await createHealthRecord({
+      const record = await createHealthRecord({
         animalId,
         recordDate: new Date(),
         recordType,
@@ -43,12 +57,55 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
         administeredBy: administeredBy.trim() || undefined,
         notes: notes.trim() || undefined,
       })
+
+      if (photos.length > 0) {
+        uploadPhotosInBackground(record.id, photos)
+      }
+
       navigation.goBack()
-    } catch {
+    } catch (error) {
+      console.error("Failed to save health record:", error)
       Alert.alert("Error", "Failed to save health record")
     }
     setIsSubmitting(false)
-  }, [animalId, recordType, description, productName, dosage, administeredBy, notes, createHealthRecord, navigation])
+  }, [animalId, recordType, description, productName, dosage, administeredBy, notes, photos, currentOrg, createHealthRecord, navigation])
+
+  const uploadPhotosInBackground = async (recordId: string, photosToUpload: PhotoWithMetadata[]) => {
+    try {
+      const uploadedPhotos = await Promise.all(
+        photosToUpload.map(async (photo) => {
+          if (!photo.localUri) return null
+          try {
+            const result = await uploadPhoto({
+              localUri: photo.localUri,
+              organizationId: currentOrg!.id,
+              category: "health",
+              recordId,
+              userId: user?.id,
+            })
+            return result.photo
+          } catch (error) {
+            console.error("Failed to upload photo:", error)
+            return null
+          }
+        }),
+      )
+
+      const successfulPhotos = uploadedPhotos.filter((p) => p !== null)
+
+      if (successfulPhotos.length > 0) {
+        const database = await import("@/db")
+        await database.database.write(async () => {
+          const healthRecord = await database.database.get("health_records").find(recordId)
+          await healthRecord.update((r: any) => {
+            r.photos = serializePhotos(successfulPhotos as any[])
+          })
+        })
+      }
+    } catch (error) {
+      console.error("Failed to upload photos in background:", error)
+    }
+  }
 
   return (
     <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
@@ -116,6 +173,13 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
           onChangeText={setNotes}
           placeholder="Additional notes..."
           multiline
+        />
+
+        <PhotoPicker
+          photos={photos}
+          onPhotosChange={setPhotos}
+          maxPhotos={3}
+          label="Photos (Optional)"
         />
 
         <Button

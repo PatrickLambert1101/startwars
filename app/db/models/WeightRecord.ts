@@ -16,6 +16,9 @@ export class WeightRecord extends Model {
   @field("weight_kg") weightKg!: number
   @field("condition_score") conditionScore!: number | null
   @field("notes") notes!: string | null
+  @field("created_by_user_id") createdByUserId!: string | null
+  @field("created_by_name") createdByName!: string | null
+  @field("photos") photos!: string | null // JSON array of photo objects
   @readonly @date("created_at") createdAt!: Date
   @date("updated_at") updatedAt!: Date
   @field("is_deleted") isDeleted!: boolean

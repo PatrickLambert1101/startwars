@@ -5,6 +5,7 @@ import { HealthRecord, HealthRecordType } from "@/db/models/HealthRecord"
 import { WeightRecord } from "@/db/models/WeightRecord"
 import { BreedingRecord, BreedingMethod, BreedingOutcome } from "@/db/models/BreedingRecord"
 import { useDatabase } from "@/context/DatabaseContext"
+import { useAuth } from "@/context/AuthContext"
 
 // --- Health Records ---
 
@@ -41,6 +42,7 @@ export function useHealthRecords(animalId: string) {
 
 export function useHealthRecordActions() {
   const { currentOrg } = useDatabase()
+  const { user } = useAuth()
 
   const createHealthRecord = async (data: HealthRecordFormData) => {
     if (!currentOrg) throw new Error("No organization selected")
@@ -57,6 +59,8 @@ export function useHealthRecordActions() {
         r.administeredBy = data.administeredBy ?? null
         r.withdrawalDate = data.withdrawalDate ?? null
         r.notes = data.notes ?? null
+        r.createdByUserId = user?.id ?? null
+        r.createdByName = user?.email ?? null
         r.isDeleted = false
       })
     })
@@ -95,6 +99,7 @@ export function useWeightRecords(animalId: string) {
 
 export function useWeightRecordActions() {
   const { currentOrg } = useDatabase()
+  const { user } = useAuth()
 
   const createWeightRecord = async (data: WeightRecordFormData) => {
     if (!currentOrg) throw new Error("No organization selected")
@@ -106,6 +111,8 @@ export function useWeightRecordActions() {
         r.weightKg = data.weightKg
         r.conditionScore = data.conditionScore ?? null
         r.notes = data.notes ?? null
+        r.createdByUserId = user?.id ?? null
+        r.createdByName = user?.email ?? null
         r.isDeleted = false
       })
     })
@@ -146,6 +153,7 @@ export function useBreedingRecords(animalId: string) {
 
 export function useBreedingRecordActions() {
   const { currentOrg } = useDatabase()
+  const { user } = useAuth()
 
   const createBreedingRecord = async (data: BreedingRecordFormData) => {
     if (!currentOrg) throw new Error("No organization selected")
@@ -159,6 +167,8 @@ export function useBreedingRecordActions() {
         r.expectedCalvingDate = data.expectedCalvingDate ?? null
         r.outcome = data.outcome
         r.notes = data.notes ?? null
+        r.createdByUserId = user?.id ?? null
+        r.createdByName = user?.email ?? null
         r.isDeleted = false
       })
     })

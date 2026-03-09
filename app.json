@@ -78,8 +78,36 @@
     }
   },
   "expo": {
-    "android": {},
-    "ios": {},
-    "web": {}
+    "android": {
+      "package": "com.anonymous.herdtrackr"
+    },
+    "ios": {
+      "privacyManifests": {
+        "NSPrivacyAccessedAPITypes": [
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "CA92.1"
+            ]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "CA92.1"
+            ]
+          }
+        ]
+      },
+      "bundleIdentifier": "com.anonymous.herdtrackr",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "web": {},
+    "extra": {
+      "eas": {
+        "projectId": "ce99f731-12da-4ab9-85a4-c706072b2e26"
+      }
+    }
   }
 }

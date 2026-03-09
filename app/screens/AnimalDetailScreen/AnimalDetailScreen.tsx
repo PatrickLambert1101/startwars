@@ -4,6 +4,7 @@ import { format } from "date-fns"
 
 import { Screen, Text, Button } from "@/components"
 import { WeightChart } from "@/components/WeightChart"
+import { PhotoGallery } from "@/components/PhotoGallery"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
@@ -78,6 +79,7 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
       {/* Tab Content */}
       {activeTab === "overview" && (
         <View style={themed($section)}>
+          <PhotoGallery photosJson={animal.photos} />
           <DetailRow label="RFID Tag" value={animal.rfidTag} themed={themed} />
           <DetailRow label="Visual Tag" value={animal.visualTag} themed={themed} />
           <DetailRow label="Date of Birth" value={formatDate(animal.dateOfBirth)} themed={themed} />
@@ -113,6 +115,14 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
                 </View>
                 <Text text={r.description} size="sm" />
                 {r.productName ? <Text text={`Product: ${r.productName}`} size="xs" style={themed($dimText)} /> : null}
+                <PhotoGallery photosJson={r.photos} />
+                {r.createdByName ? (
+                  <Text
+                    text={`Recorded by ${r.createdByName.split('@')[0]}`}
+                    size="xxs"
+                    style={themed($createdByText)}
+                  />
+                ) : null}
               </View>
             ))
           )}
@@ -138,6 +148,14 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
                   <Text size="xs" text={formatDate(r.recordDate)} style={themed($dimText)} />
                 </View>
                 {r.conditionScore ? <Text text={`Condition: ${r.conditionScore}/9`} size="sm" /> : null}
+                <PhotoGallery photosJson={r.photos} />
+                {r.createdByName ? (
+                  <Text
+                    text={`Recorded by ${r.createdByName.split('@')[0]}`}
+                    size="xxs"
+                    style={themed($createdByText)}
+                  />
+                ) : null}
               </View>
             ))
           )}
@@ -164,6 +182,14 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
                 <Text text={`Bred: ${formatDate(r.breedingDate)}`} size="sm" />
                 {r.expectedCalvingDate ? (
                   <Text text={`Expected calving: ${formatDate(r.expectedCalvingDate)}`} size="xs" style={themed($dimText)} />
+                ) : null}
+                <PhotoGallery photosJson={r.photos} />
+                {r.createdByName ? (
+                  <Text
+                    text={`Recorded by ${r.createdByName.split('@')[0]}`}
+                    size="xxs"
+                    style={themed($createdByText)}
+                  />
                 ) : null}
               </View>
             ))
@@ -298,5 +324,11 @@ const $deleteButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 
 const $deleteText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.error,
+})
+
+const $createdByText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  color: colors.textDim,
+  marginTop: spacing.xxs,
+  fontStyle: "italic",
 })
 

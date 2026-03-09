@@ -20,6 +20,8 @@ export class PastureMovement extends Model {
   @field("movement_type") movementType!: MovementType
   @field("moved_by") movedBy!: string | null
   @field("notes") notes!: string | null
+  @field("created_by_user_id") createdByUserId!: string | null
+  @field("created_by_name") createdByName!: string | null
   @readonly @date("created_at") createdAt!: Date
   @date("updated_at") updatedAt!: Date
   @field("is_deleted") isDeleted!: boolean

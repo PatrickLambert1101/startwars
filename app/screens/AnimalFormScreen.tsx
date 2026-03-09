@@ -3,6 +3,7 @@ import { Alert, Pressable, View, ViewStyle, TextStyle, ActivityIndicator, Modal,
 
 import { Screen, Text, TextField, Button, ScanTagButton } from "@/components"
 import { DateField } from "@/components/DateField"
+import { PhotoPicker } from "@/components/PhotoPicker"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
@@ -11,6 +12,11 @@ import { useAnimals } from "@/hooks/useAnimals"
 import { AnimalSex, AnimalStatus, Animal } from "@/db/models/Animal"
 import { useRfidReader } from "@/hooks/useRfidReader"
 import { Platform } from "react-native"
+import { useDatabase } from "@/context/DatabaseContext"
+import { useAuth } from "@/context/AuthContext"
+import { uploadPhoto } from "@/services/photoStorage"
+import type { PhotoWithMetadata } from "@/types/Photo"
+import { serializePhotos } from "@/types/Photo"
 
 const SEX_OPTIONS: AnimalSex[] = ["male", "female", "castrated", "unknown"]
 const SEX_DISPLAY: Record<AnimalSex, string> = { male: "Bull", female: "Cow", castrated: "Steer/Ox", unknown: "Unknown" }
@@ -38,6 +44,8 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
   const { createAnimal, updateAnimal } = useAnimalActions()
   const { animals } = useAnimals()
   const { isScanning, scannedTag, startScanning, stopScanning, initialize, isInitialized } = useRfidReader()
+  const { currentOrg } = useDatabase()
+  const { user } = useAuth()
 
   const [rfidTag, setRfidTag] = useState("")
   const [visualTag, setVisualTag] = useState("")
@@ -50,6 +58,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
   const [notes, setNotes] = useState("")
   const [sireId, setSireId] = useState<string | null>(null)
   const [dameId, setDameId] = useState<string | null>(null)
+  const [photos, setPhotos] = useState<PhotoWithMetadata[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showBreedPicker, setShowBreedPicker] = useState(false)
   const [showSexPicker, setShowSexPicker] = useState(false)
@@ -85,6 +94,17 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
       setDateOfBirth(animal.dateOfBirth || null)
       setRegistrationNumber(animal.registrationNumber || "")
       setNotes(animal.notes || "")
+      // Load existing photos if editing
+      if (animal.photos) {
+        try {
+          const parsed = JSON.parse(animal.photos)
+          if (Array.isArray(parsed)) {
+            setPhotos(parsed.map(p => ({ ...p, uploadStatus: "uploaded" as const })))
+          }
+        } catch (e) {
+          console.error("Failed to parse animal photos:", e)
+        }
+      }
     }
   }, [animal, isEditing])
 
@@ -119,6 +139,10 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
       Alert.alert("Required", "Breed is required")
       return
     }
+    if (!currentOrg) {
+      Alert.alert("Error", "No organization selected")
+      return
+    }
 
     setIsSubmitting(true)
     try {
@@ -134,17 +158,69 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
         notes: notes.trim() || undefined,
       }
 
+      let savedAnimalId: string
       if (isEditing && animalId) {
         await updateAnimal(animalId, data)
+        savedAnimalId = animalId
       } else {
-        await createAnimal(data)
+        const newAnimal = await createAnimal(data)
+        savedAnimalId = newAnimal.id
       }
+
+      // Upload new photos in background
+      const newPhotos = photos.filter(p => p.uploadStatus === "pending")
+      if (newPhotos.length > 0) {
+        uploadPhotosInBackground(savedAnimalId, newPhotos)
+      }
+
       navigation.goBack()
     } catch (e) {
+      console.error("Failed to save animal:", e)
       Alert.alert("Error", "Failed to save animal. Please try again.")
     }
     setIsSubmitting(false)
-  }, [rfidTag, visualTag, name, breed, sex, dateOfBirth, status, registrationNumber, notes, isEditing, animalId, createAnimal, updateAnimal, navigation])
+  }, [rfidTag, visualTag, name, breed, sex, dateOfBirth, status, registrationNumber, notes, photos, currentOrg, isEditing, animalId, createAnimal, updateAnimal, navigation])
+
+  const uploadPhotosInBackground = async (savedAnimalId: string, photosToUpload: PhotoWithMetadata[]) => {
+    try {
+      const uploadedPhotos = await Promise.all(
+        photosToUpload.map(async (photo) => {
+          if (!photo.localUri) return null
+          try {
+            const result = await uploadPhoto({
+              localUri: photo.localUri,
+              organizationId: currentOrg!.id,
+              category: "animals",
+              recordId: savedAnimalId,
+              userId: user?.id,
+            })
+            return result.photo
+          } catch (error) {
+            console.error("Failed to upload photo:", error)
+            return null
+          }
+        }),
+      )
+
+      const successfulPhotos = uploadedPhotos.filter((p) => p !== null)
+
+      // Merge with existing photos
+      const existingPhotos = photos.filter(p => p.uploadStatus === "uploaded")
+      const allPhotos = [...existingPhotos, ...successfulPhotos]
+
+      if (allPhotos.length > 0) {
+        const database = await import("@/db")
+        await database.database.write(async () => {
+          const animalRecord = await database.database.get("animals").find(savedAnimalId)
+          await animalRecord.update((r: any) => {
+            r.photos = serializePhotos(allPhotos as any[])
+          })
+        })
+      }
+    } catch (error) {
+      console.error("Failed to upload photos in background:", error)
+    }
+  }
 
   return (
     <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
@@ -207,6 +283,13 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
           value={name}
           onChangeText={setName}
           placeholder="Animal name"
+        />
+
+        <PhotoPicker
+          photos={photos}
+          onPhotosChange={setPhotos}
+          maxPhotos={5}
+          label="Photos (for identification)"
         />
 
         {/* Breed Picker */}
