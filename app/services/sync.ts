@@ -8,12 +8,23 @@
  * tracks changes automatically and provides them in the push payload.
  */
 import { synchronize, SyncPullArgs, SyncPushArgs } from "@nozbe/watermelondb/sync"
+import { Q } from "@nozbe/watermelondb"
 import { database } from "@/db"
 import { supabase } from "@/services/supabase"
 
-const SYNC_TABLES = ["organizations", "animals", "health_records", "weight_records", "breeding_records", "treatment_protocols"] as const
+const SYNC_TABLES = ["organizations", "organization_members", "animals", "health_records", "weight_records", "breeding_records", "treatment_protocols"] as const
 
 type SyncTable = (typeof SYNC_TABLES)[number]
+
+// Map local table names to Supabase table names
+const TABLE_MAP: Record<string, string> = {
+  organization_members: "memberships", // Local: organization_members, Supabase: memberships
+}
+
+// Get Supabase table name from local table name
+function getSupabaseTable(localTable: string): string {
+  return TABLE_MAP[localTable] || localTable
+}
 
 /**
  * Pull changes from Supabase since lastPulledAt
@@ -23,6 +34,7 @@ async function pullChanges({ lastPulledAt }: SyncPullArgs) {
   const changes: Record<string, { created: any[]; updated: any[]; deleted: string[] }> = {}
 
   for (const table of SYNC_TABLES) {
+    const supabaseTable = getSupabaseTable(table)
     const created: any[] = []
     const updated: any[] = []
     const deleted: string[] = []
@@ -31,8 +43,8 @@ async function pullChanges({ lastPulledAt }: SyncPullArgs) {
       // Fetch records updated after last sync
       const since = new Date(lastPulledAt).toISOString()
 
-      const { data: upserted, error: upsertError } = await supabase
-        .from(table)
+      const { data: upserted, error: upsertError} = await supabase
+        .from(supabaseTable)
         .select("*")
         .gt("updated_at", since)
         .eq("is_deleted", false)
@@ -43,7 +55,7 @@ async function pullChanges({ lastPulledAt }: SyncPullArgs) {
 
       // Fetch deleted records
       const { data: deletedRows, error: deleteError } = await supabase
-        .from(table)
+        .from(supabaseTable)
         .select("id")
         .gt("updated_at", since)
         .eq("is_deleted", true)
@@ -70,7 +82,7 @@ async function pullChanges({ lastPulledAt }: SyncPullArgs) {
     } else {
       // First sync — pull everything
       const { data, error } = await supabase
-        .from(table)
+        .from(supabaseTable)
         .select("*")
         .eq("is_deleted", false)
 
@@ -94,6 +106,7 @@ async function pullChanges({ lastPulledAt }: SyncPullArgs) {
  */
 async function pushChanges({ changes }: SyncPushArgs) {
   for (const table of SYNC_TABLES) {
+    const supabaseTable = getSupabaseTable(table)
     const tableChanges = (changes as any)[table]
     if (!tableChanges) continue
 
@@ -106,7 +119,7 @@ async function pushChanges({ changes }: SyncPushArgs) {
     // Upsert created records
     if (created.length > 0) {
       const rows = created.map((r: any) => watermelonToSupabase(r, table))
-      const { error } = await supabase.from(table).upsert(rows)
+      const { error } = await supabase.from(supabaseTable).upsert(rows)
       if (error) {
         console.error(`Sync push create error for ${table}:`, error.message)
         throw error
@@ -116,7 +129,7 @@ async function pushChanges({ changes }: SyncPushArgs) {
     // Upsert updated records
     if (updated.length > 0) {
       const rows = updated.map((r: any) => watermelonToSupabase(r, table))
-      const { error } = await supabase.from(table).upsert(rows)
+      const { error } = await supabase.from(supabaseTable).upsert(rows)
       if (error) {
         console.error(`Sync push update error for ${table}:`, error.message)
         throw error
@@ -126,7 +139,7 @@ async function pushChanges({ changes }: SyncPushArgs) {
     // Soft-delete deleted records
     if (deleted.length > 0) {
       const { error } = await supabase
-        .from(table)
+        .from(supabaseTable)
         .update({ is_deleted: true, updated_at: new Date().toISOString() })
         .in("id", deleted)
 
@@ -182,9 +195,44 @@ export async function syncDatabase(): Promise<{ success: boolean; error?: string
       pushChanges,
       migrationsEnabledAtVersion: 4, // Updated to match current schema version
     })
+
+    // After sync, ensure organizations have their remote_id set
+    await fixOrganizationRemoteIds()
+
     return { success: true }
   } catch (error: any) {
     console.error("Sync failed:", error)
     return { success: false, error: error?.message || "Sync failed" }
+  }
+}
+
+/**
+ * Fix organizations that have null remote_id by setting it to their id
+ * This is needed because local orgs are created without remote_id,
+ * and after syncing to Supabase, the server uses the org's id as the reference
+ */
+async function fixOrganizationRemoteIds() {
+  try {
+    const { Organization } = database.collections
+    const orgsWithoutRemoteId = await database.get<any>("organizations")
+      .query(Q.where("remote_id", null), Q.where("is_deleted", false))
+      .fetch()
+
+    if (orgsWithoutRemoteId.length > 0) {
+      console.log(`[Sync] Fixing ${orgsWithoutRemoteId.length} organizations without remote_id`)
+
+      await database.write(async () => {
+        for (const org of orgsWithoutRemoteId) {
+          await org.update((o: any) => {
+            o.remoteId = org.id
+          })
+        }
+      })
+
+      console.log("[Sync] Organization remote_ids fixed successfully")
+    }
+  } catch (error) {
+    console.error("[Sync] Failed to fix organization remote_ids:", error)
+    // Don't throw - this is a non-critical fix
   }
 }

@@ -4,6 +4,7 @@ import * as Linking from "expo-linking"
 import { supabase } from "@/services/supabase"
 
 const AUTH_REDIRECT_URL = Linking.createURL("auth-callback")
+const DEV_SKIP_AUTH = process.env.EXPO_PUBLIC_DEV_SKIP_AUTH === "true"
 
 export type AuthContextType = {
   isAuthenticated: boolean
@@ -97,6 +98,12 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
   }, [])
 
   const signInWithOTP = useCallback(async (email: string) => {
+    // Development bypass - skip OTP entirely
+    if (DEV_SKIP_AUTH) {
+      console.log("[Auth] DEV MODE: Skipping OTP, will auto-verify")
+      return { error: null, success: true }
+    }
+
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
@@ -108,6 +115,66 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
   }, [])
 
   const verifyOTP = useCallback(async (email: string, token: string) => {
+    // Development bypass - auto sign in/up with dev password
+    if (DEV_SKIP_AUTH) {
+      console.log("[Auth] DEV MODE: Auto-authenticating with dev password")
+      const devPassword = "dev-password-123"
+
+      // Try signing in first
+      let { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password: devPassword,
+      })
+
+      // If user doesn't exist, create them then sign in
+      if (signInError?.message.includes("Invalid login credentials")) {
+        const { error: signUpError } = await supabase.auth.signUp({
+          email,
+          password: devPassword,
+          options: {
+            emailRedirectTo: AUTH_REDIRECT_URL,
+            data: {
+              dev_user: true,
+            },
+          },
+        })
+        if (signUpError) {
+          console.error("[Auth] DEV MODE: SignUp error:", signUpError.message)
+          return { error: signUpError.message }
+        }
+
+        console.log("[Auth] DEV MODE: Created new user, signing in...")
+
+        // Now sign in with the new account
+        const { data: newSignInData, error: newSignInError } = await supabase.auth.signInWithPassword({
+          email,
+          password: devPassword,
+        })
+
+        if (newSignInError) {
+          console.error("[Auth] DEV MODE: SignIn after signup error:", newSignInError.message)
+          return { error: newSignInError.message }
+        }
+
+        if (!newSignInData?.session) {
+          console.error("[Auth] DEV MODE: No session after signup+signin")
+          return { error: "Failed to create session - check Supabase email confirmation settings" }
+        }
+
+        console.log("[Auth] DEV MODE: Signed in successfully")
+      } else if (signInError) {
+        console.error("[Auth] DEV MODE: SignIn error:", signInError.message)
+        return { error: signInError.message }
+      } else if (!signInData?.session) {
+        console.error("[Auth] DEV MODE: SignIn succeeded but no session")
+        return { error: "No session created - check Supabase email confirmation settings" }
+      } else {
+        console.log("[Auth] DEV MODE: Signed in successfully")
+      }
+
+      return { error: null }
+    }
+
     const { error } = await supabase.auth.verifyOtp({
       email,
       token,

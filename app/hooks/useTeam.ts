@@ -39,8 +39,15 @@ export function useTeam() {
   }, [currentOrg, user])
 
   const loadTeamData = async () => {
-    if (!currentOrg) return
+    if (!currentOrg || !currentOrg.remoteId || currentOrg.remoteId === "null") {
+      console.log("[Team] No valid organization or remoteId:", { hasOrg: !!currentOrg, remoteId: currentOrg?.remoteId })
+      setIsLoading(false)
+      setMembers([])
+      setInvites([])
+      return
+    }
 
+    console.log("[Team] Loading team data for org:", currentOrg.remoteId)
     setIsLoading(true)
 
     try {
@@ -49,12 +56,11 @@ export function useTeam() {
         .from("memberships")
         .select("*")
         .eq("organization_id", currentOrg.remoteId)
-        .eq("is_active", true)
-        .order("joined_at", { ascending: false })
 
       if (membersError) {
         console.error("Failed to load members:", membersError)
       } else {
+        console.log("[Team] Loaded members:", membersData?.length || 0)
         setMembers(
           (membersData || []).map((m) => ({
             id: m.id,
@@ -62,24 +68,25 @@ export function useTeam() {
             userEmail: m.user_email || "",
             userDisplayName: m.user_display_name,
             role: m.role,
-            joinedAt: m.joined_at,
-            isActive: m.is_active,
+            joinedAt: m.joined_at || m.created_at || new Date().toISOString(),
+            isActive: true, // All fetched members are active
           }))
         )
       }
 
-      // Load pending invites
+      // Load pending invites (not yet accepted and not expired)
       const { data: invitesData, error: invitesError } = await supabase
         .from("invites")
         .select("*")
         .eq("organization_id", currentOrg.remoteId)
-        .is("accepted_at", null)
         .gt("expires_at", new Date().toISOString())
-        .order("created_at", { ascending: false })
 
       if (invitesError) {
         console.error("Failed to load invites:", invitesError)
+        // Don't fail the whole load if invites fail
+        setInvites([])
       } else {
+        console.log("[Team] Loaded invites:", invitesData?.length || 0)
         setInvites(
           (invitesData || []).map((i) => ({
             id: i.id,
@@ -120,10 +127,21 @@ export function useTeamActions() {
       const { data: codeData, error: codeError } = await supabase.rpc("generate_invite_code")
 
       if (codeError || !codeData) {
+        console.error("Failed to generate invite code:", codeError)
         return { success: false, error: "Failed to generate invite code" }
       }
 
       const inviteCode = codeData as string
+
+      // Generate ID for invite (using WatermelonDB-style random ID)
+      const generateId = () => {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+        let result = ''
+        for (let i = 0; i < 16; i++) {
+          result += chars.charAt(Math.floor(Math.random() * chars.length))
+        }
+        return result
+      }
 
       // Create invite
       const expiresAt = new Date()
@@ -132,6 +150,7 @@ export function useTeamActions() {
       const { data, error } = await supabase
         .from("invites")
         .insert({
+          id: generateId(),
           organization_id: currentOrg.remoteId,
           email: email.toLowerCase().trim(),
           role,
@@ -143,6 +162,7 @@ export function useTeamActions() {
         .single()
 
       if (error) {
+        console.error("Failed to insert invite:", error)
         if (error.code === "23505") {
           // Unique constraint violation
           return { success: false, error: "This email has already been invited" }
@@ -211,7 +231,7 @@ export function useTeamActions() {
     try {
       const { error } = await supabase
         .from("memberships")
-        .update({ is_active: false })
+        .delete()
         .eq("id", memberId)
         .eq("organization_id", currentOrg.remoteId)
 

@@ -3,7 +3,7 @@ import { Platform } from "react-native"
 import { Camera, useCameraDevice, useCameraPermission } from "react-native-vision-camera"
 import { runAtTargetFps } from "react-native-vision-camera"
 import type { Frame } from "react-native-vision-camera"
-import { OCRFrame, scanOCR } from "vision-camera-ocr"
+import { useTextRecognition } from "react-native-vision-camera-ocr-plus"
 import { extractTagNumbers, TagStabilityChecker } from "./tagParser"
 import type { OCRResult, ScannerState, TagScanResult } from "./types"
 
@@ -48,6 +48,12 @@ export function useTagScanner(options: UseTagScannerOptions = {}) {
   const device = useCameraDevice("back")
   const { hasPermission, requestPermission } = useCameraPermission()
 
+  // OCR plugin
+  const { scanText } = useTextRecognition({
+    language: "latin",
+    frameSkipThreshold: targetFps,
+  })
+
   // Scanner state
   const [isScanning, setIsScanning] = useState(autoStart)
   const [detectedText, setDetectedText] = useState<OCRResult[]>([])
@@ -73,18 +79,18 @@ export function useTagScanner(options: UseTagScannerOptions = {}) {
       runAtTargetFps(targetFps, () => {
         "worklet"
         try {
-          const data = scanOCR(frame)
+          const data = scanText(frame)
 
           // Convert OCR results to our format
-          const ocrResults: OCRResult[] = data.result.blocks.map((block: any) => ({
-            text: block.text,
-            confidence: block.confidence || 0.8,
-            boundingBox: block.frame
+          const ocrResults: OCRResult[] = data.blocks.map((block) => ({
+            text: block.blockText,
+            confidence: 0.8, // ML Kit doesn't provide confidence scores
+            boundingBox: block.blockFrame
               ? {
-                  x: block.frame.x,
-                  y: block.frame.y,
-                  width: block.frame.width,
-                  height: block.frame.height,
+                  x: block.blockFrame.x,
+                  y: block.blockFrame.y,
+                  width: block.blockFrame.width,
+                  height: block.blockFrame.height,
                 }
               : undefined,
           }))
@@ -112,7 +118,7 @@ export function useTagScanner(options: UseTagScannerOptions = {}) {
         }
       })
     },
-    [isScanning, targetFps, onTagDetected],
+    [isScanning, targetFps, onTagDetected, scanText],
   )
 
   /**

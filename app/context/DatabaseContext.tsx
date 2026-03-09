@@ -2,11 +2,14 @@ import { createContext, FC, PropsWithChildren, useCallback, useContext, useEffec
 import { Q } from "@nozbe/watermelondb"
 import { database } from "@/db"
 import { Organization, LivestockType } from "@/db/models/Organization"
+import { OrganizationMember } from "@/db/models/OrganizationMember"
 
 export type CreateOrgParams = {
   name: string
   livestockTypes: LivestockType[]
   location?: string
+  userIdForAdmin?: string  // Pass user.id to auto-create admin membership
+  userEmailForAdmin?: string
 }
 
 export type DatabaseContextType = {
@@ -46,12 +49,30 @@ export const DatabaseProvider: FC<PropsWithChildren> = ({ children }) => {
 
   const createOrganization = useCallback(async (params: CreateOrgParams): Promise<Organization> => {
     const org = await database.write(async () => {
-      return database.get<Organization>("organizations").create((o) => {
+      const newOrg = await database.get<Organization>("organizations").create((o) => {
         o.name = params.name
         o.livestockTypes = params.livestockTypes
         o.location = params.location ?? null
         o.isDeleted = false
       })
+
+      // Auto-create admin membership if user info provided
+      if (params.userIdForAdmin && params.userEmailForAdmin) {
+        await database.get<OrganizationMember>("organization_members").create((m) => {
+          m.organizationId = newOrg.id
+          m.userId = params.userIdForAdmin!
+          m.userEmail = params.userEmailForAdmin!
+          m.userDisplayName = null
+          m.role = "admin"
+          m.invitedBy = null
+          m.invitedAt = null
+          m.joinedAt = new Date()
+          m.isActive = true
+        })
+        console.log("[DatabaseContext] Created admin membership for", params.userEmailForAdmin)
+      }
+
+      return newOrg
     })
     setCurrentOrg(org)
     return org

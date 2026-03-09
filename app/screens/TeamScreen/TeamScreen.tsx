@@ -24,6 +24,7 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
 
   const currentMember = members.find(m => m.userId === user?.id)
   const isAdmin = currentMember?.role === "admin"
+  const hasNoMembership = !currentMember && members.length === 0
 
   const handleInvite = async () => {
     if (!inviteEmail.trim()) {
@@ -145,9 +146,11 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
           {member.userDisplayName && (
             <Text style={themed($memberEmail)}>{member.userEmail}</Text>
           )}
-          <Text style={themed($memberJoined)}>
-            Joined {formatDate(new Date(member.joinedAt), "PP")}
-          </Text>
+          {member.joinedAt && (
+            <Text style={themed($memberJoined)}>
+              Joined {formatDate(member.joinedAt, "PP")}
+            </Text>
+          )}
         </View>
 
         {isAdmin && !isCurrentUser && (
@@ -183,9 +186,11 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
           ]}>
             <Text style={themed($roleBadgeText)}>{invite.role === "admin" ? "Admin" : "Worker"}</Text>
           </View>
-          <Text style={themed($inviteExpires)}>
-            Code: {invite.inviteCode} • Expires {formatDate(new Date(invite.expiresAt), "PP")}
-          </Text>
+          {invite.expiresAt && (
+            <Text style={themed($inviteExpires)}>
+              Code: {invite.inviteCode} • Expires {formatDate(invite.expiresAt, "PP")}
+            </Text>
+          )}
         </View>
       </View>
 
@@ -200,16 +205,22 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
     </View>
   )
 
+  const renderHeader = () => (
+    <View style={themed($header)}>
+      <Pressable onPress={() => navigation.goBack()} style={themed($backButton)}>
+        <Icon icon="back" size={24} />
+      </Pressable>
+      <Text preset="heading" style={themed($headerTitle)}>Team</Text>
+    </View>
+  )
+
   if (isLoading) {
     return (
       <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={themed($container)}>
-        <View style={themed($header)}>
-          <Pressable onPress={() => navigation.goBack()} style={themed($backButton)}>
-            <Icon icon="back" size={24} />
-          </Pressable>
-          <Text preset="heading" style={themed($headerTitle)}>Team</Text>
+        {renderHeader()}
+        <View style={themed($content)}>
+          <Text>Loading...</Text>
         </View>
-        <Text>Loading...</Text>
       </Screen>
     )
   }
@@ -217,25 +228,39 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
   if (!isAdmin) {
     return (
       <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={themed($container)}>
-        <View style={themed($header)}>
-          <Pressable onPress={() => navigation.goBack()} style={themed($backButton)}>
-            <Icon icon="back" size={24} />
-          </Pressable>
-          <Text preset="heading" style={themed($headerTitle)}>Team</Text>
-        </View>
+        {renderHeader()}
         <ScrollView style={themed($content)}>
-          <View style={themed($section)}>
-            <Text style={themed($sectionTitle)}>Team Members ({members.length})</Text>
-            <FlatList
-              data={members}
-              renderItem={renderMember}
-              keyExtractor={(item) => item.id}
-              scrollEnabled={false}
-            />
-          </View>
-          <Text style={themed($noAccessText)}>
-            Only admins can invite and manage team members.
-          </Text>
+          {hasNoMembership ? (
+            <View style={themed($syncNotice)}>
+              <Icon icon="view" size={48} color={colors.palette.accent500} />
+              <Text style={themed($syncNoticeTitle)}>Sync Required</Text>
+              <Text style={themed($syncNoticeText)}>
+                Your farm needs to sync with the server to enable team management.{"\n\n"}
+                Go to Settings and tap "Sync Now" to become an admin and start inviting team members.
+              </Text>
+              <Button
+                text="Go to Settings"
+                preset="filled"
+                onPress={() => navigation.navigate("Main", { screen: "Settings" })}
+                style={themed($syncNoticeButton)}
+              />
+            </View>
+          ) : (
+            <>
+              <View style={themed($section)}>
+                <Text style={themed($sectionTitle)}>Team Members ({members.length})</Text>
+                <FlatList
+                  data={members}
+                  renderItem={renderMember}
+                  keyExtractor={(item) => item.id}
+                  scrollEnabled={false}
+                />
+              </View>
+              <Text style={themed($noAccessText)}>
+                Only admins can invite and manage team members.
+              </Text>
+            </>
+          )}
         </ScrollView>
       </Screen>
     )
@@ -243,13 +268,7 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
 
   return (
     <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={themed($container)}>
-      <View style={themed($header)}>
-        <Pressable onPress={() => navigation.goBack()} style={themed($backButton)}>
-          <Icon icon="back" size={24} />
-        </Pressable>
-        <Text preset="heading" style={themed($headerTitle)}>Team</Text>
-      </View>
-
+      {renderHeader()}
       <ScrollView style={themed($content)} showsVerticalScrollIndicator={false}>
         {/* Invite Form */}
         {showInviteForm ? (
@@ -614,4 +633,34 @@ const $noAccessText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   color: colors.palette.neutral600,
   textAlign: "center",
   marginTop: spacing.lg,
+})
+
+const $syncNotice: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.palette.neutral100,
+  borderRadius: 12,
+  padding: spacing.xl,
+  marginTop: spacing.lg,
+  alignItems: "center",
+  borderWidth: 1,
+  borderColor: colors.palette.neutral200,
+})
+
+const $syncNoticeTitle: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  fontSize: 20,
+  fontWeight: "700",
+  color: colors.text,
+  marginTop: spacing.md,
+  marginBottom: spacing.xs,
+})
+
+const $syncNoticeText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  fontSize: 15,
+  color: colors.textDim,
+  textAlign: "center",
+  lineHeight: 22,
+  marginBottom: spacing.lg,
+})
+
+const $syncNoticeButton: ThemedStyle<ViewStyle> = () => ({
+  minWidth: 200,
 })

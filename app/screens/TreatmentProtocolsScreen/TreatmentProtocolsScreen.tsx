@@ -131,16 +131,34 @@ export function TreatmentProtocolsScreen({ navigation }: TreatmentProtocolsScree
     <Pressable style={themed($protocolCard)} onPress={() => handleViewProtocol(item.id)}>
       <View style={themed($protocolHeader)}>
         <View style={themed($protocolInfo)}>
-          <Text style={themed($protocolName)}>{item.name}</Text>
+          <View style={themed($protocolTitleRow)}>
+            <Text style={themed($protocolName)}>{item.name}</Text>
+            {!item.isActive && (
+              <View style={themed($inactiveBadge)}>
+                <Text style={themed($inactiveBadgeText)}>Inactive</Text>
+              </View>
+            )}
+          </View>
           {item.protocolType && (
             <View style={[themed($typeBadge), themed($typeBadgeColor(item.protocolType))]}>
               <Text style={themed($typeBadgeText)}>{item.protocolType}</Text>
             </View>
           )}
         </View>
-        <Pressable onPress={() => handleEditProtocol(item.id)} style={themed($editButton)}>
-          <Icon icon="settings" size={20} />
-        </Pressable>
+        <View style={themed($protocolActions)}>
+          <Pressable
+            onPress={(e) => {
+              e.stopPropagation()
+              handleToggleActive(item.id)
+            }}
+            style={[themed($toggleButton), item.isActive && themed($toggleButtonActive)]}
+          >
+            <Icon icon={item.isActive ? "check" : "x"} size={18} color={item.isActive ? "#4A8C3F" : "#999"} />
+          </Pressable>
+          <Pressable onPress={() => handleEditProtocol(item.id)} style={themed($editButton)}>
+            <Icon icon="settings" size={20} />
+          </Pressable>
+        </View>
       </View>
 
       <View style={themed($protocolDetails)}>
@@ -345,11 +363,51 @@ const $protocolInfo: ThemedStyle<ViewStyle> = () => ({
   flex: 1,
 })
 
-const $protocolName: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+const $protocolTitleRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.sm,
+  marginBottom: spacing.xs,
+})
+
+const $protocolName: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 20,
   fontWeight: "700",
   color: colors.text,
-  marginBottom: spacing.xs,
+  flex: 1,
+})
+
+const $inactiveBadge: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.palette.neutral400,
+  paddingHorizontal: spacing.sm,
+  paddingVertical: spacing.xxs,
+  borderRadius: 4,
+})
+
+const $inactiveBadgeText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.palette.neutral100,
+  fontSize: 12,
+  fontWeight: "600",
+})
+
+const $protocolActions: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.xs,
+})
+
+const $toggleButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  width: 36,
+  height: 36,
+  borderRadius: 18,
+  backgroundColor: colors.palette.neutral200,
+  alignItems: "center",
+  justifyContent: "center",
+  padding: spacing.xs,
+})
+
+const $toggleButtonActive: ThemedStyle<ViewStyle> = () => ({
+  backgroundColor: "#E2EDDF",
 })
 
 const TYPE_BADGE_COLORS: Record<string, { bg: string; text: string }> = {

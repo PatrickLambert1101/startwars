@@ -127,12 +127,9 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
   const selectedDame = dameId ? animals.find(a => a.id === dameId) : null
 
   const handleSave = useCallback(async () => {
-    if (!rfidTag.trim()) {
-      Alert.alert("Required", "RFID Tag is required")
-      return
-    }
-    if (!visualTag.trim()) {
-      Alert.alert("Required", "Visual Tag is required")
+    // Require at least one tag (RFID or Visual)
+    if (!rfidTag.trim() && !visualTag.trim()) {
+      Alert.alert("Required", "Please enter either an RFID Tag or Visual Tag (at least one is required)")
       return
     }
     if (!breed.trim()) {
@@ -231,9 +228,13 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
       </View>
 
       <View style={themed($form)}>
+        <View style={themed($helperNote)}>
+          <Text text="* At least one tag (RFID or Visual) is required" size="xs" style={themed($helperText)} />
+        </View>
+
         {/* RFID Tag Field with Scanner */}
         <View>
-          <Text preset="formLabel" text="RFID Tag *" style={themed($pickerLabel)} />
+          <Text preset="formLabel" text="RFID Tag" style={themed($pickerLabel)} />
           {isHandScanner ? (
             <View>
               {isScanning ? (
@@ -263,7 +264,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
         </View>
 
         <View>
-          <Text preset="formLabel" text="Visual Tag *" style={themed($pickerLabel)} />
+          <Text preset="formLabel" text="Visual Tag (ear tag/brand)" style={themed($pickerLabel)} />
           <View style={themed($tagInputRow)}>
             <TextField
               value={visualTag}
@@ -599,4 +600,16 @@ const $tagInputRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $tagInput: ThemedStyle<ViewStyle> = () => ({
   flex: 1,
   marginTop: 0,
+})
+
+const $helperNote: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.palette.neutral100,
+  borderRadius: 8,
+  padding: spacing.sm,
+  marginBottom: spacing.xs,
+})
+
+const $helperText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.textDim,
+  fontStyle: "italic",
 })

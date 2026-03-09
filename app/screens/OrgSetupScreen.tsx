@@ -7,6 +7,7 @@ import type { ThemedStyle } from "@/theme/types"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { useDatabase } from "@/context/DatabaseContext"
 import { useAuth } from "@/context/AuthContext"
+import { useSync } from "@/hooks/useSync"
 import type { LivestockType } from "@/db/models/Organization"
 
 const herdLogo = require("../../assets/images/herd-logo.png")
@@ -25,8 +26,6 @@ const LIVESTOCK_OPTIONS: LivestockOption[] = [
   { type: "sheep", label: "Sheep", emoji: "🐑", desc: "Dorper, Merino, Damara, Dohne..." },
   { type: "goats", label: "Goats", emoji: "🐐", desc: "Boer, Angora, Kalahari Red, Savanna..." },
   { type: "game", label: "Game", emoji: "🦌", desc: "Springbok, Impala, Kudu, Eland..." },
-  { type: "pigs", label: "Pigs", emoji: "🐷", desc: "Kolbroek, Windsnyer, Large White..." },
-  { type: "poultry", label: "Poultry", emoji: "🐔", desc: "Boschveld, Potch Koekoek, Venda..." },
 ]
 
 type HerdSize = "small" | "medium" | "large" | "xlarge"
@@ -53,6 +52,7 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
   const { themed, theme: { colors } } = useAppTheme()
   const { createOrganization } = useDatabase()
   const { user } = useAuth()
+  const { sync } = useSync()
 
   const [step, setStep] = useState(1)
   const [orgName, setOrgName] = useState("")
@@ -97,13 +97,22 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
         name: orgName.trim(),
         livestockTypes: selectedTypes,
         location: location.trim() || undefined,
+        userIdForAdmin: user?.id,
+        userEmailForAdmin: user?.email || undefined,
       })
+
+      // Auto-sync to Supabase so the membership syncs
+      console.log("[OrgSetup] Auto-syncing new organization...")
+      await sync()
+      console.log("[OrgSetup] Sync complete")
+
       setStep(4)
-    } catch {
+    } catch (error) {
+      console.error("[OrgSetup] Error:", error)
       Alert.alert("Error", "Failed to create organization. Please try again.")
     }
     setIsSubmitting(false)
-  }, [orgName, location, selectedTypes, herdSize, createOrganization])
+  }, [orgName, location, selectedTypes, herdSize, createOrganization, sync])
 
   const handleGoToDashboard = useCallback(() => {
     navigation.replace("Main", { screen: "Dashboard" })
@@ -294,10 +303,11 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
           <View style={themed($buttonRow)}>
             <Button text="Back" preset="default" onPress={() => setStep(2)} style={themed($backButton)} />
             <Button
-              text={isSubmitting ? "Creating..." : "Create Farm"}
+              text={isSubmitting ? "Creating & Syncing..." : "Create Farm"}
               preset="reversed"
               style={themed($flexButton)}
               onPress={handleNextFromStep3}
+              disabled={isSubmitting}
             />
           </View>
         </View>
