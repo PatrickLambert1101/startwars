@@ -1,7 +1,7 @@
 import { FC, useEffect, useState } from "react"
-import { Share, View, ViewStyle, TextStyle } from "react-native"
+import { Share, View, ViewStyle, TextStyle, Pressable, Alert } from "react-native"
 
-import { Screen, Text, Button } from "@/components"
+import { Screen, Text, Button, Icon } from "@/components"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { useDatabase } from "@/context/DatabaseContext"
@@ -11,6 +11,7 @@ import { HealthRecord } from "@/db/models/HealthRecord"
 import { WeightRecord } from "@/db/models/WeightRecord"
 import { BreedingRecord } from "@/db/models/BreedingRecord"
 import { Q } from "@nozbe/watermelondb"
+import { differenceInMonths, differenceInDays } from "date-fns"
 
 type ReportData = {
   totalHead: number
@@ -22,6 +23,17 @@ type ReportData = {
   breedingRecordCount: number
   avgWeight: number | null
   pregnancyRate: number | null
+  treatmentStats: {
+    vaccinations: number
+    treatments: number
+    deworming: number
+  }
+  animalsNeedingAttention: Array<{
+    id: string
+    name: string
+    ageMonths: number
+    reason: string
+  }>
 }
 
 export const ReportsScreen: FC = () => {
@@ -41,9 +53,9 @@ export const ReportsScreen: FC = () => {
         .query(Q.where("organization_id", currentOrg.id), Q.where("is_deleted", false))
         .fetch()
 
-      const healthRecordCount = await database.get<HealthRecord>("health_records")
+      const healthRecords = await database.get<HealthRecord>("health_records")
         .query(Q.where("organization_id", currentOrg.id), Q.where("is_deleted", false))
-        .fetchCount()
+        .fetch()
 
       const weightRecords = await database.get<WeightRecord>("weight_records")
         .query(Q.where("organization_id", currentOrg.id), Q.where("is_deleted", false))
@@ -71,16 +83,65 @@ export const ReportsScreen: FC = () => {
       const liveCalves = breedingRecords.filter((r) => r.outcome === "live_calf").length
       const pregnancyRate = totalBreedings > 0 ? (liveCalves / totalBreedings) * 100 : null
 
+      // Calculate treatment statistics
+      const treatmentStats = {
+        vaccinations: healthRecords.filter((r) => r.type === "vaccination").length,
+        treatments: healthRecords.filter((r) => r.type === "treatment").length,
+        deworming: healthRecords.filter((r) => r.type === "deworming").length,
+      }
+
+      // Find animals needing attention (calves without key vaccinations)
+      const animalsNeedingAttention: Array<{
+        id: string
+        name: string
+        ageMonths: number
+        reason: string
+      }> = []
+
+      const now = new Date()
+
+      for (const animal of animals) {
+        if (!animal.dateOfBirth) continue
+
+        const ageMonths = differenceInMonths(now, new Date(animal.dateOfBirth))
+
+        // Only check calves up to 12 months old
+        if (ageMonths < 0 || ageMonths > 12) continue
+
+        // Get this animal's health records
+        const animalHealthRecords = healthRecords.filter((r) => r.animalId === animal.id)
+        const vaccinationRecords = animalHealthRecords.filter((r) => r.type === "vaccination")
+
+        // Check vaccination schedule based on age
+        if (ageMonths >= 2 && vaccinationRecords.length === 0) {
+          animalsNeedingAttention.push({
+            id: animal.id,
+            name: animal.name || animal.visualTag,
+            ageMonths,
+            reason: "No vaccinations recorded - calves should be vaccinated by 2 months",
+          })
+        } else if (ageMonths >= 6 && vaccinationRecords.length < 2) {
+          animalsNeedingAttention.push({
+            id: animal.id,
+            name: animal.name || animal.visualTag,
+            ageMonths,
+            reason: "May need booster shots - typically required by 6 months",
+          })
+        }
+      }
+
       setReport({
         totalHead: animals.length,
         byStatus,
         bySex,
         byBreed,
-        healthRecordCount,
+        healthRecordCount: healthRecords.length,
         weightRecordCount: weightRecords.length,
         breedingRecordCount: totalBreedings,
         avgWeight,
         pregnancyRate,
+        treatmentStats,
+        animalsNeedingAttention,
       })
       setIsLoading(false)
     }
@@ -167,6 +228,45 @@ export const ReportsScreen: FC = () => {
         )}
       </View>
 
+      <View style={themed($card)}>
+        <Text preset="subheading" text="Treatment Statistics" style={themed($cardTitle)} />
+        <SummaryRow label="Vaccinations" value={String(report.treatmentStats.vaccinations)} themed={themed} />
+        <SummaryRow label="Treatments" value={String(report.treatmentStats.treatments)} themed={themed} />
+        <SummaryRow label="Deworming" value={String(report.treatmentStats.deworming)} themed={themed} />
+        <SummaryRow
+          label="Total health events"
+          value={String(report.treatmentStats.vaccinations + report.treatmentStats.treatments + report.treatmentStats.deworming)}
+          themed={themed}
+        />
+      </View>
+
+      {report.animalsNeedingAttention.length > 0 && (
+        <View style={themed($alertCard)}>
+          <View style={themed($alertHeader)}>
+            <Icon icon="caretRight" size={20} color="#E53E3E" />
+            <Text preset="subheading" text="Animals Needing Attention" style={themed($alertTitle)} />
+          </View>
+          <Text style={themed($alertSubtext)}>
+            {report.animalsNeedingAttention.length} {report.animalsNeedingAttention.length === 1 ? 'animal needs' : 'animals need'} attention
+          </Text>
+          {report.animalsNeedingAttention.map((animal) => (
+            <View key={animal.id} style={themed($alertItem)}>
+              <View style={themed($alertItemHeader)}>
+                <Text preset="bold" style={themed($alertItemName)}>
+                  {animal.name}
+                </Text>
+                <Text size="xs" style={themed($alertItemAge)}>
+                  {animal.ageMonths} months old
+                </Text>
+              </View>
+              <Text size="sm" style={themed($alertItemReason)}>
+                {animal.reason}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
+
       <Button
         text="Export Herd as CSV"
         preset="reversed"
@@ -227,4 +327,65 @@ const $dimText: ThemedStyle<TextStyle> = ({ colors }) => ({
 
 const $exportButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   marginTop: spacing.sm,
+})
+
+const $alertCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: "#FFF5F5",
+  borderRadius: 12,
+  borderWidth: 2,
+  borderColor: "#FEB2B2",
+  padding: spacing.md,
+  marginBottom: spacing.md,
+})
+
+const $alertHeader: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.xs,
+  marginBottom: spacing.xxs,
+})
+
+const $alertTitle: ThemedStyle<TextStyle> = () => ({
+  color: "#E53E3E",
+  marginBottom: 0,
+})
+
+const $alertSubtext: ThemedStyle<TextStyle> = ({ spacing }) => ({
+  fontSize: 13,
+  color: "#9B2C2C",
+  marginBottom: spacing.md,
+  fontWeight: "600",
+})
+
+const $alertItem: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: "#FFFFFF",
+  borderRadius: 8,
+  padding: spacing.sm,
+  marginBottom: spacing.xs,
+  borderLeftWidth: 3,
+  borderLeftColor: "#E53E3E",
+})
+
+const $alertItemHeader: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: spacing.xxs,
+})
+
+const $alertItemName: ThemedStyle<TextStyle> = () => ({
+  fontSize: 15,
+  color: "#2D3748",
+})
+
+const $alertItemAge: ThemedStyle<TextStyle> = () => ({
+  fontSize: 12,
+  color: "#E53E3E",
+  fontWeight: "600",
+})
+
+const $alertItemReason: ThemedStyle<TextStyle> = () => ({
+  fontSize: 13,
+  color: "#4A5568",
+  lineHeight: 18,
 })

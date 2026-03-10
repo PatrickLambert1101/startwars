@@ -79,10 +79,10 @@ export async function uploadPhoto(options: UploadPhotoOptions): Promise<UploadPh
 
   // Read file as base64
   const fullImageBase64 = await FileSystem.readAsStringAsync(compressedUri, {
-    encoding: FileSystem.EncodingType.Base64,
+    encoding: "base64",
   })
   const thumbnailBase64 = await FileSystem.readAsStringAsync(thumbnailUri, {
-    encoding: FileSystem.EncodingType.Base64,
+    encoding: "base64",
   })
 
   // Convert base64 to blob

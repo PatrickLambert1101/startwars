@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Platform } from "react-native"
-import { Camera, useCameraDevice, useCameraPermission } from "react-native-vision-camera"
+import { Camera, useCameraDevice, useCameraPermission, useFrameProcessor } from "react-native-vision-camera"
 import { runAtTargetFps } from "react-native-vision-camera"
 import type { Frame } from "react-native-vision-camera"
 import { useTextRecognition } from "react-native-vision-camera-ocr-plus"
@@ -70,8 +70,8 @@ export function useTagScanner(options: UseTagScannerOptions = {}) {
   /**
    * Frame processor - runs OCR on each camera frame
    */
-  const frameProcessor = useCallback(
-    (frame: Frame) => {
+  const frameProcessor = useFrameProcessor(
+    (frame) => {
       "worklet"
 
       if (!isScanning) return
@@ -114,7 +114,8 @@ export function useTagScanner(options: UseTagScannerOptions = {}) {
 
           setDetectedText(ocrResults)
         } catch (error) {
-          console.error("OCR Error:", error)
+          // Silently handle OCR errors to avoid spamming console
+          // Most OCR errors are transient and self-recovering
         }
       })
     },

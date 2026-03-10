@@ -32,7 +32,18 @@
     "supportsTablet": true,
     "bundleIdentifier": "com.herdtrackr",
     "infoPlist": {
-      "NSCameraUsageDescription": "HerdTrackr uses the camera to scan ear tag numbers for quick animal identification"
+      "NSCameraUsageDescription": "HerdTrackr uses the camera to scan ear tag numbers for quick animal identification",
+      "ITSAppUsesNonExemptEncryption": false
+    },
+    "privacyManifests": {
+      "NSPrivacyAccessedAPITypes": [
+        {
+          "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+          "NSPrivacyAccessedAPITypeReasons": [
+            "CA92.1"
+          ]
+        }
+      ]
     }
   },
   "web": {
@@ -45,7 +56,7 @@
     [
       "expo-splash-screen",
       {
-        "image": "./assets/images/herd-logo.png",
+        "image": "./assets/images/splash-logo-all.png",
         "imageWidth": 200,
         "resizeMode": "contain",
         "backgroundColor": "#FFFFFF"
@@ -75,39 +86,9 @@
   "extra": {
     "ignite": {
       "version": "UNKNOWN"
-    }
-  },
-  "expo": {
-    "android": {
-      "package": "com.anonymous.herdtrackr"
     },
-    "ios": {
-      "privacyManifests": {
-        "NSPrivacyAccessedAPITypes": [
-          {
-            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
-            "NSPrivacyAccessedAPITypeReasons": [
-              "CA92.1"
-            ]
-          },
-          {
-            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
-            "NSPrivacyAccessedAPITypeReasons": [
-              "CA92.1"
-            ]
-          }
-        ]
-      },
-      "bundleIdentifier": "com.anonymous.herdtrackr",
-      "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
-      }
-    },
-    "web": {},
-    "extra": {
-      "eas": {
-        "projectId": "ce99f731-12da-4ab9-85a4-c706072b2e26"
-      }
+    "eas": {
+      "projectId": "ce99f731-12da-4ab9-85a4-c706072b2e26"
     }
   }
 }

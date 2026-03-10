@@ -36,23 +36,23 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
   }, [])
 
   useEffect(() => {
-    if (hasUhfHardware && !isInitialized) {
+    if (hasRfidHardware && !isInitialized) {
       initialize()
     }
-  }, [hasUhfHardware, isInitialized, initialize])
+  }, [hasRfidHardware, isInitialized, initialize])
 
   const applyPower = useCallback(
     async (power: number) => {
       const clamped = Math.max(POWER_MIN, Math.min(POWER_MAX, power))
       setReaderPower(clamped)
       saveString(STORAGE_KEY_POWER, String(clamped))
-      if (hasUhfHardware && isInitialized) {
+      if (hasRfidHardware && isInitialized) {
         await setOutputPower(clamped)
       }
       setPowerSaved(true)
       setTimeout(() => setPowerSaved(false), 1500)
     },
-    [isInitialized, setOutputPower],
+    [hasRfidHardware, isInitialized, setOutputPower],
   )
 
   const handleLogout = useCallback(() => {
@@ -111,10 +111,10 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
         />
       </View>
 
-      <View style={themed($section)}>
-        <Text preset="formLabel" text="RFID SCANNER" style={themed($sectionLabel)} />
+      {hasRfidHardware && (
+        <View style={themed($section)}>
+          <Text preset="formLabel" text="RFID SCANNER" style={themed($sectionLabel)} />
 
-        {hasUhfHardware ? (
           <View style={themed($rfidCard)}>
             <View style={themed($rfidStatusRow)}>
               <View style={themed($rfidStatusDot)} />
@@ -184,16 +184,8 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
               Range: {POWER_MIN} (shortest) to {POWER_MAX} (longest). Higher power drains battery faster.
             </Text>
           </View>
-        ) : (
-          <View style={themed($rfidDisabledCard)}>
-            <Text style={themed($rfidDisabledTitle)}>No RFID Scanner Detected</Text>
-            <Text style={themed($rfidDisabledText)}>
-              RFID power settings are only available on Android handheld scanners with a built-in UHF reader.
-              {Platform.OS === "ios" ? " You're currently on iOS." : ""}
-            </Text>
-          </View>
-        )}
-      </View>
+        </View>
+      )}
 
       <View style={themed($section)}>
         <Text preset="formLabel" text="DANGER ZONE" style={themed($dangerLabel)} />

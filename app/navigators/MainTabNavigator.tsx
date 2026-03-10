@@ -1,5 +1,6 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs"
-import { TextStyle, ViewStyle } from "react-native"
+import { TextStyle, ViewStyle, View, Platform } from "react-native"
+import { MaterialCommunityIcons } from "@expo/vector-icons"
 
 import { DashboardScreen } from "@/screens/DashboardScreen"
 import { HerdListScreen } from "@/screens/HerdListScreen"
@@ -7,7 +8,6 @@ import { ChuteScreen } from "@/screens/ChuteScreen"
 import { PasturesScreen } from "@/screens/PasturesScreen"
 import { ReportsScreen } from "@/screens/ReportsScreen"
 import { SettingsScreen } from "@/screens/SettingsScreen"
-import { BarnIcon, CowHeadIcon, ChuteIcon, PastureIcon, ReportsIcon, SettingsIcon } from "@/components/icons"
 import { useAppTheme } from "@/theme/context"
 
 import type { MainTabParamList } from "./navigationTypes"
@@ -19,12 +19,36 @@ export const MainTabNavigator = () => {
     theme: { colors },
   } = useAppTheme()
 
+  const renderTabIcon = (iconName: keyof typeof MaterialCommunityIcons.glyphMap, focused: boolean, color: string) => {
+    return (
+      <View
+        style={[
+          $iconContainer,
+          focused && {
+            backgroundColor: colors.tint + '15',
+            transform: [{ scale: 1.05 }],
+          },
+        ]}
+      >
+        <MaterialCommunityIcons name={iconName} size={focused ? 26 : 24} color={color} />
+      </View>
+    )
+  }
+
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
         tabBarHideOnKeyboard: true,
-        tabBarStyle: [$tabBar, { borderTopColor: colors.separator, backgroundColor: colors.background }],
+        tabBarStyle: [$tabBar, {
+          borderTopColor: colors.separator,
+          backgroundColor: colors.background,
+          elevation: 8,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
+        }],
         tabBarActiveTintColor: colors.tint,
         tabBarInactiveTintColor: colors.textDim,
         tabBarLabelStyle: $tabBarLabel,
@@ -35,7 +59,7 @@ export const MainTabNavigator = () => {
         component={DashboardScreen}
         options={{
           tabBarLabel: "Home",
-          tabBarIcon: ({ color }) => <BarnIcon color={color} size={24} />,
+          tabBarIcon: ({ color, focused }) => renderTabIcon("view-dashboard-outline", focused, color),
         }}
       />
       <Tab.Screen
@@ -43,7 +67,7 @@ export const MainTabNavigator = () => {
         component={HerdListScreen}
         options={{
           tabBarLabel: "Herd",
-          tabBarIcon: ({ color }) => <CowHeadIcon color={color} size={24} />,
+          tabBarIcon: ({ color, focused }) => renderTabIcon("cow", focused, color),
         }}
       />
       <Tab.Screen
@@ -51,7 +75,7 @@ export const MainTabNavigator = () => {
         component={ChuteScreen}
         options={{
           tabBarLabel: "Chute",
-          tabBarIcon: ({ color }) => <ChuteIcon color={color} size={24} />,
+          tabBarIcon: ({ color, focused }) => renderTabIcon("gate-arrow-right", focused, color),
         }}
       />
       <Tab.Screen
@@ -59,7 +83,7 @@ export const MainTabNavigator = () => {
         component={PasturesScreen}
         options={{
           tabBarLabel: "Pastures",
-          tabBarIcon: ({ color }) => <PastureIcon color={color} size={24} />,
+          tabBarIcon: ({ color, focused }) => renderTabIcon("grass", focused, color),
         }}
       />
       <Tab.Screen
@@ -67,7 +91,7 @@ export const MainTabNavigator = () => {
         component={ReportsScreen}
         options={{
           tabBarLabel: "Reports",
-          tabBarIcon: ({ color }) => <ReportsIcon color={color} size={24} />,
+          tabBarIcon: ({ color, focused }) => renderTabIcon("chart-bar", focused, color),
         }}
       />
       <Tab.Screen
@@ -75,7 +99,7 @@ export const MainTabNavigator = () => {
         component={SettingsScreen}
         options={{
           tabBarLabel: "Settings",
-          tabBarIcon: ({ color }) => <SettingsIcon color={color} size={24} />,
+          tabBarIcon: ({ color, focused }) => renderTabIcon("cog-outline", focused, color),
         }}
       />
     </Tab.Navigator>
@@ -88,6 +112,14 @@ const $tabBar: ViewStyle = {
 
 const $tabBarLabel: TextStyle = {
   fontSize: 11,
-  fontWeight: "500",
+  fontWeight: "600",
   lineHeight: 16,
+}
+
+const $iconContainer: ViewStyle = {
+  width: 40,
+  height: 40,
+  borderRadius: 20,
+  alignItems: 'center',
+  justifyContent: 'center',
 }
