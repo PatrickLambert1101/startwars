@@ -1,4 +1,4 @@
-import { FC, useCallback, useEffect } from "react"
+import { FC, useCallback, useEffect, useRef } from "react"
 import { View, ViewStyle, StyleSheet, Alert, ActivityIndicator } from "react-native"
 import { Camera } from "react-native-vision-camera"
 import { useTagScanner } from "@/hooks/useTagScanner"
@@ -11,14 +11,40 @@ interface TagScannerScreenProps {
   navigation: any
   route: {
     params?: {
-      onTagScanned?: (tagNumber: string) => void
+      // Use a callback ID instead of the function itself
+      callbackId?: string
     }
   }
 }
 
+// Global store for scan callbacks to avoid serialization issues
+const scanCallbacks = new Map<string, (tagNumber: string) => void>()
+
+// Helper to register a callback
+export function registerScanCallback(callback: (tagNumber: string) => void): string {
+  const id = Math.random().toString(36).substring(7)
+  scanCallbacks.set(id, callback)
+  return id
+}
+
+// Helper to unregister a callback
+export function unregisterScanCallback(id: string): void {
+  scanCallbacks.delete(id)
+}
+
 export const TagScannerScreen: FC<TagScannerScreenProps> = ({ navigation, route }) => {
   const { themed } = useAppTheme()
-  const onTagScanned = route.params?.onTagScanned
+  const callbackId = route.params?.callbackId
+  const onTagScanned = callbackId ? scanCallbacks.get(callbackId) : undefined
+
+  // Clean up callback on unmount
+  useEffect(() => {
+    return () => {
+      if (callbackId) {
+        unregisterScanCallback(callbackId)
+      }
+    }
+  }, [callbackId])
 
   // Tag scanner hook
   const {

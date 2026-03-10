@@ -5,6 +5,7 @@ import { Text } from "./Text"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import type { AppStackScreenProps } from "@/navigators"
+import { registerScanCallback } from "@/screens/TagScannerScreen/TagScannerScreen"
 
 interface ScanTagButtonProps {
   onTagScanned: (tagNumber: string) => void
@@ -17,7 +18,9 @@ export const ScanTagButton: FC<ScanTagButtonProps> = ({ onTagScanned, style, com
   const navigation = useNavigation<AppStackScreenProps<"TagScanner">["navigation"]>()
 
   const handlePress = () => {
-    navigation.navigate("TagScanner", { onTagScanned })
+    // Register callback and pass only the ID (serializable)
+    const callbackId = registerScanCallback(onTagScanned)
+    navigation.navigate("TagScanner", { callbackId })
   }
 
   if (compact) {
