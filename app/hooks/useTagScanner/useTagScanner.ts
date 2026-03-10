@@ -81,6 +81,11 @@ export function useTagScanner(options: UseTagScannerOptions = {}) {
         try {
           const data = scanText(frame)
 
+          // Skip if no blocks detected
+          if (!data || !data.blocks || data.blocks.length === 0) {
+            return
+          }
+
           // Convert OCR results to our format
           const ocrResults: OCRResult[] = data.blocks.map((block) => ({
             text: block.blockText,
@@ -106,6 +111,7 @@ export function useTagScanner(options: UseTagScannerOptions = {}) {
 
           // Update state on main thread
           if (stableTag && stableTag !== lastDetectedTag.current) {
+            console.log("✅ STABLE TAG DETECTED:", stableTag)
             lastDetectedTag.current = stableTag
             setStableTagNumber(stableTag)
             setScanHistory((prev) => [stableTag, ...prev.slice(0, 9)]) // Keep last 10
@@ -114,8 +120,7 @@ export function useTagScanner(options: UseTagScannerOptions = {}) {
 
           setDetectedText(ocrResults)
         } catch (error) {
-          // Silently handle OCR errors to avoid spamming console
-          // Most OCR errors are transient and self-recovering
+          // Silently ignore errors - they're usually from empty frames
         }
       })
     },
@@ -126,6 +131,7 @@ export function useTagScanner(options: UseTagScannerOptions = {}) {
    * Start scanning
    */
   const startScanning = useCallback(() => {
+    console.log("Starting OCR scanning...")
     setIsScanning(true)
     stabilityChecker.current.reset()
     setStableTagNumber(null)

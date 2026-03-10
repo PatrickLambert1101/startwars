@@ -4,7 +4,6 @@ import { format } from "date-fns"
 
 import { Screen, Text, TextField, Button, ScanTagButton } from "@/components"
 import { WeightChart } from "@/components/WeightChart"
-import { RfidTagIcon } from "@/components/icons"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { spacing } from "@/theme/spacing"
@@ -16,7 +15,6 @@ import { useDatabase } from "@/context/DatabaseContext"
 import { useSubscription } from "@/context/SubscriptionContext"
 import { useWeightRecordActions, useHealthRecordActions } from "@/hooks/useRecords"
 import { useActiveProtocols } from "@/hooks/useProtocols"
-import { useRfidReader } from "@/hooks/useRfidReader"
 import { TreatmentProtocol } from "@/db/models"
 import { Q } from "@nozbe/watermelondb"
 
@@ -37,7 +35,6 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
   const { createWeightRecord } = useWeightRecordActions()
   const { createHealthRecord } = useHealthRecordActions()
   const { protocols } = useActiveProtocols()
-  const { hasRfidHardware } = useRfidReader()
 
   const rfidInputRef = useRef<TextInput>(null)
   const weightInputRef = useRef<TextInput>(null)
@@ -323,32 +320,29 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
         /* ─── SCAN PHASE ─── */
         <View style={themed($scanArea)}>
           <View style={[themed($scanBox), { borderColor: modeColor }]}>
-            <RfidTagIcon size={48} color={modeColor} />
-            <Text preset="subheading" text={hasRfidHardware ? "SCAN TAG" : "ENTER TAG"} style={[themed($scanText), { color: modeColor }]} />
+            <Text preset="subheading" text="SCAN TAG" style={[themed($scanText), { color: modeColor }]} />
             <TextField
               ref={rfidInputRef}
               value={rfidInput}
               onChangeText={setRfidInput}
-              placeholder={hasRfidHardware ? "Scan or enter tag" : "Enter visual tag or RFID"}
+              placeholder="Enter tag or use camera"
               containerStyle={themed($scanInput)}
               autoCapitalize="characters"
               autoFocus
               onSubmitEditing={handleScanSubmit}
             />
             <View style={themed($scanButtons)}>
-              {hasRfidHardware && (
-                <ScanTagButton
-                  onTagScanned={(tagNumber) => {
-                    setRfidInput(tagNumber)
-                    lookupAnimal(tagNumber)
-                  }}
-                  style={themed($scanTagBtn)}
-                />
-              )}
+              <ScanTagButton
+                onTagScanned={(tagNumber) => {
+                  setRfidInput(tagNumber)
+                  lookupAnimal(tagNumber)
+                }}
+                style={themed($scanTagBtn)}
+              />
               <Button
                 text={isSearching ? "Searching..." : "Look Up"}
                 preset="reversed"
-                style={hasRfidHardware ? themed($lookupButton) : { flex: 1 }}
+                style={themed($lookupButton)}
                 onPress={handleScanSubmit}
               />
             </View>
@@ -821,7 +815,7 @@ const $scanTagBtn: ThemedStyle<ViewStyle> = () => ({
 })
 
 const $lookupButton: ThemedStyle<ViewStyle> = () => ({
-  flex: 2,
+  flex: 1,
 })
 
 const $scrollContent: ThemedStyle<ViewStyle> = () => ({
