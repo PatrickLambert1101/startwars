@@ -33,8 +33,7 @@ export const ScanTagButton: FC<ScanTagButtonProps> = ({ onTagScanned, style, com
 
   return (
     <Pressable onPress={handlePress} style={[themed($button), style]}>
-      <Text text="📷" size="lg" />
-      <Text text="Scan Tag" size="sm" style={themed($buttonText)} />
+      <Text text="📷 Scan Tag" size="sm" style={themed($buttonText)} />
     </Pressable>
   )
 }
@@ -45,16 +44,16 @@ const $button: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.primary500,
   borderRadius: 12,
   paddingHorizontal: spacing.md,
-  paddingVertical: spacing.sm,
-  flexDirection: "row",
+  paddingVertical: spacing.md,
   alignItems: "center",
   justifyContent: "center",
-  gap: spacing.xs,
   minHeight: 44,
 })
 
 const $buttonText: ThemedStyle<TextStyle> = () => ({
   color: "#FFF",
+  fontWeight: "600",
+  textAlign: "center",
 })
 
 const $compactButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
