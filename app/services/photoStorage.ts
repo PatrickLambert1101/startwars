@@ -1,5 +1,5 @@
 import { supabase } from "./supabase"
-import * as FileSystem from "expo-file-system"
+import { readAsStringAsync } from "expo-file-system/legacy"
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator"
 import type { Photo } from "@/types/Photo"
 
@@ -78,21 +78,21 @@ export async function uploadPhoto(options: UploadPhotoOptions): Promise<UploadPh
   const thumbnailPath = `${organizationId}/thumbnails/${category}/${recordId}/${filename}`
 
   // Read file as base64
-  const fullImageBase64 = await FileSystem.readAsStringAsync(compressedUri, {
+  const fullImageBase64 = await readAsStringAsync(compressedUri, {
     encoding: "base64",
   })
-  const thumbnailBase64 = await FileSystem.readAsStringAsync(thumbnailUri, {
+  const thumbnailBase64 = await readAsStringAsync(thumbnailUri, {
     encoding: "base64",
   })
 
-  // Convert base64 to blob
-  const fullImageBlob = base64ToBlob(fullImageBase64, "image/jpeg")
-  const thumbnailBlob = base64ToBlob(thumbnailBase64, "image/jpeg")
+  // Decode base64 to binary for upload
+  const fullImageBinary = decode(fullImageBase64)
+  const thumbnailBinary = decode(thumbnailBase64)
 
   // Upload full-size image
   const { data: fullImageData, error: fullImageError } = await supabase.storage
     .from(BUCKET_NAME)
-    .upload(path, fullImageBlob, {
+    .upload(path, fullImageBinary, {
       contentType: "image/jpeg",
       upsert: false,
     })
@@ -104,7 +104,7 @@ export async function uploadPhoto(options: UploadPhotoOptions): Promise<UploadPh
   // Upload thumbnail
   const { data: thumbnailData, error: thumbnailError } = await supabase.storage
     .from(BUCKET_NAME)
-    .upload(thumbnailPath, thumbnailBlob, {
+    .upload(thumbnailPath, thumbnailBinary, {
       contentType: "image/jpeg",
       upsert: false,
     })
@@ -155,25 +155,15 @@ export async function deletePhotos(photoUris: string[]): Promise<void> {
 }
 
 /**
- * Helper to convert base64 to Blob (for React Native)
+ * Helper to decode base64 to ArrayBuffer (React Native compatible)
  */
-function base64ToBlob(base64: string, contentType: string): Blob {
-  const byteCharacters = atob(base64)
-  const byteArrays: Uint8Array[] = []
-
-  for (let offset = 0; offset < byteCharacters.length; offset += 512) {
-    const slice = byteCharacters.slice(offset, offset + 512)
-    const byteNumbers = new Array(slice.length)
-
-    for (let i = 0; i < slice.length; i++) {
-      byteNumbers[i] = slice.charCodeAt(i)
-    }
-
-    const byteArray = new Uint8Array(byteNumbers)
-    byteArrays.push(byteArray)
+function decode(base64: string): ArrayBuffer {
+  const binaryString = atob(base64)
+  const bytes = new Uint8Array(binaryString.length)
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i)
   }
-
-  return new Blob(byteArrays, { type: contentType })
+  return bytes.buffer
 }
 
 /**

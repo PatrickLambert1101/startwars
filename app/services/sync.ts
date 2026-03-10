@@ -119,7 +119,10 @@ async function pushChanges({ changes }: SyncPushArgs) {
     // Upsert created records
     if (created.length > 0) {
       const rows = created.map((r: any) => watermelonToSupabase(r, table))
-      const { error } = await supabase.from(supabaseTable).upsert(rows)
+      const { error } = await supabase.from(supabaseTable).upsert(rows, {
+        onConflict: 'id',
+        ignoreDuplicates: false,
+      })
       if (error) {
         console.error(`Sync push create error for ${table}:`, error.message)
         throw error

@@ -1,11 +1,12 @@
 import { FC, useCallback, useEffect, useRef, useState } from "react"
-import { View, ViewStyle, StyleSheet, Alert, ActivityIndicator, Pressable, TextInput } from "react-native"
-import { Camera } from "react-native-vision-camera"
-import { useTagScanner } from "@/hooks/useTagScanner"
-import { ScanOverlay } from "./ScanOverlay"
+import { View, ViewStyle, StyleSheet, Alert, Pressable, TextInput } from "react-native"
+import { useCameraDevice, useCameraPermission } from "react-native-vision-camera"
+import { Camera } from "react-native-vision-camera-ocr-plus"
+import type { Text as OCRText } from "react-native-vision-camera-ocr-plus"
+import { extractTagNumbers } from "@/hooks/useTagScanner/tagParser"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-import { Text, Screen, Button } from "@/components"
+import { Text, Screen } from "@/components"
 
 interface TagScannerScreenProps {
   navigation: any
@@ -37,9 +38,15 @@ export const TagScannerScreen: FC<TagScannerScreenProps> = ({ navigation, route 
   const callbackId = route.params?.callbackId
   const onTagScanned = callbackId ? scanCallbacks.get(callbackId) : undefined
 
-  // Pending scan state - shows in form before approval
-  const [pendingScan, setPendingScan] = useState<string>("")
+  // State
   const [manualInput, setManualInput] = useState<string>("")
+  const [torch, setTorch] = useState<"off" | "on">("off")
+
+  const cameraRef = useRef<any>(null)
+
+  // Camera setup
+  const device = useCameraDevice("back")
+  const { hasPermission, requestPermission } = useCameraPermission()
 
   // Clean up callback on unmount
   useEffect(() => {
@@ -50,31 +57,6 @@ export const TagScannerScreen: FC<TagScannerScreenProps> = ({ navigation, route 
     }
   }, [callbackId])
 
-  // Tag scanner hook
-  const {
-    state,
-    device,
-    hasPermission,
-    torch,
-    debugInfo,
-    requestPermission,
-    startScanning,
-    toggleTorch,
-    frameProcessor,
-  } = useTagScanner({
-    autoStart: true,
-    stabilityFrames: 2, // Reduced from 3 to be more responsive
-    targetFps: 3,
-    onTagDetected: useCallback(
-      (tagNumber: string) => {
-        // Update pending scan instead of immediately submitting
-        setPendingScan(tagNumber)
-        setManualInput(tagNumber)
-      },
-      [],
-    ),
-  })
-
   // Request camera permission on mount
   useEffect(() => {
     if (!hasPermission) {
@@ -82,12 +64,33 @@ export const TagScannerScreen: FC<TagScannerScreenProps> = ({ navigation, route 
     }
   }, [hasPermission, requestPermission])
 
-  // Start scanning once permission granted
-  useEffect(() => {
-    if (hasPermission && device) {
-      startScanning()
+  // Callback for OCR results - THIS RUNS ON JS THREAD!
+  const handleOCRResult = useCallback((data: OCRText) => {
+    if (!data || !data.blocks || data.blocks.length === 0) {
+      return
     }
-  }, [hasPermission, device, startScanning])
+
+    // Extract tags from OCR results
+    const ocrResults = data.blocks.map(block => ({
+      text: block.blockText,
+      confidence: 0.8,
+      boundingBox: block.blockFrame ? {
+        x: block.blockFrame.x,
+        y: block.blockFrame.y,
+        width: block.blockFrame.width,
+        height: block.blockFrame.height,
+      } : undefined,
+    }))
+
+    const tagResults = extractTagNumbers(ocrResults)
+
+    if (tagResults.length > 0) {
+      const bestTag = tagResults.sort((a, b) => b.confidence - a.confidence)[0]
+
+      // Update input field directly
+      setManualInput(bestTag.tagNumber)
+    }
+  }, [])
 
   const handleClose = useCallback(() => {
     navigation.goBack()
@@ -107,6 +110,10 @@ export const TagScannerScreen: FC<TagScannerScreenProps> = ({ navigation, route 
       navigation.navigate("HerdList", { scannedTag: finalTag })
     }
   }, [manualInput, onTagScanned, navigation])
+
+  const toggleTorch = useCallback(() => {
+    setTorch(prev => prev === "off" ? "on" : "off")
+  }, [])
 
   // No permission
   if (hasPermission === false) {
@@ -139,75 +146,66 @@ export const TagScannerScreen: FC<TagScannerScreenProps> = ({ navigation, route 
     )
   }
 
-  // Extract detected text for display
-  const detectedTextArray = state.detectedText.map((ocr) => ocr.text)
-
   return (
     <Screen preset="fixed" contentContainerStyle={themed($screenContainer)} safeAreaEdges={["top"]}>
       {/* Camera View - Top Half */}
       <View style={themed($cameraContainer)}>
         <Camera
+          ref={cameraRef}
           style={StyleSheet.absoluteFill}
           device={device}
-          isActive={state.isScanning}
-          frameProcessor={frameProcessor}
+          isActive={true}
           torch={torch}
           enableZoomGesture
-          photo={false}
-          video={false}
+          mode="recognize"
+          callback={handleOCRResult}
+          options={{
+            language: "latin",
+          }}
         />
-        <ScanOverlay
-          detectedText={detectedTextArray}
-          stableTagNumber={state.stableTagNumber}
-          onClose={handleClose}
-          torchEnabled={torch === "on"}
-          onToggleTorch={toggleTorch}
-        />
+
+        {/* Camera Overlay */}
+        <View style={themed($overlay)}>
+          {/* Top Bar */}
+          <View style={themed($topBar)}>
+            <Pressable onPress={handleClose} style={themed($closeButton)}>
+              <Text text="✕" size="xl" style={{ color: "#FFF" }} />
+            </Pressable>
+            <Pressable onPress={toggleTorch} style={themed($torchButton)}>
+              <Text text={torch === "on" ? "🔦" : "💡"} size="xl" />
+            </Pressable>
+          </View>
+
+          {/* Viewfinder */}
+          <View style={themed($viewfinder)} />
+
+          {/* Bottom hint */}
+          <View style={themed($bottomBar)}>
+            <Text text="Point at ear tag" size="sm" style={{ color: "#FFF", textAlign: "center", opacity: 0.9 }} />
+          </View>
+        </View>
       </View>
 
       {/* Form View - Bottom Half */}
       <View style={themed($formContainer)}>
         <Text preset="subheading" text="Scanned Tag" style={themed($formTitle)} />
         <Text
-          text="Point camera at ear tag. Edit below if needed."
+          text="Tag appears automatically. Edit if needed."
           size="xs"
           style={themed($formSubtitle)}
         />
-
-        {/* Debug Info */}
-        {debugInfo && (
-          <View style={{ backgroundColor: "#F3F4F6", padding: 8, borderRadius: 6, marginBottom: 8 }}>
-            <Text text={debugInfo} size="xxs" style={{ fontFamily: "monospace", color: "#6B7280" }} />
-          </View>
-        )}
-
-        {/* Show ALL detected text */}
-        {detectedTextArray.length > 0 && (
-          <View style={{ backgroundColor: "#FEF3C7", padding: 8, borderRadius: 6, marginBottom: 8, maxHeight: 120, overflow: "scroll" }}>
-            <Text text="📝 OCR Detected:" size="xxs" style={{ fontWeight: "700", marginBottom: 4 }} />
-            {detectedTextArray.map((text, i) => (
-              <Text key={i} text={`${i + 1}. "${text}"`} size="xxs" style={{ color: "#92400E" }} />
-            ))}
-          </View>
-        )}
 
         <View style={themed($inputContainer)}>
           <TextInput
             style={themed($input)}
             value={manualInput}
             onChangeText={setManualInput}
-            placeholder="Tag will appear here..."
+            placeholder="Point camera at tag..."
             placeholderTextColor="#999"
             autoCapitalize="characters"
             autoCorrect={false}
           />
         </View>
-
-        {pendingScan && (
-          <View style={themed($detectedBadge)}>
-            <Text text={`📸 Detected: ${pendingScan}`} size="sm" style={{ color: "#10B981" }} />
-          </View>
-        )}
 
         <View style={themed($buttonRow)}>
           <Pressable onPress={handleClose} style={themed($cancelButton)}>
@@ -274,14 +272,6 @@ const $input: ThemedStyle<any> = ({ colors, spacing }) => ({
   borderColor: colors.palette.primary500,
 })
 
-const $detectedBadge: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  backgroundColor: "#10B98122",
-  padding: spacing.sm,
-  borderRadius: 8,
-  alignItems: "center",
-  marginBottom: spacing.md,
-})
-
 const $buttonRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   gap: spacing.sm,
@@ -341,4 +331,48 @@ const $errorTitle: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $errorText: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   color: colors.textDim,
   textAlign: "center",
+})
+
+const $overlay: ThemedStyle<ViewStyle> = () => ({
+  flex: 1,
+  justifyContent: "space-between",
+  padding: 20,
+})
+
+const $topBar: ThemedStyle<ViewStyle> = () => ({
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+})
+
+const $closeButton: ThemedStyle<ViewStyle> = () => ({
+  width: 44,
+  height: 44,
+  borderRadius: 22,
+  backgroundColor: "rgba(0,0,0,0.5)",
+  justifyContent: "center",
+  alignItems: "center",
+})
+
+const $torchButton: ThemedStyle<ViewStyle> = () => ({
+  width: 44,
+  height: 44,
+  borderRadius: 22,
+  backgroundColor: "rgba(0,0,0,0.5)",
+  justifyContent: "center",
+  alignItems: "center",
+})
+
+const $viewfinder: ThemedStyle<ViewStyle> = () => ({
+  flex: 1,
+  marginVertical: 40,
+  borderWidth: 2,
+  borderColor: "#FFF",
+  borderRadius: 12,
+  backgroundColor: "transparent",
+})
+
+const $bottomBar: ThemedStyle<ViewStyle> = () => ({
+  alignItems: "center",
+  paddingBottom: 20,
 })

@@ -3,6 +3,7 @@ import { Platform } from "react-native"
 import { Camera, useCameraDevice, useCameraPermission, useFrameProcessor, runAtTargetFps, runAsync } from "react-native-vision-camera"
 import type { Frame } from "react-native-vision-camera"
 import { useTextRecognition } from "react-native-vision-camera-ocr-plus"
+import { useSharedValue } from "react-native-reanimated"
 import { extractTagNumbers, TagStabilityChecker } from "./tagParser"
 import type { OCRResult, ScannerState, TagScanResult } from "./types"
 
@@ -50,7 +51,6 @@ export function useTagScanner(options: UseTagScannerOptions = {}) {
   // OCR plugin
   const { scanText } = useTextRecognition({
     language: "latin",
-    frameSkipThreshold: targetFps,
   })
 
   // Scanner state
@@ -73,80 +73,98 @@ export function useTagScanner(options: UseTagScannerOptions = {}) {
   // Refs to pass data from worklet to JS thread
   const pendingDebugInfo = useRef<string>("")
   const pendingDetectedText = useRef<OCRResult[]>([])
-  const pendingBestTag = useRef<{ tag: string | null; timestamp: number } | null>(null) // Use object with timestamp to detect changes
+
+  // Use shared values for worklet→JS communication
+  const latestTag = useSharedValue<string>("")
+  const tagCounter = useSharedValue<number>(0)
 
   // Helper function to add to scan history (must be called from JS thread)
   const addToScanHistory = useCallback((tag: string) => {
     setScanHistory((prev) => [tag, ...prev.slice(0, 9)]) // Keep last 10
   }, [])
 
-  // Watch for updates from worklet and do stability checking on JS thread
+  // Process tags from shared values
+  const [lastProcessedCounter, setLastProcessedCounter] = useState(0)
+
   useEffect(() => {
-    console.log("[OCR] Starting state update interval")
-    let updateCount = 0
+    console.log("[JS] Starting shared value polling")
+    let pollCount = 0
     const interval = setInterval(() => {
-      updateCount++
-      if (updateCount % 10 === 0) {
-        console.log(`[OCR] Interval running (${updateCount} checks)`)
+      pollCount++
+      const currentCounter = tagCounter.value
+      const tag = latestTag.value
+
+      if (pollCount % 20 === 0) {
+        console.log(`[JS] Poll #${pollCount}: counter=${currentCounter}, tag="${tag}", lastProcessed=${lastProcessedCounter}`)
       }
 
-      // Update debug info
-      if (pendingDebugInfo.current) {
-        setDebugInfo(pendingDebugInfo.current)
-      }
+      if (currentCounter !== lastProcessedCounter && tag) {
+        console.log(`[JS] Got tag from shared value: "${tag}" (counter: ${currentCounter})`)
+        setLastProcessedCounter(currentCounter)
 
-      // Update detected text
-      if (pendingDetectedText.current.length > 0) {
-        setDetectedText(pendingDetectedText.current)
-      }
-
-      // Stability checking on JS thread
-      if (pendingBestTag.current) {
-        const pending = pendingBestTag.current
-        pendingBestTag.current = null // Clear immediately
-
-        if (pending.tag === null) {
-          // No tag detected, reset history
-          console.log(`[OCR] No tag detected, resetting history`)
-          tagHistory.current = []
-        } else {
-          console.log(`[OCR] Got best tag from worklet: "${pending.tag}"`)
+        // Process the tag
+        {
+          console.log(`[JS] Processing tag: "${tag}"`)
 
           // Add to history
-          tagHistory.current.push(pending.tag)
+          tagHistory.current.push(tag)
           if (tagHistory.current.length > 10) {
             tagHistory.current.shift()
           }
 
-          console.log(`[OCR] History now: [${tagHistory.current.join(', ')}]`)
+          console.log(`[JS] History now: [${tagHistory.current.join(', ')}]`)
 
           // Check if we have enough consecutive matches
           const recentTags = tagHistory.current.slice(-stabilityFrames)
-          console.log(`[OCR] Recent tags (need ${stabilityFrames}): [${recentTags.join(', ')}]`)
+          console.log(`[JS] Recent tags (need ${stabilityFrames}): [${recentTags.join(', ')}]`)
 
           if (recentTags.length >= stabilityFrames) {
             const firstTag = recentTags[0]
-            const allSame = recentTags.every(tag => tag === firstTag)
+            const allSame = recentTags.every(t => t === firstTag)
 
             if (allSame && firstTag !== lastDetectedTag.current) {
-              console.log(`[OCR] ✅ STABLE TAG DETECTED: ${firstTag}`)
+              console.log(`[JS] ✅ STABLE TAG DETECTED: ${firstTag}`)
               lastDetectedTag.current = firstTag
               setStableTagNumber(firstTag)
               addToScanHistory(firstTag)
               onTagDetected?.(firstTag)
             } else if (!allSame) {
-              console.log(`[OCR] Not stable yet (tags differ)`)
+              console.log(`[JS] Not stable yet (tags differ)`)
             }
           }
         }
       }
+    }, 50) // Check more frequently
+
+    return () => clearInterval(interval)
+  }, [lastProcessedCounter, stabilityFrames, addToScanHistory, onTagDetected])
+
+  // Update debug info and detected text from worklet refs
+  useEffect(() => {
+    console.log("[JS] Starting debug info polling")
+    let count = 0
+    const interval = setInterval(() => {
+      count++
+      const debugValue = pendingDebugInfo.current
+      const textLength = pendingDetectedText.current.length
+
+      if (count % 20 === 0) {
+        console.log(`[JS] Debug poll #${count}: debugInfo="${debugValue}", textBlocks=${textLength}`)
+      }
+
+      // Update debug info
+      if (debugValue) {
+        setDebugInfo(debugValue)
+      }
+
+      // Update detected text
+      if (textLength > 0) {
+        setDetectedText(pendingDetectedText.current)
+      }
     }, 100) // Check every 100ms
 
-    return () => {
-      console.log("[OCR] Stopping state update interval")
-      clearInterval(interval)
-    }
-  }, [onTagDetected, addToScanHistory, stabilityFrames])
+    return () => clearInterval(interval)
+  }, [])
 
   /**
    * Frame processor - runs OCR on each camera frame
@@ -212,15 +230,12 @@ export function useTagScanner(options: UseTagScannerOptions = {}) {
 
           if (bestTag) {
             console.log(`Frame ${frameNum}: Best tag: ${bestTag.tagNumber} (conf: ${bestTag.confidence.toFixed(2)})`)
-            pendingDebugInfo.current = `Frame ${frameNum}: Best tag: ${bestTag.tagNumber} (conf: ${bestTag.confidence.toFixed(2)})`
-            // Create new object each time so JS thread sees the change
-            pendingBestTag.current = { tag: bestTag.tagNumber, timestamp: Date.now() }
-            console.log(`Frame ${frameNum}: Wrote to pendingBestTag.current`)
+
+            // Just store in debugInfo - this DOES work!
+            pendingDebugInfo.current = `✅ DETECTED: ${bestTag.tagNumber}`
           } else {
             console.log(`Frame ${frameNum}: No tags extracted`)
             pendingDebugInfo.current = `Frame ${frameNum}: No tags`
-            // Signal no tag to reset history
-            pendingBestTag.current = { tag: null, timestamp: Date.now() }
           }
 
           pendingDetectedText.current = ocrResults
