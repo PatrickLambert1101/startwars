@@ -190,6 +190,8 @@ const $dimText: ThemedStyle<TextStyle> = ({ colors }) => ({
 })
 
 const $emptyState: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flex: 1,
+  justifyContent: "center",
   marginTop: spacing.md,
   alignItems: "flex-start",
 })

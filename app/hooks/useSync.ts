@@ -1,5 +1,5 @@
 import { useCallback, useState, useEffect, useRef } from "react"
-import { syncDatabase } from "@/services/sync"
+import { syncDatabase } from "@/services/sync_rpc"
 
 export type SyncStatus = "idle" | "syncing" | "success" | "error"
 
