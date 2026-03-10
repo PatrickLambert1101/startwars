@@ -59,53 +59,76 @@ export function extractTagNumbers(ocrResults: OCRResult[]): TagScanResult[] {
   'worklet'
   const results: TagScanResult[] = []
 
-  for (const ocr of ocrResults) {
-    // Skip low confidence results
-    if (ocr.confidence < 0.3) {
-      continue
-    }
+  console.log(`extractTagNumbers: Processing ${ocrResults.length} OCR results`)
 
-    const text = ocr.text.trim()
-    if (!text) {
-      continue
-    }
-    if (text.length < 2) {
-      continue
-    }
+  try {
+    for (const ocr of ocrResults) {
+      try {
+        // Skip low confidence results
+        if (ocr.confidence < 0.3) {
+          console.log(`  Skipping low confidence: "${ocr.text}" (${ocr.confidence})`)
+          continue
+        }
 
-    let matched = false
-    let highestPriority = 0
+        const text = ocr.text.trim()
+        if (!text) {
+          console.log(`  Skipping empty text`)
+          continue
+        }
+        if (text.length < 2) {
+          console.log(`  Skipping short text: "${text}"`)
+          continue
+        }
 
-    // Try each pattern in priority order
-    for (const pattern of SA_TAG_PATTERNS.sort((a, b) => b.priority - a.priority)) {
-      const match = text.match(pattern.regex)
-      if (!match) continue
+        console.log(`  Processing text: "${text}"`)
 
-      const tagNumber = match[1]
-      const isValid = pattern.validate ? pattern.validate(tagNumber) : true
+        let matched = false
+        let highestPriority = 0
 
-      if (isValid && pattern.priority > highestPriority) {
-        results.push({
-          tagNumber: normalizeTagNumber(tagNumber),
-          confidence: ocr.confidence * 1.2, // Boost confidence for pattern matches
-          rawText: text,
-        })
-        matched = true
-        highestPriority = pattern.priority
-        break
+        // Try each pattern in priority order
+        for (const pattern of SA_TAG_PATTERNS.sort((a, b) => b.priority - a.priority)) {
+          const match = text.match(pattern.regex)
+          if (!match || !match[1]) continue
+
+          const tagNumber = match[1]
+          const isValid = pattern.validate ? pattern.validate(tagNumber) : true
+
+          if (isValid && pattern.priority > highestPriority) {
+            // Normalize inline (can't call function from worklet)
+            const normalized = tagNumber.toUpperCase().replace(/\s+/g, " ").trim()
+            results.push({
+              tagNumber: normalized,
+              confidence: ocr.confidence * 1.2, // Boost confidence for pattern matches
+              rawText: text,
+            })
+            matched = true
+            highestPriority = pattern.priority
+            break
+          }
+        }
+
+        // If no pattern matched, accept it anyway (user can configure patterns later)
+        if (!matched) {
+          console.log(`    No pattern match, accepting as-is`)
+          // Normalize inline (can't call function from worklet)
+          const normalized = text.toUpperCase().replace(/\s+/g, " ").trim()
+          console.log(`    Normalized to: "${normalized}"`)
+          results.push({
+            tagNumber: normalized,
+            confidence: ocr.confidence * 0.8, // Lower confidence for non-pattern text
+            rawText: text,
+          })
+          console.log(`    Added to results (now ${results.length} total)`)
+        }
+      } catch (err) {
+        console.log(`    ERROR processing item: ${err}`)
       }
     }
-
-    // If no pattern matched, accept it anyway (user can configure patterns later)
-    if (!matched) {
-      results.push({
-        tagNumber: normalizeTagNumber(text),
-        confidence: ocr.confidence * 0.8, // Lower confidence for non-pattern text
-        rawText: text,
-      })
-    }
+  } catch (err) {
+    console.log(`  FATAL ERROR in extractTagNumbers: ${err}`)
   }
 
+  console.log(`extractTagNumbers: Returning ${results.length} results`)
   return results
 }
 

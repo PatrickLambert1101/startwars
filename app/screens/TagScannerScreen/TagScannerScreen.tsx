@@ -56,6 +56,7 @@ export const TagScannerScreen: FC<TagScannerScreenProps> = ({ navigation, route 
     device,
     hasPermission,
     torch,
+    debugInfo,
     requestPermission,
     startScanning,
     toggleTorch,
@@ -172,6 +173,23 @@ export const TagScannerScreen: FC<TagScannerScreenProps> = ({ navigation, route 
           size="xs"
           style={themed($formSubtitle)}
         />
+
+        {/* Debug Info */}
+        {debugInfo && (
+          <View style={{ backgroundColor: "#F3F4F6", padding: 8, borderRadius: 6, marginBottom: 8 }}>
+            <Text text={debugInfo} size="xxs" style={{ fontFamily: "monospace", color: "#6B7280" }} />
+          </View>
+        )}
+
+        {/* Show ALL detected text */}
+        {detectedTextArray.length > 0 && (
+          <View style={{ backgroundColor: "#FEF3C7", padding: 8, borderRadius: 6, marginBottom: 8, maxHeight: 120, overflow: "scroll" }}>
+            <Text text="📝 OCR Detected:" size="xxs" style={{ fontWeight: "700", marginBottom: 4 }} />
+            {detectedTextArray.map((text, i) => (
+              <Text key={i} text={`${i + 1}. "${text}"`} size="xxs" style={{ color: "#92400E" }} />
+            ))}
+          </View>
+        )}
 
         <View style={themed($inputContainer)}>
           <TextInput
