@@ -223,11 +223,26 @@ export const migrations = schemaMigrations({
         },
       ],
     },
+    {
+      toVersion: 11,
+      steps: [
+        {
+          type: "add_columns",
+          table: "organizations",
+          columns: [
+            { name: "subscription_tier", type: "string" }, // starter | farm | commercial
+            { name: "subscription_status", type: "string", isOptional: true }, // active | cancelled | expired | trial
+            { name: "subscription_starts_at", type: "number", isOptional: true },
+            { name: "subscription_ends_at", type: "number", isOptional: true },
+          ],
+        },
+      ],
+    },
   ],
 })
 
 export const schema = appSchema({
-  version: 10,
+  version: 11,
   tables: [
     tableSchema({
       name: "organizations",
@@ -237,6 +252,10 @@ export const schema = appSchema({
         { name: "livestock_types", type: "string" }, // JSON array: ["cattle","horses",...]
         { name: "location", type: "string", isOptional: true },
         { name: "default_breeds", type: "string", isOptional: true }, // JSON: {"cattle": "Nguni"}
+        { name: "subscription_tier", type: "string" }, // starter | farm | commercial
+        { name: "subscription_status", type: "string", isOptional: true }, // active | cancelled | expired | trial
+        { name: "subscription_starts_at", type: "number", isOptional: true },
+        { name: "subscription_ends_at", type: "number", isOptional: true },
         { name: "created_at", type: "number" },
         { name: "updated_at", type: "number" },
         { name: "is_deleted", type: "boolean" },

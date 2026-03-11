@@ -55,6 +55,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
   const [status, setStatus] = useState<AnimalStatus>("active")
   const [dateOfBirth, setDateOfBirth] = useState<Date | null>(null)
   const [registrationNumber, setRegistrationNumber] = useState("")
+  const [herdTag, setHerdTag] = useState("")
   const [notes, setNotes] = useState("")
   const [sireId, setSireId] = useState<string | null>(null)
   const [dameId, setDameId] = useState<string | null>(null)
@@ -91,6 +92,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
       setStatus(animal.status)
       setDateOfBirth(animal.dateOfBirth || null)
       setRegistrationNumber(animal.registrationNumber || "")
+      setHerdTag(animal.herdTag || "")
       setNotes(animal.notes || "")
       // Load existing photos if editing
       if (animal.photos) {
@@ -160,6 +162,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
         dateOfBirth: dateOfBirth || undefined,
         status,
         registrationNumber: registrationNumber.trim() || undefined,
+        herdTag: herdTag.trim() || undefined,
         notes: notes.trim() || undefined,
       }
 
@@ -184,7 +187,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
       Alert.alert("Error", "Failed to save animal. Please try again.")
     }
     setIsSubmitting(false)
-  }, [rfidTag, visualTag, name, breed, sex, dateOfBirth, status, registrationNumber, notes, photos, currentOrg, isEditing, animalId, createAnimal, updateAnimal, navigation])
+  }, [rfidTag, visualTag, name, breed, sex, dateOfBirth, status, registrationNumber, herdTag, notes, photos, currentOrg, isEditing, animalId, createAnimal, updateAnimal, navigation])
 
   const uploadPhotosInBackground = async (savedAnimalId: string, photosToUpload: PhotoWithMetadata[]) => {
     try {
@@ -365,6 +368,14 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
           value={registrationNumber}
           onChangeText={setRegistrationNumber}
           placeholder="Optional"
+        />
+
+        <TextField
+          label="Herd/Group Tag"
+          value={herdTag}
+          onChangeText={setHerdTag}
+          placeholder="e.g., 23-C, XYZ, Group A (optional)"
+          autoCapitalize="characters"
         />
 
         <TextField

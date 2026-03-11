@@ -1,256 +1,218 @@
 # Supabase Database Setup
 
-## Problem: Database Resets on Refresh
+## Overview
 
-Your app is losing data because:
-1. **Local database (IndexedDB) is resetting** - This is a separate issue with LokiJS adapter
-2. **Supabase is missing WatermelonDB sync columns** - Even if local DB worked, sync won't work without `_changed` and `_status` columns
+HerdTrackr uses Supabase as the backend database with WatermelonDB for local-first data management. All migrations are managed via **Supabase CLI**.
 
-## Solution: Apply Database Migrations
+## Prerequisites
 
-### Option 1: Manual SQL (Easiest - Recommended)
+- Supabase CLI installed globally
+- Project linked to remote Supabase instance
+- `.env` file configured with Supabase credentials
 
-1. Go to your Supabase Dashboard: https://supabase.com/dashboard
-2. Select your HerdTrackr project
-3. Click **"SQL Editor"** in the left sidebar
-4. Click **"New query"**
+## Database Management
 
-5. **Copy and paste the ENTIRE contents of this file:**
-   `supabase/migrations/00002_add_watermelondb_sync.sql`
+### Applying Migrations
 
-6. Click **"Run"** (or press Cmd+Enter)
-
-7. You should see: ✅ Success. No rows returned
-
-### Option 2: Using Supabase CLI
+All migrations are in `supabase/migrations/` and applied via CLI:
 
 ```bash
-# First, link your project (one-time setup)
-npx supabase link --project-ref YOUR_PROJECT_REF
-
-# Find your project ref:
-# Go to https://supabase.com/dashboard → Your Project → Settings → General
-# Look for "Reference ID"
-
-# Then apply migrations
-npx supabase db push
+# Push all pending migrations to remote database
+supabase db push
 ```
 
-### Option 3: Run Setup Script
+### Creating New Migrations
 
 ```bash
-./scripts/setup-supabase.sh
+# Create a new migration file
+supabase migration new my_feature_name
+
+# Edit the file: supabase/migrations/XXXXX_my_feature_name.sql
+# Add your SQL changes
+
+# Apply to remote
+supabase db push
 ```
 
----
+### Reset Database (Fresh Start)
 
-## What This Migration Does
-
-Adds the following to ALL tables:
-- `_changed` column (required by WatermelonDB sync)
-- `_status` column (required by WatermelonDB sync)
-- Indexes on these columns for performance
-
-Adds to `organizations` table specifically:
-- `livestock_types` column (was missing!)
-- `location` column (was missing!)
-
-Creates new `treatment_protocols` table (was completely missing!)
-
----
-
-## After Running Migration
-
-### Step 1: Verify Migration Success
-
-Go to Supabase Dashboard → **Table Editor** → **organizations**
-
-You should see these columns:
-- ✓ id
-- ✓ remote_id
-- ✓ name
-- ✓ livestock_types (NEW)
-- ✓ location (NEW)
-- ✓ created_at
-- ✓ updated_at
-- ✓ is_deleted
-- ✓ _changed (NEW)
-- ✓ _status (NEW)
-
-### Step 2: Clear Local Database
-
-Your local IndexedDB still has the old schema and corrupted data. Clear it:
-
-**Option A: Browser DevTools (Web/Simulator)**
-1. Open Chrome DevTools (Cmd+Option+I)
-2. Go to **Application** tab
-3. Expand **IndexedDB** in left sidebar
-4. Right-click **herdtrackr** → Delete
-5. Close DevTools
-6. Refresh page (Cmd+R)
-
-**Option B: iOS Simulator**
 ```bash
-# Clear all simulator data
-xcrun simctl erase all
-
-# Or reset just Safari data
-xcrun simctl privacy booted reset all com.apple.mobilesafari
-
-# Then restart app
-npm start -- --ios
+# WARNING: This deletes ALL data!
+supabase db reset --linked
 ```
 
-**Option C: Add Clear DB Script**
+This will:
+1. Drop all tables and data
+2. Reapply all migrations from scratch
+3. Give you a clean database state
+
+## Current Schema
+
+The database includes these tables:
+
+### Core Tables
+- `organizations` - Farm/ranch organizations
+- `memberships` - User access to organizations
+- `invites` - Pending organization invitations
+
+### Livestock Management
+- `animals` - Individual animals with tags, breeds, health status
+- `pastures` - Grazing areas and rotational management
+- `pasture_movements` - Animal movement history
+
+### Health & Records
+- `health_records` - Vaccinations, treatments, vet visits
+- `weight_records` - Weight tracking with condition scores
+- `breeding_records` - Breeding dates, outcomes, lineage
+- `treatment_protocols` - Reusable treatment templates
+
+### Subscription Management
+- Organizations have subscription fields:
+  - `subscription_tier` - starter | farm | commercial
+  - `subscription_status` - active | cancelled | expired | trial
+  - `subscription_starts_at` - Start date
+  - `subscription_ends_at` - End date
+
+## WatermelonDB Sync Columns
+
+All tables include these columns for local-first sync:
+- `_changed` - Timestamp of last change
+- `_status` - Sync status (created, updated, deleted)
+- `is_deleted` - Soft delete flag
+- `remote_id` - Server-side ID
+
+## Row Level Security (RLS)
+
+All tables have RLS enabled with policies:
+- **Organizations**: Members can view, admins can update
+- **Animals/Records**: Organization members have full access
+- **Memberships**: Users see own memberships, admins see all in org
+- **Invites**: Admins can create, anyone can view by code
+
+## Sync Functions
+
+The database includes RPC functions for efficient sync:
+- `sync_pull(last_pulled_at)` - Get changes since timestamp
+- `sync_push(changes)` - Apply local changes to server
+
+## Environment Setup
+
+Required in `.env`:
+
 ```bash
-# Add this to package.json scripts:
-"clear-db": "node -e \"indexedDB.deleteDatabase('herdtrackr')\""
+# Client-side (bundled in app)
+EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_anon_key
 
-# Then run:
-npm run clear-db
+# Server-side (for scripts only - never in app)
+SUPABASE_SECRET_KEY=your_service_role_key
 ```
 
-### Step 3: Test Organization Creation
+## Verifying Database State
 
-1. Refresh your app
-2. Create a new organization
-3. Add an animal
-4. **Press R to refresh**
-5. Organization should still be there! ✅
+### Check Applied Migrations
 
----
+```bash
+supabase migration list
+```
 
-## Checking Supabase Data
+Shows which migrations are applied locally vs remotely.
 
-Want to see if your organization is actually in Supabase?
+### View Table Structure
 
-### Using Supabase Dashboard
+Go to Supabase Dashboard → Table Editor to browse:
+- https://supabase.com/dashboard/project/geczhyukynirvpdjnbel/editor
 
-1. Go to **Table Editor** → **organizations**
-2. You should see your org in the table
-3. Click **memberships** to see your user is linked to the org
+### Query Data
 
-### Using SQL Query
-
-Go to **SQL Editor** and run:
+SQL Editor: https://supabase.com/dashboard/project/geczhyukynirvpdjnbel/sql/new
 
 ```sql
 -- See all organizations
 SELECT * FROM organizations;
 
--- See your organizations (as current user)
-SELECT
-  o.id,
-  o.name,
-  o.livestock_types,
-  o.location,
-  o.created_at,
-  m.role
-FROM organizations o
-JOIN memberships m ON m.organization_id = o.id
-WHERE m.user_id = auth.uid();
+-- Check subscription tiers
+SELECT name, subscription_tier, subscription_status FROM organizations;
 
--- See all animals in your org
-SELECT
-  a.visual_tag,
-  a.name,
-  a.breed,
-  a.sex,
-  o.name as organization_name
+-- See animals with their org
+SELECT a.visual_tag, a.name, o.name as org_name
 FROM animals a
-JOIN organizations o ON a.organization_id = o.id
-JOIN memberships m ON m.organization_id = o.id
-WHERE m.user_id = auth.uid();
+JOIN organizations o ON a.organization_id = o.id;
 ```
 
----
+## Local Database (IndexedDB)
+
+The app uses WatermelonDB with LokiJS adapter for local storage.
+
+### Clearing Local Data
+
+If you need to clear local IndexedDB:
+
+**Browser/Simulator:**
+1. Chrome DevTools → Application → IndexedDB
+2. Right-click `herdtrackr` → Delete
+3. Refresh app
+
+**iOS Simulator:**
+```bash
+xcrun simctl erase all
+```
+
+## Migration History
+
+Current migrations in order:
+1. `00000_reset_database.sql` - Clean slate
+2. `00001_complete_schema.sql` - All tables, RLS, functions
+3. `00002_numeric_invite_codes.sql` - Invite code format
+4. `00003-00008` - RLS and storage fixes
+5. `00009` - RPC sync functions
+6. `00010-00011` - Sync improvements
+7. `00012_add_herd_tag.sql` - Group tagging feature
+8. `00013_add_subscription_tier.sql` - Subscription management
 
 ## Troubleshooting
 
-### Migration Error: "column already exists"
+### "Migration already applied" errors
 
-This is fine! It means you already ran part of the migration. The `IF NOT EXISTS` clauses prevent errors.
+This is normal - migrations are idempotent with `IF NOT EXISTS` clauses.
 
-### Migration Error: "permission denied"
+### "Connection refused" when pushing
 
-You need to be the project owner. Check your role in Supabase Dashboard → Settings → Team.
-
-### Still Losing Data After Migration
-
-1. **Verify migration applied:**
-   ```sql
-   SELECT column_name
-   FROM information_schema.columns
-   WHERE table_name = 'organizations'
-   ORDER BY ordinal_position;
-   ```
-
-   Should include `_changed`, `_status`, `livestock_types`, `location`
-
-2. **Clear local IndexedDB** (see Step 2 above)
-
-3. **Check browser console for sync errors** (Cmd+Option+I → Console tab)
-
-4. **Verify Supabase environment variables** in `.env`:
-   ```
-   EXPO_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-   EXPO_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
-   ```
-
-### Sync Still Not Working
-
-Check app/services/sync.ts and verify:
-- `migrationsEnabledAtVersion: 4` (should match schema version)
-- All tables have `_changed` column in Supabase
-
----
-
-## Understanding the Database Reset Issue
-
-The logs show:
-```
-LOG  [🍉] [Loki] Initializing IndexedDB
-LOG  [🍉] [Loki] Database loaded
-LOG  [🍉] [Loki] Empty database, setting up
-LOG  [🍉] [Loki] Database is now reset
-LOG  [🍉] [Loki] Initializing IndexedDB  ← Double initialization!
+Check your Supabase project is linked:
+```bash
+supabase status
 ```
 
-**Why this happens:**
-1. LokiJS adapter initializes
-2. Finds existing database in IndexedDB
-3. Detects schema version mismatch (expecting v4, found v3 or corrupted data)
-4. **Resets entire database to v4**
-5. You lose all data
+If not linked:
+```bash
+supabase link --project-ref geczhyukynirvpdjnbel
+```
 
-**Why it keeps happening:**
-- Each time you refresh, IndexedDB still has old/corrupted data
-- LokiJS detects mismatch again
-- Resets again
-- Endless loop!
+### Data not syncing
 
-**The fix:**
-- Clear IndexedDB completely (see Step 2 above)
-- Start fresh with clean v4 schema
-- From now on, data will persist properly
+1. Check console for sync errors
+2. Verify environment variables in `.env`
+3. Confirm RPC functions exist in database
+4. Clear local IndexedDB and resync
 
-**Why Supabase matters:**
-- Even if local DB works, without Supabase sync columns, your data won't sync
-- If you reinstall app or switch devices, data is gone forever
-- With proper Supabase setup + sync, data is backed up in cloud
+### Permission denied
 
----
+Ensure you're using the service role key for admin operations:
+```bash
+export SUPABASE_SECRET_KEY=your_service_role_key
+```
 
-## Next Steps After Setup
+## Best Practices
 
-Once migration is applied and local DB is cleared:
+1. **Always use Supabase CLI** for migrations
+2. **Never manually edit database** via dashboard (use migrations)
+3. **Test migrations locally first** with `supabase db reset`
+4. **Keep migrations small and focused** on one feature
+5. **Use descriptive migration names** like `add_herd_tagging`
+6. **Commit migrations to git** so team stays in sync
 
-1. ✅ Organizations will persist across refreshes
-2. ✅ Sync will work (data backed up to Supabase)
-3. ✅ You can access data from multiple devices
-4. ✅ Data survives app reinstalls
+## Next Steps
 
-You can now:
-- Enable AutoSync (uncomment in app/app.tsx line 94)
-- Deploy to production
-- Add more users via memberships table
+- See `SUBSCRIPTION_SETUP.md` for user upgrade scripts
+- See `DEPLOYMENT.md` for production deployment
+- See `USER_MANAGEMENT_COMPLETE.md` for team management

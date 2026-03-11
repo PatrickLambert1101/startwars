@@ -33,9 +33,16 @@ npm run web
 
 Copy `.env.example` to `.env` and fill in your Supabase credentials:
 
-```
+```bash
+# Client-side (bundled in app)
 EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
+
+# Development settings
+EXPO_PUBLIC_DEV_SKIP_AUTH=false  # Set to true to bypass OTP during dev
+
+# Server-side (for scripts only - NEVER in app code)
+SUPABASE_SECRET_KEY=your-service-role-key
 ```
 
 > **Where do I find these?** See [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) for a full walkthrough.
@@ -58,23 +65,65 @@ app/
 ├── theme/            # Design tokens, colors, typography
 └── utils/            # Utility functions
 supabase/
-├── migrations/       # SQL migrations (run in Supabase SQL editor)
-└── seed/             # Demo data you can load into your project
+├── migrations/       # SQL migrations (managed via Supabase CLI)
+└── seed/             # Demo data (optional)
+scripts/
+└── upgrade-user.js   # Subscription tier management
 ```
 
 ## Data Model
 
-- **Organization** — multi-tenant support
-- **Animal** — RFID tag, visual tag, breed, sex, lineage, status
+### Core
+- **Organization** — multi-tenant farms/ranches with subscription tiers
+- **Membership** — user access control (admin/worker roles)
+
+### Livestock
+- **Animal** — RFID/visual tags, breed, sex, lineage, herd groups
+- **Pasture** — rotational grazing management
+- **PastureMovement** — animal movement history
+
+### Health & Records
 - **HealthRecord** — vaccinations, treatments, vet visits
-- **WeightRecord** — weight history, condition scores
-- **BreedingRecord** — breeding, pregnancy, calving tracking
+- **WeightRecord** — weight tracking with condition scores
+- **BreedingRecord** — breeding, pregnancy, calving records
+- **TreatmentProtocol** — reusable treatment templates
 
-## Supabase Setup
+### Subscription Tiers
+- **Starter** (R0/month) — 100 animals, 1 pasture, 1 user
+- **Farm** (R245/month) — 1,000 animals, 15 pastures, 5 users
+- **Commercial** (R999/month) — Unlimited, RFID support, API access
 
-See [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) for step-by-step instructions on:
+## Database Management
 
-1. Creating a Supabase project
-2. Finding your API keys (publishable + secret)
-3. Running migrations
-4. Loading demo/seed data
+### Supabase CLI Setup
+
+```bash
+# Install Supabase CLI globally (one-time)
+npm install -g supabase
+
+# Link to remote project
+supabase link --project-ref geczhyukynirvpdjnbel
+
+# Push migrations to database
+supabase db push
+
+# Create new migration
+supabase migration new my_feature_name
+```
+
+See [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) for detailed documentation.
+
+### User Subscription Management
+
+```bash
+# Upgrade user to Farm tier
+node scripts/upgrade-user.js user@example.com
+
+# Upgrade to Commercial for 1 year
+node scripts/upgrade-user.js user@example.com --tier=commercial --days=365
+
+# 14-day trial
+node scripts/upgrade-user.js user@example.com --status=trial --days=14
+```
+
+See [SUBSCRIPTION_SETUP.md](./SUBSCRIPTION_SETUP.md) for more details

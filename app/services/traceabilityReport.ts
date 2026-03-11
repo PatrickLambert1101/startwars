@@ -115,6 +115,7 @@ export function formatAnimalTraceabilityReport(data: AnimalTraceabilityData): st
   report += `Visual Tag:           ${animal.visualTag}\n`
   report += `RFID Tag:             ${animal.rfidTag}\n`
   if (animal.name) report += `Name:                 ${animal.name}\n`
+  if (animal.herdTag) report += `Herd/Group Tag:       ${animal.herdTag}\n`
   if (animal.registrationNumber) report += `Registration No:      ${animal.registrationNumber}\n`
   report += `Species:              ${animal.species}\n`
   report += `Breed:                ${animal.breed}\n`

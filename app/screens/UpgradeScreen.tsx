@@ -1,161 +1,188 @@
-import { FC, useState } from "react"
-import { ActivityIndicator, Pressable, View, ViewStyle, TextStyle } from "react-native"
+import { FC } from "react"
+import { Pressable, View, ViewStyle, TextStyle, ScrollView, Linking } from "react-native"
 
 import { Screen, Text, Button } from "@/components"
-import { CheckBadge, LockBadge } from "@/components/icons"
+import { CheckBadge } from "@/components/icons"
 import { useAppTheme } from "@/theme/context"
 import { useSubscription } from "@/context/SubscriptionContext"
 import type { ThemedStyle } from "@/theme/types"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 
-const PRO_PERKS = [
-  "Vaccine scheduling & withdrawal tracking",
-  "Pasture rotation management",
-  "Automated deadline reminders",
-  "Advanced analytics & exports",
-  "Priority support",
+// Pricing tiers matching landing page
+const PRICING_TIERS = [
+  {
+    id: "starter",
+    name: "Starter",
+    price: "R0",
+    period: "/month",
+    description: "Perfect for small operations",
+    features: [
+      "Up to 100 animals",
+      "1 pasture",
+      "Camera tag scanning",
+      "Basic health records",
+      "Weight tracking",
+      "Offline mode",
+      "1 user",
+    ],
+    isCurrent: false,
+    isFree: true,
+    buttonText: "Free Forever",
+  },
+  {
+    id: "farm",
+    name: "Farm",
+    price: "R245",
+    period: "/month",
+    description: "Most popular for growing farms",
+    features: [
+      "Up to 1,000 animals",
+      "Up to 15 pastures",
+      "Camera tag scanning",
+      "Full health tracking",
+      "Breeding records",
+      "Reports & CSV export",
+      "Up to 5 users",
+      "Photo attachments",
+      "Priority support",
+    ],
+    isFeatured: true,
+    buttonText: "Upgrade to Farm",
+  },
+  {
+    id: "commercial",
+    name: "Commercial",
+    price: "R999",
+    period: "/month",
+    description: "For large commercial operations",
+    features: [
+      "Unlimited animals",
+      "Unlimited pastures",
+      "Camera tag scanning",
+      "RFID handheld scanner*",
+      "Advanced analytics",
+      "Treatment protocols",
+      "Unlimited users",
+      "Custom reports",
+      "API access",
+      "Dedicated support",
+    ],
+    buttonText: "Contact Sales",
+    isEnterprise: true,
+  },
 ]
 
 export const UpgradeScreen: FC<AppStackScreenProps<"Upgrade">> = ({ navigation }) => {
   const { themed, theme: { colors } } = useAppTheme()
-  const {
-    isLoading,
-    packages,
-    purchaseProMonthly,
-    purchaseProAnnual,
-    restorePurchases,
-    upgradeToPro,
-  } = useSubscription()
+  const { upgradeToPro, currentPlan } = useSubscription()
 
-  const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly")
-
-  // Try to get real prices from RevenueCat packages
-  const monthlyPkg = packages.find(
-    (p) => p.packageType === "MONTHLY" || p.identifier === "$rc_monthly",
-  )
-  const annualPkg = packages.find(
-    (p) => p.packageType === "ANNUAL" || p.identifier === "$rc_annual",
-  )
-
-  const monthlyPrice = monthlyPkg?.product.priceString ?? "$9.99"
-  const annualPrice = annualPkg?.product.priceString ?? "$95.88"
-  const annualMonthly = annualPkg
-    ? `${(annualPkg.product.price / 12).toFixed(2)}`
-    : "7.99"
-
-  const handlePurchase = async () => {
-    if (billingCycle === "annual") {
-      if (annualPkg) {
-        await purchaseProAnnual()
-      } else {
-        upgradeToPro() // fallback for dev
-      }
-    } else {
-      if (monthlyPkg) {
-        await purchaseProMonthly()
-      } else {
-        upgradeToPro() // fallback for dev
-      }
+  const handleUpgrade = (tierId: string) => {
+    if (tierId === "farm") {
+      upgradeToPro()
+      navigation.goBack()
+    } else if (tierId === "commercial") {
+      // Open email to contact sales
+      Linking.openURL("mailto:info@herdtrackr.co.za?subject=Commercial Plan Inquiry")
     }
-    navigation.goBack()
-  }
-
-  const handleRestore = async () => {
-    await restorePurchases()
   }
 
   return (
-    <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top", "bottom"]}>
-      {/* Close */}
+    <Screen preset="fixed" contentContainerStyle={themed($container)} safeAreaEdges={["top", "bottom"]}>
+      {/* Header */}
       <View style={themed($header)}>
         <Button text="Close" preset="default" onPress={() => navigation.goBack()} />
       </View>
 
-      {/* Hero */}
-      <View style={themed($hero)}>
-        <View style={themed($proBadge)}>
-          <Text text="PRO" style={themed($proBadgeText)} />
-        </View>
-        <Text text="Unlock Full Power" preset="heading" style={themed($title)} />
+      {/* Title */}
+      <View style={themed($titleSection)}>
+        <Text text="Choose Your Plan" preset="heading" style={themed($title)} />
         <Text
-          text="Get vaccine protocols, pasture rotation, and more with HerdTrackr Pro."
+          text="Start free, upgrade when you need to. No contracts, cancel anytime."
           style={themed($subtitle)}
         />
       </View>
 
-      {/* Perks list */}
-      <View style={themed($perksContainer)}>
-        {PRO_PERKS.map((perk, i) => (
-          <View key={i} style={themed($perkRow)}>
-            <CheckBadge size={22} color={colors.tint} variant="filled" />
-            <Text text={perk} style={themed($perkText)} />
-          </View>
-        ))}
-      </View>
+      {/* Pricing Cards */}
+      <ScrollView style={themed($scrollView)} showsVerticalScrollIndicator={false}>
+        <View style={themed($pricingGrid)}>
+          {PRICING_TIERS.map((tier) => {
+            const isCurrentPlan = tier.id === currentPlan
 
-      {/* Billing toggle */}
-      <View style={themed($billingToggle)}>
-        <Pressable
-          onPress={() => setBillingCycle("monthly")}
-          style={[themed($billingOption), billingCycle === "monthly" && themed($billingActive)]}
-        >
+            return (
+              <View
+                key={tier.id}
+                style={[
+                  themed($pricingCard),
+                  tier.isFeatured && themed($featuredCard),
+                  isCurrentPlan && themed($currentCard),
+                ]}
+              >
+                {tier.isFeatured && (
+                  <View style={themed($featuredBadge)}>
+                    <Text text="MOST POPULAR" style={themed($featuredBadgeText)} />
+                  </View>
+                )}
+
+                {isCurrentPlan && (
+                  <View style={themed($currentBadge)}>
+                    <Text text="CURRENT PLAN" style={themed($currentBadgeText)} />
+                  </View>
+                )}
+
+                <Text text={tier.name} preset="subheading" style={themed($planName)} />
+                <Text text={tier.description} size="xs" style={themed($planDescription)} />
+
+                <View style={themed($priceSection)}>
+                  <Text text={tier.price} style={themed($price)} />
+                  <Text text={tier.period} style={themed($period)} />
+                </View>
+
+                {/* Features */}
+                <View style={themed($featuresContainer)}>
+                  {tier.features.map((feature, index) => (
+                    <View key={index} style={themed($featureRow)}>
+                      <CheckBadge size={18} color={tier.isFeatured ? colors.tint : colors.palette.neutral600} />
+                      <Text text={feature} style={themed($featureText)} />
+                    </View>
+                  ))}
+                </View>
+
+                {/* Action Button */}
+                <Button
+                  text={isCurrentPlan ? "Current Plan" : tier.buttonText}
+                  preset={tier.isFeatured && !isCurrentPlan ? "reversed" : "default"}
+                  style={themed($actionButton)}
+                  onPress={() => handleUpgrade(tier.id)}
+                  disabled={isCurrentPlan || tier.isFree}
+                />
+              </View>
+            )
+          })}
+        </View>
+
+        {/* RFID Hardware Note */}
+        <View style={themed($noteSection)}>
           <Text
-            text="Monthly"
-            size="sm"
-            style={billingCycle === "monthly" ? themed($billingTextActive) : themed($billingText)}
-          />
-          <Text text={monthlyPrice} size="xs" style={billingCycle === "monthly" ? themed($billingPriceActive) : themed($billingPrice)} />
-        </Pressable>
-        <Pressable
-          onPress={() => setBillingCycle("annual")}
-          style={[themed($billingOption), billingCycle === "annual" && themed($billingActive)]}
-        >
-          <View style={themed($annualHeader)}>
-            <Text
-              text="Annual"
-              size="sm"
-              style={billingCycle === "annual" ? themed($billingTextActive) : themed($billingText)}
-            />
-            <View style={themed($saveBadge)}>
-              <Text text="SAVE 20%" size="xxs" style={themed($saveBadgeText)} />
-            </View>
-          </View>
-          <Text
-            text={`$${annualMonthly}/mo`}
+            text="* RFID Hardware: Commercial plan customers can purchase RFID handheld scanners. Recommended devices start at R8,500 (Bluetooth handheld) up to R18,500 (professional with display)."
             size="xs"
-            style={billingCycle === "annual" ? themed($billingPriceActive) : themed($billingPrice)}
+            style={themed($noteText)}
           />
-          <Text text={`Billed ${annualPrice}/year`} size="xxs" style={themed($billedAnnually)} />
-        </Pressable>
-      </View>
+          <Text
+            text="Contact info@herdtrackr.co.za for device recommendations and bulk pricing."
+            size="xs"
+            style={themed($noteText)}
+          />
+        </View>
 
-      {/* Purchase button */}
-      {isLoading ? (
-        <ActivityIndicator size="large" color={colors.tint} style={{ marginVertical: 20 }} />
-      ) : (
-        <Button
-          text={billingCycle === "annual" ? `Subscribe — $${annualMonthly}/mo` : `Subscribe — ${monthlyPrice}/mo`}
-          preset="reversed"
-          style={themed($purchaseBtn)}
-          onPress={handlePurchase}
-        />
-      )}
-
-      {/* Fine print */}
-      <Text
-        text={
-          billingCycle === "annual"
-            ? "Annual subscription. Cancel anytime. Payment charged through your App Store or Google Play account."
-            : "Monthly subscription. Cancel anytime. Payment charged through your App Store or Google Play account."
-        }
-        size="xxs"
-        style={themed($finePrint)}
-      />
-
-      {/* Restore */}
-      <Pressable onPress={handleRestore} style={themed($restoreBtn)}>
-        <Text text="Restore Purchases" size="sm" style={themed($restoreText)} />
-      </Pressable>
+        {/* Fine Print */}
+        <View style={themed($finePrintSection)}>
+          <Text
+            text="All plans include AI camera tag scanning, offline mode, cloud sync, and free updates. Prices in South African Rands (ZAR). Cancel anytime."
+            size="xxs"
+            style={themed($finePrint)}
+          />
+        </View>
+      </ScrollView>
     </Screen>
   )
 }
@@ -163,34 +190,17 @@ export const UpgradeScreen: FC<AppStackScreenProps<"Upgrade">> = ({ navigation }
 // ─── Styles ─────────────────────────────────────────────────────────
 
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flex: 1,
   paddingHorizontal: spacing.lg,
-  paddingBottom: spacing.xxl,
 })
 
 const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  alignItems: "flex-start",
-  marginTop: spacing.md,
+  paddingTop: spacing.md,
   marginBottom: spacing.md,
 })
 
-const $hero: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  alignItems: "center",
+const $titleSection: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   marginBottom: spacing.lg,
-})
-
-const $proBadge: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  backgroundColor: colors.palette.accent500,
-  borderRadius: 8,
-  paddingHorizontal: spacing.md,
-  paddingVertical: spacing.xxs,
-  marginBottom: spacing.md,
-})
-
-const $proBadgeText: ThemedStyle<TextStyle> = () => ({
-  color: "#FFF",
-  fontWeight: "800",
-  fontSize: 18,
-  letterSpacing: 2,
 })
 
 const $title: ThemedStyle<TextStyle> = ({ spacing }) => ({
@@ -201,116 +211,138 @@ const $title: ThemedStyle<TextStyle> = ({ spacing }) => ({
 const $subtitle: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.textDim,
   textAlign: "center",
+  fontSize: 15,
   lineHeight: 22,
-  maxWidth: 300,
 })
 
-const $perksContainer: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+const $scrollView: ThemedStyle<ViewStyle> = () => ({
+  flex: 1,
+})
+
+const $pricingGrid: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  gap: spacing.md,
+  paddingBottom: spacing.xl,
+})
+
+const $pricingCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
   borderRadius: 16,
   padding: spacing.lg,
-  gap: spacing.md,
-  marginBottom: spacing.lg,
+  borderWidth: 2,
+  borderColor: colors.palette.neutral200,
 })
 
-const $perkRow: ThemedStyle<ViewStyle> = () => ({
+const $featuredCard: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  borderColor: colors.tint,
+  borderWidth: 3,
+})
+
+const $currentCard: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  borderColor: colors.palette.accent500,
+  borderWidth: 2,
+})
+
+const $featuredBadge: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.tint,
+  paddingHorizontal: spacing.sm,
+  paddingVertical: spacing.xxs,
+  borderRadius: 6,
+  alignSelf: "flex-start",
+  marginBottom: spacing.sm,
+})
+
+const $featuredBadgeText: ThemedStyle<TextStyle> = () => ({
+  color: "#FFF",
+  fontSize: 11,
+  fontWeight: "800",
+  letterSpacing: 0.5,
+})
+
+const $currentBadge: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.palette.accent500,
+  paddingHorizontal: spacing.sm,
+  paddingVertical: spacing.xxs,
+  borderRadius: 6,
+  alignSelf: "flex-start",
+  marginBottom: spacing.sm,
+})
+
+const $currentBadgeText: ThemedStyle<TextStyle> = () => ({
+  color: "#FFF",
+  fontSize: 11,
+  fontWeight: "800",
+  letterSpacing: 0.5,
+})
+
+const $planName: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  color: colors.text,
+  marginBottom: spacing.xxs,
+})
+
+const $planDescription: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  color: colors.textDim,
+  marginBottom: spacing.md,
+})
+
+const $priceSection: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
-  alignItems: "center",
-  gap: 10,
+  alignItems: "baseline",
+  marginBottom: spacing.md,
 })
 
-const $perkText: ThemedStyle<TextStyle> = () => ({
-  flex: 1,
-  fontSize: 15,
+const $price: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 40,
+  fontWeight: "800",
+  color: colors.text,
 })
 
-// Billing toggle
-const $billingToggle: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flexDirection: "row",
+const $period: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 16,
+  color: colors.textDim,
+  marginLeft: 4,
+})
+
+const $featuresContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   gap: spacing.sm,
   marginBottom: spacing.lg,
 })
 
-const $billingOption: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  flex: 1,
-  backgroundColor: colors.palette.neutral100,
-  borderRadius: 14,
-  padding: spacing.md,
-  alignItems: "center",
-  borderWidth: 2,
-  borderColor: "transparent",
-})
-
-const $billingActive: ThemedStyle<ViewStyle> = ({ colors }) => ({
-  borderColor: colors.tint,
-  backgroundColor: colors.palette.primary100,
-})
-
-const $annualHeader: ThemedStyle<ViewStyle> = () => ({
+const $featureRow: ThemedStyle<ViewStyle> = () => ({
   flexDirection: "row",
-  alignItems: "center",
-  gap: 6,
+  alignItems: "flex-start",
+  gap: 10,
 })
 
-const $billingText: ThemedStyle<TextStyle> = ({ colors }) => ({
-  color: colors.textDim,
-})
-
-const $billingTextActive: ThemedStyle<TextStyle> = ({ colors }) => ({
-  color: colors.tint,
-  fontWeight: "600",
-})
-
-const $billingPrice: ThemedStyle<TextStyle> = ({ colors }) => ({
+const $featureText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  flex: 1,
+  fontSize: 14,
   color: colors.text,
-  fontWeight: "700",
-  fontSize: 18,
-  marginTop: 4,
+  lineHeight: 20,
 })
 
-const $billingPriceActive: ThemedStyle<TextStyle> = ({ colors }) => ({
-  color: colors.tint,
-  fontWeight: "700",
-  fontSize: 18,
-  marginTop: 4,
+const $actionButton: ThemedStyle<ViewStyle> = () => ({
+  width: "100%",
 })
 
-const $billedAnnually: ThemedStyle<TextStyle> = ({ colors }) => ({
+const $noteSection: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.palette.neutral100,
+  borderRadius: 12,
+  padding: spacing.md,
+  marginBottom: spacing.lg,
+  gap: spacing.sm,
+})
+
+const $noteText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.textDim,
-  marginTop: 2,
+  lineHeight: 18,
 })
 
-const $saveBadge: ThemedStyle<ViewStyle> = ({ colors }) => ({
-  backgroundColor: colors.palette.accent500,
-  borderRadius: 4,
-  paddingHorizontal: 5,
-  paddingVertical: 1,
+const $finePrintSection: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  marginBottom: spacing.xl,
 })
 
-const $saveBadgeText: ThemedStyle<TextStyle> = () => ({
-  color: "#FFF",
-  fontWeight: "700",
-  letterSpacing: 0.3,
-})
-
-// Purchase
-const $purchaseBtn: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  marginBottom: spacing.sm,
-})
-
-const $finePrint: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+const $finePrint: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.textDim,
   textAlign: "center",
-  marginBottom: spacing.lg,
   lineHeight: 16,
-})
-
-const $restoreBtn: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  alignSelf: "center",
-  paddingVertical: spacing.sm,
-})
-
-const $restoreText: ThemedStyle<TextStyle> = ({ colors }) => ({
-  color: colors.tint,
-  textDecorationLine: "underline",
 })
