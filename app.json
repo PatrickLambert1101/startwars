@@ -1,6 +1,6 @@
 {
   "name": "HerdTrackr",
-  "slug": "HerdTrackr",
+  "slug": "herd-trackr",
   "scheme": "herdtrackr",
   "version": "1.0.0",
   "orientation": "portrait",
@@ -57,7 +57,7 @@
       "expo-splash-screen",
       {
         "image": "./assets/images/splash-logo-all.png",
-        "imageWidth": 800,
+        "imageWidth": 1200,
         "resizeMode": "contain",
         "backgroundColor": "#FFFFFF"
       }

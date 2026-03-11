@@ -1,5 +1,6 @@
 import { FC, useCallback, useState, useEffect } from "react"
 import { View, ViewStyle, TextStyle, Pressable, Platform, NativeModules, Switch } from "react-native"
+import { useTranslation } from "react-i18next"
 
 import { Screen, Text, ListItem, Button, Icon } from "@/components"
 import { useAuth } from "@/context/AuthContext"
@@ -16,11 +17,19 @@ const POWER_MIN = 18
 const POWER_MAX = 27
 const POWER_DEFAULT = 18
 
+const LANGUAGES = [
+  { code: "en", name: "English", nativeName: "English" },
+  { code: "af", name: "Afrikaans", nativeName: "Afrikaans" },
+  { code: "zu", name: "Zulu", nativeName: "isiZulu" },
+  { code: "xh", name: "Xhosa", nativeName: "isiXhosa" },
+]
+
 export const SettingsScreen: FC<any> = ({ navigation }) => {
   const { themed, themeContext, setThemeContextOverride } = useAppTheme()
   const { logout, user } = useAuth()
   const { currentOrg } = useDatabase()
   const { setOutputPower, isInitialized, initialize, hasRfidHardware } = useRfidReader()
+  const { i18n } = useTranslation()
 
   const [readerPower, setReaderPower] = useState(POWER_DEFAULT)
   const [powerSaved, setPowerSaved] = useState(false)
@@ -91,6 +100,16 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
     setThemeContextOverride(isDarkMode ? "light" : "dark")
   }, [isDarkMode, setThemeContextOverride])
 
+  const handleChangeLanguage = useCallback(
+    (languageCode: string) => {
+      i18n.changeLanguage(languageCode)
+      saveString("app_language", languageCode)
+    },
+    [i18n],
+  )
+
+  const currentLanguage = LANGUAGES.find((lang) => lang.code === i18n.language?.split("-")[0]) || LANGUAGES[0]
+
   return (
     <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
       <Text preset="heading" text="Settings" style={themed($heading)} />
@@ -114,6 +133,33 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
               trackColor={{ false: "#D1D5DB", true: "#4A8C3F" }}
               thumbColor="#FFFFFF"
             />
+          </View>
+        </View>
+      </View>
+
+      <View style={themed($section)}>
+        <Text preset="formLabel" text="LANGUAGE" style={themed($sectionLabel)} />
+        <View style={themed($languageCard)}>
+          <Text style={themed($languageTitle)}>App Language</Text>
+          <Text style={themed($languageSubtext)}>Current: {currentLanguage.nativeName}</Text>
+          <View style={themed($languageGrid)}>
+            {LANGUAGES.map((lang) => {
+              const isActive = lang.code === currentLanguage.code
+              return (
+                <Pressable
+                  key={lang.code}
+                  style={[themed($languageChip), isActive && themed($languageChipActive)]}
+                  onPress={() => handleChangeLanguage(lang.code)}
+                >
+                  <Text style={[themed($languageChipText), isActive && themed($languageChipTextActive)]}>
+                    {lang.nativeName}
+                  </Text>
+                  <Text style={[themed($languageChipSubtext), isActive && themed($languageChipSubtextActive)]}>
+                    {lang.name}
+                  </Text>
+                </Pressable>
+              )
+            })}
           </View>
         </View>
       </View>
@@ -494,4 +540,67 @@ const $themeSubtext: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 13,
   color: colors.textDim,
   marginTop: 2,
+})
+
+// --- LANGUAGE styles ---
+
+const $languageCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.palette.neutral100,
+  borderRadius: 12,
+  padding: spacing.md,
+})
+
+const $languageTitle: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  fontSize: 16,
+  fontWeight: "600",
+  color: colors.text,
+  marginBottom: spacing.xxs,
+})
+
+const $languageSubtext: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  fontSize: 13,
+  color: colors.textDim,
+  marginBottom: spacing.md,
+})
+
+const $languageGrid: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  flexWrap: "wrap",
+  gap: spacing.sm,
+})
+
+const $languageChip: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flex: 1,
+  minWidth: "48%",
+  padding: spacing.sm,
+  borderRadius: 10,
+  borderWidth: 2,
+  borderColor: colors.palette.neutral300,
+  backgroundColor: colors.background,
+  alignItems: "center",
+})
+
+const $languageChipActive: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  borderColor: colors.palette.primary500,
+  backgroundColor: colors.palette.primary100,
+})
+
+const $languageChipText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 15,
+  fontWeight: "600",
+  color: colors.text,
+})
+
+const $languageChipTextActive: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.palette.primary600,
+})
+
+const $languageChipSubtext: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 12,
+  color: colors.textDim,
+  marginTop: 2,
+})
+
+const $languageChipSubtextActive: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.palette.primary500,
 })
