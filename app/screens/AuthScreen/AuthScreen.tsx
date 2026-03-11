@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react"
 import { View, ViewStyle, TextStyle, Image, ImageStyle } from "react-native"
-import { Screen, Text, TextField, Button } from "@/components"
+import { Screen, Text, TextField, Button, LoadingScreen } from "@/components"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { useAuth } from "@/context/AuthContext"
@@ -51,7 +51,7 @@ export function AuthScreen() {
       setError(result.error)
       setIsVerifying(false)
     }
-    // If successful, user will be signed in and navigation will handle it
+    // If successful, user will be signed in and LoadingScreen will show via AppNavigator
   }
 
   // Auto-verify in dev mode
@@ -61,6 +61,11 @@ export function AuthScreen() {
       handleVerifyCode()
     }
   }, [codeSent, DEV_SKIP_AUTH])
+
+  // Show animated loading screen while verifying
+  if (isVerifying) {
+    return <LoadingScreen message="Signing in..." />
+  }
 
   if (codeSent) {
     return (

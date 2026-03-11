@@ -9,6 +9,7 @@ import Config from "@/config"
 import { useAuth } from "@/context/AuthContext"
 import { useDatabase } from "@/context/DatabaseContext"
 import { ErrorBoundary } from "@/screens/ErrorScreen/ErrorBoundary"
+import { LoadingScreen } from "@/components"
 import { AuthScreen } from "@/screens/AuthScreen"
 import { LandingScreen } from "@/screens/LandingScreen"
 import { LoginScreen } from "@/screens/LoginScreen"
@@ -39,10 +40,15 @@ const exitRoutes = Config.exitRoutes
 const Stack = createNativeStackNavigator<AppStackParamList>()
 
 const AppStack = () => {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, isLoading } = useAuth()
   const {
     theme: { colors },
   } = useAppTheme()
+
+  // Show animated loading screen while checking auth status
+  if (isLoading) {
+    return <LoadingScreen message="Loading..." />
+  }
 
   return (
     <Stack.Navigator

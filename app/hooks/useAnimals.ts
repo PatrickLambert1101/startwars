@@ -15,6 +15,7 @@ export type AnimalFormData = {
   damId?: string
   registrationNumber?: string
   status: AnimalStatus
+  herdTag?: string
   notes?: string
 }
 

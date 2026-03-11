@@ -117,6 +117,7 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
         name: orgName.trim(),
         livestockTypes: selectedTypes,
         location: location.trim() || undefined,
+        defaultBreeds: defaultBreeds,
         userIdForAdmin: user?.id,
         userEmailForAdmin: user?.email || undefined,
       })
@@ -132,7 +133,7 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
       Alert.alert("Error", "Failed to create organization. Please try again.")
     }
     setIsSubmitting(false)
-  }, [orgName, location, selectedTypes, herdSize, createOrganization, sync, user])
+  }, [orgName, location, selectedTypes, herdSize, defaultBreeds, createOrganization, sync, user])
 
   const handleGoToDashboard = useCallback(() => {
     navigation.replace("Main", { screen: "Dashboard" })

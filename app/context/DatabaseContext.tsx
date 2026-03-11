@@ -9,6 +9,7 @@ export type CreateOrgParams = {
   name: string
   livestockTypes: LivestockType[]
   location?: string
+  defaultBreeds?: Partial<Record<LivestockType, string>>
   userIdForAdmin?: string  // Pass user.id to auto-create admin membership
   userEmailForAdmin?: string
 }
@@ -90,6 +91,7 @@ export const DatabaseProvider: FC<PropsWithChildren> = ({ children }) => {
         o.name = params.name
         o.livestockTypes = params.livestockTypes
         o.location = params.location ?? null
+        o.defaultBreeds = params.defaultBreeds || {}
         o.isDeleted = false
       })
 

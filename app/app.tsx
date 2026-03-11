@@ -75,6 +75,7 @@ export function App() {
   }, [])
 
   if (!isNavigationStateRestored || !isI18nInitialized || (!areFontsLoaded && !fontLoadError)) {
+    // We can't show LoadingScreen here yet because ThemeProvider isn't available
     return null
   }
 

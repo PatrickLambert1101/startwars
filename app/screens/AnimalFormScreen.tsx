@@ -106,6 +106,16 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
     }
   }, [animal, isEditing])
 
+  // Pre-fill breed from organization defaults when creating new animal
+  useEffect(() => {
+    if (!isEditing && currentOrg && currentOrg.defaultBreeds) {
+      const defaultBreed = currentOrg.defaultBreeds['cattle']
+      if (defaultBreed && !breed) {
+        setBreed(defaultBreed)
+      }
+    }
+  }, [isEditing, currentOrg, breed])
+
   const maleAnimals = animals.filter(a => a.sex === "male")
   const femaleAnimals = animals.filter(a => a.sex === "female")
   const filteredSires = parentSearch
@@ -224,6 +234,14 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
         <Text preset="heading" text={isEditing ? "Edit Animal" : "Add Animal"} />
         <View style={{ width: 60 }} />
       </View>
+
+      {/* Current Farm Display */}
+      {currentOrg && (
+        <View style={themed($farmBadge)}>
+          <Text text="Farm:" size="xs" style={themed($farmLabel)} />
+          <Text text={currentOrg.name} preset="bold" size="sm" />
+        </View>
+      )}
 
       <View style={themed($form)}>
         <View style={themed($helperNote)}>
@@ -610,4 +628,19 @@ const $helperNote: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
 const $helperText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.textDim,
   fontStyle: "italic",
+})
+
+const $farmBadge: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.palette.primary100,
+  borderRadius: 8,
+  padding: spacing.sm,
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.xs,
+  marginBottom: spacing.md,
+  alignSelf: "flex-start",
+})
+
+const $farmLabel: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.textDim,
 })
