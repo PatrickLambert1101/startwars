@@ -68,9 +68,12 @@ export function TreatmentProtocolsScreen({ navigation }: TreatmentProtocolsScree
 
   const handleToggleActive = async (protocolId: string) => {
     try {
+      console.log("[TreatmentProtocols] Toggling protocol:", protocolId)
       await toggleProtocolActive(protocolId)
+      console.log("[TreatmentProtocols] Protocol toggled successfully")
     } catch (error) {
-      console.error("Failed to toggle protocol:", error)
+      console.error("[TreatmentProtocols] Failed to toggle protocol:", error)
+      Alert.alert("Error", "Failed to toggle protocol status. Please try again.")
     }
   }
 
@@ -276,6 +279,7 @@ const $createButton: ThemedStyle<ViewStyle> = () => ({
 const $filterScroll: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexGrow: 0,
   marginBottom: spacing.sm,
+  height: 48,
 })
 
 const $filterRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -287,9 +291,10 @@ const $filterRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $filterChip: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
-  gap: spacing.xxs,
+  gap: spacing.xs,
   paddingHorizontal: spacing.md,
-  paddingVertical: spacing.sm,
+  paddingVertical: spacing.xs,
+  minHeight: 36,
   borderRadius: 20,
   borderWidth: 1.5,
   borderColor: colors.palette.neutral300,
@@ -302,9 +307,10 @@ const $filterChipActive: ThemedStyle<ViewStyle> = ({ colors }) => ({
 })
 
 const $filterChipText: ThemedStyle<TextStyle> = ({ colors }) => ({
-  fontSize: 13,
+  fontSize: 14,
   fontWeight: "500",
   color: colors.palette.neutral600,
+  lineHeight: 20,
 })
 
 const $filterChipTextActive: ThemedStyle<TextStyle> = ({ colors }) => ({
@@ -330,6 +336,7 @@ const $filterCountText: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 11,
   fontWeight: "700",
   color: colors.palette.neutral500,
+  lineHeight: 16,
 })
 
 const $filterCountTextActive: ThemedStyle<TextStyle> = ({ colors }) => ({

@@ -1,5 +1,5 @@
 import { FC, useCallback, useState, useEffect } from "react"
-import { View, ViewStyle, TextStyle, Pressable, Platform, NativeModules } from "react-native"
+import { View, ViewStyle, TextStyle, Pressable, Platform, NativeModules, Switch } from "react-native"
 
 import { Screen, Text, ListItem, Button, Icon } from "@/components"
 import { useAuth } from "@/context/AuthContext"
@@ -17,7 +17,7 @@ const POWER_MAX = 27
 const POWER_DEFAULT = 18
 
 export const SettingsScreen: FC<any> = ({ navigation }) => {
-  const { themed } = useAppTheme()
+  const { themed, themeContext, setThemeContextOverride } = useAppTheme()
   const { logout, user } = useAuth()
   const { currentOrg } = useDatabase()
   const { setOutputPower, isInitialized, initialize, hasRfidHardware } = useRfidReader()
@@ -85,9 +85,38 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
 
   const powerPercent = Math.round(((readerPower - POWER_MIN) / (POWER_MAX - POWER_MIN)) * 100)
 
+  const isDarkMode = themeContext === "dark"
+
+  const handleToggleDarkMode = useCallback(() => {
+    setThemeContextOverride(isDarkMode ? "light" : "dark")
+  }, [isDarkMode, setThemeContextOverride])
+
   return (
     <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
       <Text preset="heading" text="Settings" style={themed($heading)} />
+
+      <View style={themed($section)}>
+        <Text preset="formLabel" text="APPEARANCE" style={themed($sectionLabel)} />
+        <View style={themed($themeCard)}>
+          <View style={themed($themeRow)}>
+            <View style={themed($themeContent)}>
+              <Icon icon={isDarkMode ? "view" : "hidden"} size={24} color={themed($themeIcon).color} />
+              <View>
+                <Text style={themed($themeTitle)}>Dark Mode</Text>
+                <Text style={themed($themeSubtext)}>
+                  {isDarkMode ? "Dark theme enabled" : "Light theme enabled"}
+                </Text>
+              </View>
+            </View>
+            <Switch
+              value={isDarkMode}
+              onValueChange={handleToggleDarkMode}
+              trackColor={{ false: "#D1D5DB", true: "#4A8C3F" }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+        </View>
+      </View>
 
       <View style={themed($section)}>
         <Text preset="formLabel" text="ACCOUNT" style={themed($sectionLabel)} />
@@ -428,4 +457,41 @@ const $dangerText: ThemedStyle<TextStyle> = ({ spacing }) => ({
 
 const $dangerButton: ThemedStyle<ViewStyle> = () => ({
   backgroundColor: "#E53E3E",
+})
+
+// --- THEME / DARK MODE styles ---
+
+const $themeCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.palette.neutral100,
+  borderRadius: 12,
+  padding: spacing.md,
+})
+
+const $themeRow: ThemedStyle<ViewStyle> = () => ({
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+})
+
+const $themeContent: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.md,
+  flex: 1,
+})
+
+const $themeIcon: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.palette.primary500,
+})
+
+const $themeTitle: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 16,
+  fontWeight: "600",
+  color: colors.text,
+})
+
+const $themeSubtext: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 13,
+  color: colors.textDim,
+  marginTop: 2,
 })

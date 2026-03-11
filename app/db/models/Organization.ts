@@ -8,6 +8,11 @@ const sanitizeLivestockTypes = (raw: any): LivestockType[] => {
   return []
 }
 
+const sanitizeDefaultBreeds = (raw: any): Partial<Record<LivestockType, string>> => {
+  if (raw && typeof raw === 'object') return raw
+  return {}
+}
+
 export class Organization extends Model {
   static table = "organizations"
 
@@ -22,6 +27,7 @@ export class Organization extends Model {
   @field("name") name!: string
   @json("livestock_types", sanitizeLivestockTypes) livestockTypes!: LivestockType[]
   @field("location") location!: string | null
+  @json("default_breeds", sanitizeDefaultBreeds) defaultBreeds!: Partial<Record<LivestockType, string>>
   @readonly @date("created_at") createdAt!: Date
   @date("updated_at") updatedAt!: Date
   @field("is_deleted") isDeleted!: boolean

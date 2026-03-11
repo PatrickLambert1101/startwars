@@ -61,6 +61,7 @@ export class Animal extends Model {
   @field("registration_number") registrationNumber!: string | null
   @field("current_pasture_id") currentPastureId!: string | null
   @field("status") status!: AnimalStatus
+  @field("herd_tag") herdTag!: string | null
   @field("notes") notes!: string | null
   @field("photos") photos!: string | null // JSON array of photo objects
   @readonly @date("created_at") createdAt!: Date

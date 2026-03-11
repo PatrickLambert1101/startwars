@@ -1,5 +1,5 @@
 import { FC, useEffect, useState } from "react"
-import { Share, View, ViewStyle, TextStyle, Pressable, Alert } from "react-native"
+import { Share, View, ViewStyle, TextStyle, Pressable, Alert, ScrollView, TouchableOpacity } from "react-native"
 
 import { Screen, Text, Button, Icon } from "@/components"
 import { useAppTheme } from "@/theme/context"
@@ -12,6 +12,7 @@ import { WeightRecord } from "@/db/models/WeightRecord"
 import { BreedingRecord } from "@/db/models/BreedingRecord"
 import { Q } from "@nozbe/watermelondb"
 import { differenceInMonths, differenceInDays } from "date-fns"
+import { generateTraceabilityReport, formatFullTraceabilityReport } from "@/services/traceabilityReport"
 
 type ReportData = {
   totalHead: number
@@ -41,6 +42,9 @@ export const ReportsScreen: FC = () => {
   const { currentOrg } = useDatabase()
   const [report, setReport] = useState<ReportData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [allAnimals, setAllAnimals] = useState<Animal[]>([])
+  const [selectedAnimalIds, setSelectedAnimalIds] = useState<Set<string>>(new Set())
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false)
 
   useEffect(() => {
     if (!currentOrg) {
@@ -52,6 +56,8 @@ export const ReportsScreen: FC = () => {
       const animals = await database.get<Animal>("animals")
         .query(Q.where("organization_id", currentOrg.id), Q.where("is_deleted", false))
         .fetch()
+
+      setAllAnimals(animals)
 
       const healthRecords = await database.get<HealthRecord>("health_records")
         .query(Q.where("organization_id", currentOrg.id), Q.where("is_deleted", false))
@@ -85,9 +91,9 @@ export const ReportsScreen: FC = () => {
 
       // Calculate treatment statistics
       const treatmentStats = {
-        vaccinations: healthRecords.filter((r) => r.type === "vaccination").length,
-        treatments: healthRecords.filter((r) => r.type === "treatment").length,
-        deworming: healthRecords.filter((r) => r.type === "deworming").length,
+        vaccinations: healthRecords.filter((r) => r.recordType === "vaccination").length,
+        treatments: healthRecords.filter((r) => r.recordType === "treatment").length,
+        deworming: healthRecords.filter((r) => r.recordType === "other").length,
       }
 
       // Find animals needing attention (calves without key vaccinations)
@@ -110,7 +116,7 @@ export const ReportsScreen: FC = () => {
 
         // Get this animal's health records
         const animalHealthRecords = healthRecords.filter((r) => r.animalId === animal.id)
-        const vaccinationRecords = animalHealthRecords.filter((r) => r.type === "vaccination")
+        const vaccinationRecords = animalHealthRecords.filter((r) => r.recordType === "vaccination")
 
         // Check vaccination schedule based on age
         if (ageMonths >= 2 && vaccinationRecords.length === 0) {
@@ -168,6 +174,62 @@ export const ReportsScreen: FC = () => {
       message: csv,
       title: "HerdTrackr Export",
     })
+  }
+
+  const toggleAnimalSelection = (animalId: string) => {
+    setSelectedAnimalIds((prev) => {
+      const newSet = new Set(prev)
+      if (newSet.has(animalId)) {
+        newSet.delete(animalId)
+      } else {
+        newSet.add(animalId)
+      }
+      return newSet
+    })
+  }
+
+  const selectAllAnimals = () => {
+    setSelectedAnimalIds(new Set(allAnimals.map((a) => a.id)))
+  }
+
+  const clearSelection = () => {
+    setSelectedAnimalIds(new Set())
+  }
+
+  const handleGenerateTraceabilityReport = async () => {
+    if (!currentOrg || selectedAnimalIds.size === 0) {
+      Alert.alert("No Selection", "Please select at least one animal to generate a traceability report.")
+      return
+    }
+
+    setIsGeneratingReport(true)
+
+    try {
+      const reportData = await generateTraceabilityReport(
+        Array.from(selectedAnimalIds),
+        currentOrg.name,
+        currentOrg.location,
+      )
+
+      const formattedReport = formatFullTraceabilityReport(reportData)
+
+      // Create a descriptive filename
+      const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD
+      const animalCount = selectedAnimalIds.size
+      const fileName = animalCount === 1
+        ? `Livestock_Traceability_${allAnimals.find(a => selectedAnimalIds.has(a.id))?.visualTag || 'Animal'}_${today}.txt`
+        : `Livestock_Traceability_${animalCount}_Animals_${today}.txt`
+
+      await Share.share({
+        message: formattedReport,
+        title: fileName,
+      })
+    } catch (error) {
+      console.error("Error generating traceability report:", error)
+      Alert.alert("Error", "Failed to generate traceability report. Please try again.")
+    } finally {
+      setIsGeneratingReport(false)
+    }
   }
 
   if (isLoading) {
@@ -273,6 +335,66 @@ export const ReportsScreen: FC = () => {
         onPress={handleExportCSV}
         style={themed($exportButton)}
       />
+
+      <View style={themed($traceabilitySection)}>
+        <Text preset="subheading" text="Animal Traceability Reports" style={themed($sectionTitle)} />
+        <Text style={themed($sectionDescription)}>
+          Generate comprehensive traceability reports for individual animals or groups. Reports include complete
+          history: health records, weights, breeding, movements, and photos.
+        </Text>
+
+        <View style={themed($selectionControls)}>
+          <Text text={`${selectedAnimalIds.size} selected`} preset="bold" size="sm" />
+          <View style={themed($selectionButtons)}>
+            <Button
+              text="Select All"
+              preset="default"
+              onPress={selectAllAnimals}
+              style={themed($smallButton)}
+              textStyle={themed($smallButtonText)}
+            />
+            <Button
+              text="Clear"
+              preset="default"
+              onPress={clearSelection}
+              style={themed($smallButton)}
+              textStyle={themed($smallButtonText)}
+            />
+          </View>
+        </View>
+
+        <View style={themed($animalList)}>
+          {allAnimals.map((animal) => {
+            const isSelected = selectedAnimalIds.has(animal.id)
+            return (
+              <TouchableOpacity
+                key={animal.id}
+                onPress={() => toggleAnimalSelection(animal.id)}
+                style={themed(isSelected ? $animalItemSelected : $animalItem)}
+              >
+                <View style={themed($animalItemLeft)}>
+                  <View style={themed($checkbox)}>
+                    {isSelected && <Icon icon="check" size={16} color="#fff" />}
+                  </View>
+                  <View>
+                    <Text text={animal.displayName} preset="bold" size="sm" />
+                    <Text text={`${animal.breed} • ${animal.sexLabel}`} size="xs" style={themed($animalMeta)} />
+                  </View>
+                </View>
+                <Text text={animal.visualTag} size="xs" style={themed($dimText)} />
+              </TouchableOpacity>
+            )
+          })}
+        </View>
+
+        <Button
+          text={isGeneratingReport ? "Generating Report..." : "Generate & Share Report"}
+          preset="filled"
+          onPress={handleGenerateTraceabilityReport}
+          disabled={selectedAnimalIds.size === 0 || isGeneratingReport}
+          style={themed($generateButton)}
+        />
+      </View>
     </Screen>
   )
 }
@@ -388,4 +510,96 @@ const $alertItemReason: ThemedStyle<TextStyle> = () => ({
   fontSize: 13,
   color: "#4A5568",
   lineHeight: 18,
+})
+
+const $traceabilitySection: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.palette.neutral100,
+  borderRadius: 12,
+  padding: spacing.md,
+  marginTop: spacing.lg,
+})
+
+const $sectionTitle: ThemedStyle<TextStyle> = ({ spacing }) => ({
+  marginBottom: spacing.xs,
+})
+
+const $sectionDescription: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  fontSize: 13,
+  color: colors.textDim,
+  lineHeight: 18,
+  marginBottom: spacing.md,
+})
+
+const $selectionControls: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: spacing.sm,
+})
+
+const $selectionButtons: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  gap: spacing.xs,
+})
+
+const $smallButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  paddingHorizontal: spacing.sm,
+  paddingVertical: spacing.xxs,
+  minHeight: 32,
+})
+
+const $smallButtonText: ThemedStyle<TextStyle> = () => ({
+  fontSize: 12,
+})
+
+const $animalList: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  maxHeight: 300,
+  marginBottom: spacing.md,
+})
+
+const $animalItem: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  paddingVertical: spacing.sm,
+  paddingHorizontal: spacing.xs,
+  borderBottomWidth: 1,
+  borderBottomColor: colors.separator,
+  backgroundColor: colors.background,
+})
+
+const $animalItemSelected: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  paddingVertical: spacing.sm,
+  paddingHorizontal: spacing.xs,
+  borderBottomWidth: 1,
+  borderBottomColor: colors.separator,
+  backgroundColor: colors.palette.primary100,
+})
+
+const $animalItemLeft: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.sm,
+})
+
+const $checkbox: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  width: 24,
+  height: 24,
+  borderRadius: 4,
+  borderWidth: 2,
+  borderColor: colors.border,
+  backgroundColor: colors.palette.primary500,
+  justifyContent: "center",
+  alignItems: "center",
+})
+
+const $animalMeta: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.textDim,
+})
+
+const $generateButton: ThemedStyle<ViewStyle> = () => ({
+  width: "100%",
 })

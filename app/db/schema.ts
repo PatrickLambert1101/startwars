@@ -199,11 +199,35 @@ export const migrations = schemaMigrations({
         },
       ],
     },
+    {
+      toVersion: 9,
+      steps: [
+        {
+          type: "add_columns",
+          table: "organizations",
+          columns: [
+            { name: "default_breeds", type: "string", isOptional: true }, // JSON: {"cattle": "Nguni", "sheep": "Dorper"}
+          ],
+        },
+      ],
+    },
+    {
+      toVersion: 10,
+      steps: [
+        {
+          type: "add_columns",
+          table: "animals",
+          columns: [
+            { name: "herd_tag", type: "string", isOptional: true, isIndexed: true }, // Group/herd identifier like "23-C", "XYZ"
+          ],
+        },
+      ],
+    },
   ],
 })
 
 export const schema = appSchema({
-  version: 8,
+  version: 10,
   tables: [
     tableSchema({
       name: "organizations",
@@ -212,6 +236,7 @@ export const schema = appSchema({
         { name: "name", type: "string" },
         { name: "livestock_types", type: "string" }, // JSON array: ["cattle","horses",...]
         { name: "location", type: "string", isOptional: true },
+        { name: "default_breeds", type: "string", isOptional: true }, // JSON: {"cattle": "Nguni"}
         { name: "created_at", type: "number" },
         { name: "updated_at", type: "number" },
         { name: "is_deleted", type: "boolean" },
@@ -234,6 +259,7 @@ export const schema = appSchema({
         { name: "registration_number", type: "string", isOptional: true },
         { name: "current_pasture_id", type: "string", isOptional: true, isIndexed: true },
         { name: "status", type: "string" }, // active | sold | deceased | transferred
+        { name: "herd_tag", type: "string", isOptional: true, isIndexed: true }, // Group/herd identifier like "23-C", "XYZ"
         { name: "notes", type: "string", isOptional: true },
         { name: "photos", type: "string", isOptional: true }, // JSON array of photo objects
         { name: "created_at", type: "number" },

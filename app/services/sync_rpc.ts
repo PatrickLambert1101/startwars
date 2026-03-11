@@ -115,6 +115,11 @@ async function pushChanges({ changes }: SyncPushArgs) {
  */
 function supabaseToWatermelon(row: any) {
   const record: any = { ...row }
+
+  // Remove reserved WatermelonDB fields that might come from Supabase
+  delete record._status
+  delete record._changed
+
   // WatermelonDB expects dates as timestamps (ms)
   for (const key of Object.keys(record)) {
     if (key.endsWith("_at") || key.endsWith("_date")) {

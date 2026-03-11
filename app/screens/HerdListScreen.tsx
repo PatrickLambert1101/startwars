@@ -58,7 +58,7 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation 
               </View>
             </View>
             <View style={themed($animalCardBody)}>
-              <Text size="xs" text={`RFID: ${item.rfidTag}`} style={themed($dimText)} />
+              <Text size="xs" text={`Tag: ${item.visualTag}`} style={themed($dimText)} />
               <Text size="xs" text={`${item.breed} | ${item.sex}`} style={themed($dimText)} />
             </View>
           </View>
