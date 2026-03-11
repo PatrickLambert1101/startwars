@@ -13,6 +13,9 @@ const sanitizeDefaultBreeds = (raw: any): Partial<Record<LivestockType, string>>
   return {}
 }
 
+export type SubscriptionTier = "starter" | "farm" | "commercial"
+export type SubscriptionStatus = "active" | "cancelled" | "expired" | "trial"
+
 export class Organization extends Model {
   static table = "organizations"
 
@@ -28,6 +31,10 @@ export class Organization extends Model {
   @json("livestock_types", sanitizeLivestockTypes) livestockTypes!: LivestockType[]
   @field("location") location!: string | null
   @json("default_breeds", sanitizeDefaultBreeds) defaultBreeds!: Partial<Record<LivestockType, string>>
+  @field("subscription_tier") subscriptionTier!: SubscriptionTier
+  @field("subscription_status") subscriptionStatus!: SubscriptionStatus | null
+  @date("subscription_starts_at") subscriptionStartsAt!: Date | null
+  @date("subscription_ends_at") subscriptionEndsAt!: Date | null
   @readonly @date("created_at") createdAt!: Date
   @date("updated_at") updatedAt!: Date
   @field("is_deleted") isDeleted!: boolean

@@ -92,6 +92,10 @@ export const DatabaseProvider: FC<PropsWithChildren> = ({ children }) => {
         o.livestockTypes = params.livestockTypes
         o.location = params.location ?? null
         o.defaultBreeds = params.defaultBreeds || {}
+        o.subscriptionTier = "starter" // All new organizations start on free tier
+        o.subscriptionStatus = "active"
+        o.subscriptionStartsAt = null
+        o.subscriptionEndsAt = null
         o.isDeleted = false
       })
 

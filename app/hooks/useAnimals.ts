@@ -99,6 +99,7 @@ export function useAnimalActions() {
         animal.damId = data.damId ?? null
         animal.registrationNumber = data.registrationNumber ?? null
         animal.status = data.status
+        animal.herdTag = data.herdTag ?? null
         animal.notes = data.notes ?? null
         animal.isDeleted = false
       })
@@ -119,6 +120,7 @@ export function useAnimalActions() {
         if (data.damId !== undefined) a.damId = data.damId ?? null
         if (data.registrationNumber !== undefined) a.registrationNumber = data.registrationNumber ?? null
         if (data.status !== undefined) a.status = data.status
+        if (data.herdTag !== undefined) a.herdTag = data.herdTag ?? null
         if (data.notes !== undefined) a.notes = data.notes ?? null
       })
     })

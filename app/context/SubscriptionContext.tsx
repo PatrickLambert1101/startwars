@@ -13,6 +13,7 @@ import Purchases, {
   CustomerInfo,
   LOG_LEVEL,
 } from "react-native-purchases"
+import { useDatabase } from "./DatabaseContext"
 
 export type PlanTier = "free" | "pro"
 export type PremiumFeature = "vaccines" | "pastures"
@@ -22,6 +23,8 @@ export type SubscriptionContextType = {
   plan: PlanTier
   isPro: boolean
   isLoading: boolean
+  /** Current subscription tier (starter | farm | commercial) */
+  currentPlan: string
   /** Check if a specific premium feature is unlocked */
   hasFeature: (feature: PremiumFeature) => boolean
   /** Available purchase packages from RevenueCat */
@@ -50,10 +53,15 @@ const PRO_ENTITLEMENT_ID = "pro"
 export const SubscriptionContext = createContext<SubscriptionContextType | null>(null)
 
 export const SubscriptionProvider: FC<PropsWithChildren> = ({ children }) => {
+  const { currentOrg } = useDatabase()
+
   // TEMP: Give everyone Pro access while billing is disabled
   const [plan, setPlan] = useState<PlanTier>("pro")
   const [packages, setPackages] = useState<PurchasesPackage[]>([])
   const [isLoading, setIsLoading] = useState(false)
+
+  // Get current subscription tier from database
+  const currentPlan = currentOrg?.subscriptionTier || "starter"
 
   const isPro = true // TEMP: Always true while billing is disabled
 
@@ -145,6 +153,7 @@ export const SubscriptionProvider: FC<PropsWithChildren> = ({ children }) => {
         plan,
         isPro,
         isLoading,
+        currentPlan,
         hasFeature,
         packages,
         purchasePackage,
