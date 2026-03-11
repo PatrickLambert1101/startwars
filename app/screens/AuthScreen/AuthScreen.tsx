@@ -1,20 +1,37 @@
 import React, { useState, useEffect } from "react"
-import { View, ViewStyle, TextStyle, Image, ImageStyle } from "react-native"
+import { View, ViewStyle, TextStyle, Image, ImageStyle, Pressable } from "react-native"
+import { useTranslation } from "react-i18next"
 import { Screen, Text, TextField, Button, LoadingScreen } from "@/components"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { useAuth } from "@/context/AuthContext"
+import { saveString } from "@/utils/storage"
 
 const DEV_SKIP_AUTH = process.env.EXPO_PUBLIC_DEV_SKIP_AUTH === "true"
+
+const LANGUAGES = [
+  { code: "en", flag: "🇬🇧", name: "English" },
+  { code: "af", flag: "🇿🇦", name: "Afrikaans" },
+  { code: "zu", flag: "🇿🇦", name: "isiZulu" },
+  { code: "xh", flag: "🇿🇦", name: "isiXhosa" },
+]
 
 export function AuthScreen() {
   const { themed } = useAppTheme()
   const { authEmail, setAuthEmail, signInWithOTP, verifyOTP, validationError } = useAuth()
+  const { i18n } = useTranslation()
   const [isSending, setIsSending] = useState(false)
   const [codeSent, setCodeSent] = useState(false)
   const [code, setCode] = useState("")
   const [isVerifying, setIsVerifying] = useState(false)
   const [error, setError] = useState("")
+
+  const currentLanguage = LANGUAGES.find((lang) => lang.code === i18n.language?.split("-")[0]) || LANGUAGES[0]
+
+  const handleChangeLanguage = (languageCode: string) => {
+    i18n.changeLanguage(languageCode)
+    saveString("app_language", languageCode)
+  }
 
   const handleSendCode = async () => {
     if (validationError) {
@@ -140,6 +157,29 @@ export function AuthScreen() {
 
   return (
     <Screen preset="fixed" safeAreaEdges={["top", "bottom"]} contentContainerStyle={themed($container)}>
+      <View style={themed($languageSelector)}>
+        {LANGUAGES.map((lang) => (
+          <Pressable
+            key={lang.code}
+            style={[
+              themed($languageButton),
+              lang.code === currentLanguage.code && themed($languageButtonActive),
+            ]}
+            onPress={() => handleChangeLanguage(lang.code)}
+          >
+            <Text style={themed($languageFlag)}>{lang.flag}</Text>
+            <Text
+              style={[
+                themed($languageName),
+                lang.code === currentLanguage.code && themed($languageNameActive),
+              ]}
+            >
+              {lang.name}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
       <View style={themed($content)}>
         <View style={themed($logoContainer)}>
           <Text style={themed($logo)}>🐄</Text>
@@ -391,4 +431,43 @@ const $devBannerText: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontWeight: "700",
   color: colors.palette.angry700,
   textAlign: "center",
+})
+
+const $languageSelector: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  justifyContent: "center",
+  gap: spacing.xs,
+  paddingTop: spacing.md,
+  paddingBottom: spacing.sm,
+})
+
+const $languageButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.xxs,
+  paddingHorizontal: spacing.sm,
+  paddingVertical: spacing.xs,
+  borderRadius: 8,
+  borderWidth: 1,
+  borderColor: colors.palette.neutral300,
+  backgroundColor: colors.background,
+})
+
+const $languageButtonActive: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  borderColor: colors.palette.primary500,
+  backgroundColor: colors.palette.primary100,
+})
+
+const $languageFlag: ThemedStyle<TextStyle> = () => ({
+  fontSize: 16,
+})
+
+const $languageName: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 12,
+  fontWeight: "600",
+  color: colors.textDim,
+})
+
+const $languageNameActive: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.palette.primary600,
 })
