@@ -1,5 +1,6 @@
 import { FC, useCallback, useState } from "react"
 import { FlatList, Pressable, View, ViewStyle, TextStyle, Image, ImageStyle } from "react-native"
+import { MaterialCommunityIcons } from "@expo/vector-icons"
 
 import { Screen, Text, Button, EmptyState, TextField } from "@/components"
 import { useAppTheme } from "@/theme/context"
@@ -99,16 +100,62 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation 
           />
         </>
       ) : (
-        <EmptyState
-          heading={isLoading ? "Loading..." : "No animals yet"}
-          content="Tap '+ Add' to register your first animal, or scan an RFID tag in Chute mode."
-          button={isLoading ? undefined : "Add First Animal"}
-          buttonOnPress={handleAddAnimal}
-          imageSource={null}
-          style={themed($emptyState)}
-          headingStyle={themed($emptyHeading)}
-          contentStyle={themed($emptyContent)}
-        />
+        <View style={themed($emptyContainer)}>
+          <View style={themed($emptyIconContainer)}>
+            <MaterialCommunityIcons name="cow" size={50} color={theme.colors.palette.primary500} />
+          </View>
+          <Text preset="heading" text={isLoading ? "Loading..." : "Start Building Your Herd"} style={themed($emptyHeading)} />
+          <Text
+            text="Add your first animal to start tracking health records, weights, breeding, and more."
+            style={themed($emptyContent)}
+          />
+
+          <View style={themed($onboardingCards)}>
+            <View style={themed($onboardingCard)}>
+              <View style={themed($stepIconContainer)}>
+                <MaterialCommunityIcons name="tag-plus-outline" size={20} color={theme.colors.palette.primary500} />
+              </View>
+              <View style={themed($cardContent)}>
+                <Text preset="bold" text="Add Animal Details" style={themed($cardTitle)} />
+                <Text text="Enter tag number, breed, sex, and optional photo" size="xs" style={themed($cardText)} />
+              </View>
+            </View>
+
+            <View style={themed($onboardingCard)}>
+              <View style={themed($stepIconContainer)}>
+                <MaterialCommunityIcons name="clipboard-check-outline" size={20} color={theme.colors.palette.primary500} />
+              </View>
+              <View style={themed($cardContent)}>
+                <Text preset="bold" text="Track Everything" style={themed($cardTitle)} />
+                <Text text="Record treatments, weights, breeding, and movements" size="xs" style={themed($cardText)} />
+              </View>
+            </View>
+
+            <View style={themed($onboardingCard)}>
+              <View style={themed($stepIconContainer)}>
+                <MaterialCommunityIcons name="file-export-outline" size={20} color={theme.colors.palette.primary500} />
+              </View>
+              <View style={themed($cardContent)}>
+                <Text preset="bold" text="Export Reports" style={themed($cardTitle)} />
+                <Text text="Generate compliance-ready reports for sales and audits" size="xs" style={themed($cardText)} />
+              </View>
+            </View>
+          </View>
+
+          {!isLoading && (
+            <Button
+              text="Add Your First Animal"
+              preset="filled"
+              onPress={handleAddAnimal}
+              style={themed($emptyButton)}
+            />
+          )}
+
+          <View style={themed($helpHint)}>
+            <MaterialCommunityIcons name="lightbulb-on-outline" size={16} color={theme.colors.palette.primary700} style={themed($hintIcon)} />
+            <Text text="Tip: Use the camera scanner to automatically read ear tag numbers" size="xs" style={themed($hintText)} />
+          </View>
+        </View>
       )}
     </Screen>
   )
@@ -189,19 +236,94 @@ const $dimText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.textDim,
 })
 
-const $emptyState: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+const $emptyContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flex: 1,
   justifyContent: "center",
-  marginTop: spacing.md,
+  alignItems: "center",
+  paddingVertical: spacing.xl,
+})
+
+const $emptyIconContainer: ThemedStyle<ViewStyle> = ({ spacing, colors }) => ({
+  width: 100,
+  height: 100,
+  borderRadius: 50,
+  backgroundColor: colors.palette.primary100,
+  justifyContent: "center",
+  alignItems: "center",
+  marginBottom: spacing.md,
+})
+
+const $emptyHeading: ThemedStyle<TextStyle> = ({ spacing }) => ({
+  textAlign: "center",
+  marginBottom: spacing.xs,
+})
+
+const $emptyContent: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  textAlign: "center",
+  color: colors.textDim,
+  marginBottom: spacing.lg,
+  paddingHorizontal: spacing.md,
+  lineHeight: 22,
+})
+
+const $onboardingCards: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  width: "100%",
+  gap: spacing.sm,
+  marginBottom: spacing.lg,
+})
+
+const $onboardingCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.palette.neutral100,
+  borderRadius: 12,
+  padding: spacing.md,
+  flexDirection: "row",
   alignItems: "flex-start",
+  gap: spacing.sm,
 })
 
-const $emptyHeading: ThemedStyle<TextStyle> = () => ({
-  textAlign: "left",
-  paddingHorizontal: 0,
+const $stepIconContainer: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  width: 40,
+  height: 40,
+  borderRadius: 20,
+  backgroundColor: colors.palette.primary100,
+  justifyContent: "center",
+  alignItems: "center",
 })
 
-const $emptyContent: ThemedStyle<TextStyle> = () => ({
-  textAlign: "left",
-  paddingHorizontal: 0,
+const $cardContent: ThemedStyle<ViewStyle> = () => ({
+  flex: 1,
+})
+
+const $cardTitle: ThemedStyle<TextStyle> = ({ spacing }) => ({
+  marginBottom: spacing.xxs,
+})
+
+const $cardText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.textDim,
+  lineHeight: 18,
+})
+
+const $emptyButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  minWidth: 200,
+  marginBottom: spacing.md,
+})
+
+const $helpHint: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flexDirection: "row",
+  backgroundColor: colors.palette.primary100,
+  padding: spacing.sm,
+  paddingHorizontal: spacing.md,
+  borderRadius: 8,
+  marginTop: spacing.sm,
+  alignItems: "center",
+  gap: spacing.xs,
+})
+
+const $hintIcon: ThemedStyle<any> = ({ spacing }) => ({
+  marginRight: spacing.xxs,
+})
+
+const $hintText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.palette.primary700,
+  flex: 1,
 })

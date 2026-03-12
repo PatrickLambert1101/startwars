@@ -1,5 +1,6 @@
 import React, { useMemo } from "react"
 import { View, ViewStyle, TextStyle, FlatList, Pressable } from "react-native"
+import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { Screen, Text, Button } from "@/components"
 import { PastureIcon } from "@/components/icons"
 import { useAppTheme } from "@/theme/context"
@@ -113,13 +114,22 @@ export const PasturesScreen: React.FC<MainTabScreenProps<"Pastures">> = ({ navig
 
         <View style={themed($cardDetails)}>
           {pasture.forageType && (
-            <Text style={themed($cardDetail)}>🌾 {pasture.forageType}</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <MaterialCommunityIcons name="grass" size={14} color={colors.textDim} />
+              <Text style={themed($cardDetail)}>{pasture.forageType}</Text>
+            </View>
           )}
           {pasture.waterSource && (
-            <Text style={themed($cardDetail)}>💧 {pasture.waterSource}</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <MaterialCommunityIcons name="water" size={14} color={colors.textDim} />
+              <Text style={themed($cardDetail)}>{pasture.waterSource}</Text>
+            </View>
           )}
           {pasture.sizeHectares && (
-            <Text style={themed($cardDetail)}>📐 {pasture.sizeHectares} ha</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <MaterialCommunityIcons name="ruler-square" size={14} color={colors.textDim} />
+              <Text style={themed($cardDetail)}>{pasture.sizeHectares} ha</Text>
+            </View>
           )}
         </View>
       </Pressable>

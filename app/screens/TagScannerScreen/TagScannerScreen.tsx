@@ -1,8 +1,9 @@
 import { FC, useCallback, useEffect, useRef, useState } from "react"
-import { View, ViewStyle, StyleSheet, Alert, Pressable, TextInput } from "react-native"
+import { View, ViewStyle, StyleSheet, Alert, Pressable, TextInput, ActivityIndicator } from "react-native"
 import { useCameraDevice, useCameraPermission } from "react-native-vision-camera"
 import { Camera } from "react-native-vision-camera-ocr-plus"
 import type { Text as OCRText } from "react-native-vision-camera-ocr-plus"
+import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { extractTagNumbers } from "@/hooks/useTagScanner/tagParser"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -169,19 +170,54 @@ export const TagScannerScreen: FC<TagScannerScreenProps> = ({ navigation, route 
           {/* Top Bar */}
           <View style={themed($topBar)}>
             <Pressable onPress={handleClose} style={themed($closeButton)}>
-              <Text text="✕" size="xl" style={{ color: "#FFF" }} />
+              <MaterialCommunityIcons name="close" size={24} color="#FFF" />
             </Pressable>
+            <Text text="Scan Ear Tag" preset="bold" size="md" style={{ color: "#FFF" }} />
             <Pressable onPress={toggleTorch} style={themed($torchButton)}>
-              <Text text={torch === "on" ? "🔦" : "💡"} size="xl" />
+              <MaterialCommunityIcons
+                name={torch === "on" ? "flashlight" : "flashlight-off"}
+                size={24}
+                color={torch === "on" ? "#FFD700" : "#FFF"}
+              />
             </Pressable>
           </View>
 
-          {/* Viewfinder */}
-          <View style={themed($viewfinder)} />
+          {/* Instructions Card */}
+          <View style={themed($instructionsCard)}>
+            <View style={themed($instructionRow)}>
+              <MaterialCommunityIcons name="camera-outline" size={18} color="#FFF" style={{ marginRight: 8 }} />
+              <Text text="Position tag within frame" size="xs" style={{ color: "#FFF", flex: 1 }} />
+            </View>
+            <View style={themed($instructionRow)}>
+              <MaterialCommunityIcons name="lightbulb-on-outline" size={18} color="#FFF" style={{ marginRight: 8 }} />
+              <Text text="Use torch for low light" size="xs" style={{ color: "#FFF", flex: 1 }} />
+            </View>
+            <View style={themed($instructionRow)}>
+              <MaterialCommunityIcons name="hand-back-right-outline" size={18} color="#FFF" style={{ marginRight: 8 }} />
+              <Text text="Hold steady for best results" size="xs" style={{ color: "#FFF", flex: 1 }} />
+            </View>
+          </View>
+
+          {/* Viewfinder with corner guides */}
+          <View style={themed($viewfinderContainer)}>
+            <View style={themed($viewfinder)}>
+              {/* Corner guides */}
+              <View style={[themed($corner), themed($cornerTopLeft)]} />
+              <View style={[themed($corner), themed($cornerTopRight)]} />
+              <View style={[themed($corner), themed($cornerBottomLeft)]} />
+              <View style={[themed($corner), themed($cornerBottomRight)]} />
+
+              {/* Center guide */}
+              <View style={themed($centerGuide)}>
+                <MaterialCommunityIcons name="crosshairs" size={32} color="rgba(255,255,255,0.6)" />
+              </View>
+            </View>
+            <Text text="Align tag number here" size="xs" style={themed($viewfinderHint)} />
+          </View>
 
           {/* Bottom hint */}
           <View style={themed($bottomBar)}>
-            <Text text="Point at ear tag" size="sm" style={{ color: "#FFF", textAlign: "center", opacity: 0.9 }} />
+            <Text text="Tag number will appear automatically when detected" size="sm" style={{ color: "#FFF", textAlign: "center", opacity: 0.9 }} />
           </View>
         </View>
       </View>
@@ -343,13 +379,14 @@ const $topBar: ThemedStyle<ViewStyle> = () => ({
   flexDirection: "row",
   justifyContent: "space-between",
   alignItems: "center",
+  marginBottom: 12,
 })
 
 const $closeButton: ThemedStyle<ViewStyle> = () => ({
   width: 44,
   height: 44,
   borderRadius: 22,
-  backgroundColor: "rgba(0,0,0,0.5)",
+  backgroundColor: "rgba(0,0,0,0.6)",
   justifyContent: "center",
   alignItems: "center",
 })
@@ -358,21 +395,100 @@ const $torchButton: ThemedStyle<ViewStyle> = () => ({
   width: 44,
   height: 44,
   borderRadius: 22,
-  backgroundColor: "rgba(0,0,0,0.5)",
+  backgroundColor: "rgba(0,0,0,0.6)",
   justifyContent: "center",
   alignItems: "center",
 })
 
-const $viewfinder: ThemedStyle<ViewStyle> = () => ({
-  flex: 1,
-  marginVertical: 40,
-  borderWidth: 2,
-  borderColor: "#FFF",
+const $instructionsCard: ThemedStyle<ViewStyle> = () => ({
+  backgroundColor: "rgba(0,0,0,0.7)",
   borderRadius: 12,
-  backgroundColor: "transparent",
+  padding: 12,
+  gap: 8,
+  marginBottom: 16,
+})
+
+const $instructionRow: ThemedStyle<ViewStyle> = () => ({
+  flexDirection: "row",
+  alignItems: "center",
+})
+
+const $viewfinderContainer: ThemedStyle<ViewStyle> = () => ({
+  flex: 1,
+  justifyContent: "center",
+  alignItems: "center",
+  marginVertical: 20,
+})
+
+const $viewfinder: ThemedStyle<ViewStyle> = () => ({
+  width: "85%",
+  aspectRatio: 3 / 2,
+  borderWidth: 3,
+  borderColor: "#0E95D8",
+  borderRadius: 16,
+  backgroundColor: "rgba(14, 149, 216, 0.1)",
+  position: "relative",
+  justifyContent: "center",
+  alignItems: "center",
+})
+
+const $corner: ThemedStyle<ViewStyle> = () => ({
+  position: "absolute",
+  width: 30,
+  height: 30,
+  borderColor: "#FFF",
+})
+
+const $cornerTopLeft: ThemedStyle<ViewStyle> = () => ({
+  top: -3,
+  left: -3,
+  borderTopWidth: 4,
+  borderLeftWidth: 4,
+  borderTopLeftRadius: 16,
+})
+
+const $cornerTopRight: ThemedStyle<ViewStyle> = () => ({
+  top: -3,
+  right: -3,
+  borderTopWidth: 4,
+  borderRightWidth: 4,
+  borderTopRightRadius: 16,
+})
+
+const $cornerBottomLeft: ThemedStyle<ViewStyle> = () => ({
+  bottom: -3,
+  left: -3,
+  borderBottomWidth: 4,
+  borderLeftWidth: 4,
+  borderBottomLeftRadius: 16,
+})
+
+const $cornerBottomRight: ThemedStyle<ViewStyle> = () => ({
+  bottom: -3,
+  right: -3,
+  borderBottomWidth: 4,
+  borderRightWidth: 4,
+  borderBottomRightRadius: 16,
+})
+
+const $centerGuide: ThemedStyle<ViewStyle> = () => ({
+  position: "absolute",
+  justifyContent: "center",
+  alignItems: "center",
+})
+
+const $viewfinderHint: ThemedStyle<any> = () => ({
+  color: "#FFF",
+  textAlign: "center",
+  marginTop: 12,
+  backgroundColor: "rgba(0,0,0,0.6)",
+  paddingHorizontal: 16,
+  paddingVertical: 6,
+  borderRadius: 20,
 })
 
 const $bottomBar: ThemedStyle<ViewStyle> = () => ({
   alignItems: "center",
-  paddingBottom: 20,
+  paddingBottom: 10,
+  paddingHorizontal: 20,
 })

@@ -1,5 +1,6 @@
 import { FC, useCallback, useState, useEffect } from "react"
 import { Pressable, View, ViewStyle, TextStyle, Modal, FlatList } from "react-native"
+import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { Q } from "@nozbe/watermelondb"
 
 import { Screen, Text, Button } from "@/components"
@@ -8,7 +9,7 @@ import type { ThemedStyle } from "@/theme/types"
 import { useDashboardStats } from "@/hooks/useDashboardStats"
 import { useDatabase } from "@/context/DatabaseContext"
 import { useAuth } from "@/context/AuthContext"
-import type { MainTabScreenProps } from "@/navigators/navigationTypes"
+import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { database } from "@/db"
 import { Organization } from "@/db/models/Organization"
 import { OrganizationMember } from "@/db/models/OrganizationMember"
@@ -155,7 +156,7 @@ export const DashboardScreen: FC<MainTabScreenProps<"Dashboard">> = ({ navigatio
                 >
                   <Text text={item.name} preset="bold" />
                   {item.id === currentOrg?.id && (
-                    <Text text="✓" style={{ color: colors.tint }} />
+                    <MaterialCommunityIcons name="check" size={20} color={colors.tint} />
                   )}
                 </Pressable>
               )}

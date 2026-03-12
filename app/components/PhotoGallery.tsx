@@ -1,5 +1,6 @@
 import React, { FC, useState } from "react"
 import { View, Image, Pressable, ViewStyle, ImageStyle, ScrollView, Modal } from "react-native"
+import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { Text } from "@/components"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -63,7 +64,7 @@ export const PhotoGallery: FC<PhotoGalleryProps> = ({ photosJson, style }) => {
                 style={[themed($closeButton), { backgroundColor: theme.colors.error }]}
                 onPress={() => setSelectedPhotoIndex(null)}
               >
-                <Text text="✕" style={themed($closeText)} />
+                <MaterialCommunityIcons name="close" size={24} color="#FFFFFF" />
               </Pressable>
             </View>
           </Pressable>

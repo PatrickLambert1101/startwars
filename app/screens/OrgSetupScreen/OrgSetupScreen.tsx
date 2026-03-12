@@ -1,5 +1,6 @@
 import React, { useState } from "react"
 import { View, ViewStyle, TextStyle, Pressable, ScrollView } from "react-native"
+import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { Screen, Text, TextField, Button } from "@/components"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -8,13 +9,13 @@ import { useDatabase } from "@/context/DatabaseContext"
 import { LivestockType } from "@/db/models/Organization"
 
 const LIVESTOCK_OPTIONS: { type: LivestockType; label: string; icon: string }[] = [
-  { type: "cattle", label: "Cattle", icon: "🐄" },
-  { type: "buffalo", label: "Buffalo", icon: "🐃" },
-  { type: "sheep", label: "Sheep", icon: "🐑" },
-  { type: "goat", label: "Goats", icon: "🐐" },
-  { type: "horse", label: "Horses", icon: "🐴" },
-  { type: "pig", label: "Pigs", icon: "🐷" },
-  { type: "game", label: "Game", icon: "🦌" },
+  { type: "cattle", label: "Cattle", icon: "cow" },
+  { type: "buffalo", label: "Buffalo", icon: "buffalo" },
+  { type: "sheep", label: "Sheep", icon: "sheep" },
+  { type: "goat", label: "Goats", icon: "goat" },
+  { type: "horse", label: "Horses", icon: "horse-variant" },
+  { type: "pig", label: "Pigs", icon: "pig" },
+  { type: "game", label: "Game", icon: "deer" },
 ]
 
 interface OrgSetupScreenProps extends AppStackScreenProps<"OrgSetup"> {}
@@ -76,7 +77,7 @@ export function OrgSetupScreen({ navigation }: OrgSetupScreenProps) {
     <Screen preset="fixed" safeAreaEdges={["top", "bottom"]} contentContainerStyle={themed($container)}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={themed($scrollContent)}>
         <View style={themed($header)}>
-          <Text style={themed($logo)}>🌾</Text>
+          <MaterialCommunityIcons name="grass" size={48} color="#4A8C3F" />
           <Text preset="heading" style={themed($title)}>Set up your farm</Text>
           <Text style={themed($subtitle)}>
             Let's get started with some basic information
@@ -120,13 +121,13 @@ export function OrgSetupScreen({ navigation }: OrgSetupScreenProps) {
                     style={[themed($livestockCard), isSelected && themed($livestockCardSelected)]}
                     onPress={() => toggleLivestockType(option.type)}
                   >
-                    <Text style={themed($livestockIcon)}>{option.icon}</Text>
+                    <MaterialCommunityIcons name={option.icon as any} size={32} color={isSelected ? "#FFF" : "#4A8C3F"} />
                     <Text style={[themed($livestockLabel), isSelected && themed($livestockLabelSelected)]}>
                       {option.label}
                     </Text>
                     {isSelected && (
                       <View style={themed($checkmark)}>
-                        <Text style={themed($checkmarkText)}>✓</Text>
+                        <MaterialCommunityIcons name="check" size={14} color="#FFF" />
                       </View>
                     )}
                   </Pressable>

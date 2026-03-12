@@ -1,5 +1,6 @@
 import { FC, useCallback, useState } from "react"
 import { Alert, Pressable, View, ViewStyle, TextStyle, Image, ImageStyle } from "react-native"
+import { MaterialCommunityIcons } from "@expo/vector-icons"
 
 import { Screen, Text, TextField, Button } from "@/components"
 import { useAppTheme } from "@/theme/context"
@@ -15,17 +16,17 @@ const herdLogo = require("../../assets/images/herd-logo.png")
 type LivestockOption = {
   type: LivestockType
   label: string
-  emoji: string
+  icon: string
   desc: string
 }
 
 const LIVESTOCK_OPTIONS: LivestockOption[] = [
-  { type: "cattle", label: "Cattle", emoji: "🐄", desc: "Nguni, Bonsmara, Brahman, Angus..." },
-  { type: "buffalo", label: "Buffalo", emoji: "🦬", desc: "Cape buffalo, water buffalo" },
-  { type: "horses", label: "Horses", emoji: "🐴", desc: "Boerperd, Nooitgedachter, Thoroughbred..." },
-  { type: "sheep", label: "Sheep", emoji: "🐑", desc: "Dorper, Merino, Damara, Dohne..." },
-  { type: "goats", label: "Goats", emoji: "🐐", desc: "Boer, Angora, Kalahari Red, Savanna..." },
-  { type: "game", label: "Game", emoji: "🦌", desc: "Springbok, Impala, Kudu, Eland..." },
+  { type: "cattle", label: "Cattle", icon: "cow", desc: "Nguni, Bonsmara, Brahman, Angus..." },
+  { type: "buffalo", label: "Buffalo", icon: "buffalo", desc: "Cape buffalo, water buffalo" },
+  { type: "horses", label: "Horses", icon: "horse-variant", desc: "Boerperd, Nooitgedachter, Thoroughbred..." },
+  { type: "sheep", label: "Sheep", icon: "sheep", desc: "Dorper, Merino, Damara, Dohne..." },
+  { type: "goats", label: "Goats", icon: "goat", desc: "Boer, Angora, Kalahari Red, Savanna..." },
+  { type: "game", label: "Game", icon: "deer", desc: "Springbok, Impala, Kudu, Eland..." },
 ]
 
 type HerdSize = "small" | "medium" | "large" | "xlarge"
@@ -38,12 +39,12 @@ const HERD_SIZES: { key: HerdSize; label: string; desc: string }[] = [
   { key: "xlarge", label: "500+", desc: "Enterprise scale" },
 ]
 
-const PURPOSE_OPTIONS: { key: Purpose; label: string; emoji: string }[] = [
-  { key: "breeding", label: "Breeding / Stud", emoji: "🐂" },
-  { key: "fattening", label: "Fattening / Feedlot", emoji: "🥩" },
-  { key: "dairy", label: "Dairy", emoji: "🥛" },
-  { key: "mixed", label: "Mixed Farming", emoji: "🌾" },
-  { key: "game", label: "Game Farming", emoji: "🦌" },
+const PURPOSE_OPTIONS: { key: Purpose; label: string; icon: string }[] = [
+  { key: "breeding", label: "Breeding / Stud", icon: "cow" },
+  { key: "fattening", label: "Fattening / Feedlot", icon: "food-steak" },
+  { key: "dairy", label: "Dairy", icon: "cup" },
+  { key: "mixed", label: "Mixed Farming", icon: "grass" },
+  { key: "game", label: "Game Farming", icon: "deer" },
 ]
 
 // Breed options for each livestock type
@@ -234,7 +235,7 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
                     isSelected && themed($typeCardSelected),
                   ]}
                 >
-                  <Text text={opt.emoji} style={themed($typeEmoji)} />
+                  <MaterialCommunityIcons name={opt.icon as any} size={32} color={isSelected ? "#FFF" : "#4A8C3F"} />
                   <Text
                     text={opt.label}
                     preset="bold"
@@ -244,7 +245,7 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
                   <Text text={opt.desc} size="xxs" style={themed($dimText)} numberOfLines={1} />
                   {isSelected && (
                     <View style={themed($checkBadge)}>
-                      <Text text="✓" size="xs" style={themed($checkText)} />
+                      <MaterialCommunityIcons name="check" size={14} color="#FFF" />
                     </View>
                   )}
                 </Pressable>
@@ -364,7 +365,7 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
                   purpose === p.key && themed($purposeCardSelected),
                 ]}
               >
-                <Text text={p.emoji} style={{ fontSize: 22, flexShrink: 0 }} />
+                <MaterialCommunityIcons name={p.icon as any} size={22} color={purpose === p.key ? "#FFF" : "#4A8C3F"} />
                 <Text
                   text={p.label}
                   size="xs"
@@ -396,7 +397,7 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
       {step === 5 && (
         <View style={themed($card)}>
           <View style={themed($successIcon)}>
-            <Text text="✓" style={themed($successCheck)} />
+            <MaterialCommunityIcons name="check-circle" size={60} color="#10B981" />
           </View>
           <Text text={`${orgName.trim()} is ready!`} preset="bold" size="lg" style={{ textAlign: "center" }} />
           <Text
@@ -407,7 +408,7 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
 
           <Pressable onPress={handleGoToAddAnimals} style={themed($getStartedCard)}>
             <View style={themed($getStartedIcon)}>
-              <Text text="🐄" style={{ fontSize: 28 }} />
+              <MaterialCommunityIcons name="cow" size={28} color="#4A8C3F" />
             </View>
             <View style={{ flex: 1 }}>
               <Text text="Add my first animals" preset="bold" />

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react"
 import { View, ViewStyle, TextStyle, Image, ImageStyle, Pressable } from "react-native"
+import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
 import { Screen, Text, TextField, Button, LoadingScreen } from "@/components"
 import { useAppTheme } from "@/theme/context"
@@ -25,12 +26,14 @@ export function AuthScreen() {
   const [code, setCode] = useState("")
   const [isVerifying, setIsVerifying] = useState(false)
   const [error, setError] = useState("")
+  const [showLanguageMenu, setShowLanguageMenu] = useState(false)
 
   const currentLanguage = LANGUAGES.find((lang) => lang.code === i18n.language?.split("-")[0]) || LANGUAGES[0]
 
   const handleChangeLanguage = (languageCode: string) => {
     i18n.changeLanguage(languageCode)
     saveString("app_language", languageCode)
+    setShowLanguageMenu(false)
   }
 
   const handleSendCode = async () => {
@@ -89,7 +92,11 @@ export function AuthScreen() {
       <Screen preset="fixed" safeAreaEdges={["top", "bottom"]} contentContainerStyle={themed($container)}>
         <View style={themed($content)}>
           <View style={themed($logoContainer)}>
-            <Text style={themed($logo)}>🔒</Text>
+            <Image
+              source={require("../../../assets/images/splash-logo-all.png")}
+              style={themed($logoImage)}
+              resizeMode="contain"
+            />
             <Text preset="heading" style={themed($title)}>
               {DEV_SKIP_AUTH ? "Dev Mode: Auto-Signing In..." : "Enter Code"}
             </Text>
@@ -157,33 +164,50 @@ export function AuthScreen() {
 
   return (
     <Screen preset="fixed" safeAreaEdges={["top", "bottom"]} contentContainerStyle={themed($container)}>
-      <View style={themed($languageSelector)}>
-        {LANGUAGES.map((lang) => (
-          <Pressable
-            key={lang.code}
-            style={[
-              themed($languageButton),
-              lang.code === currentLanguage.code && themed($languageButtonActive),
-            ]}
-            onPress={() => handleChangeLanguage(lang.code)}
-          >
-            <Text style={themed($languageFlag)}>{lang.flag}</Text>
-            <Text
-              style={[
-                themed($languageName),
-                lang.code === currentLanguage.code && themed($languageNameActive),
-              ]}
-            >
-              {lang.name}
-            </Text>
-          </Pressable>
-        ))}
+      {/* Language Selector - Top Left */}
+      <View style={themed($languageSelectorContainer)}>
+        <Pressable
+          style={themed($languageTrigger)}
+          onPress={() => setShowLanguageMenu(!showLanguageMenu)}
+        >
+          <Text style={themed($languageFlag)}>{currentLanguage.flag}</Text>
+          <Text style={themed($languageDropdownIcon)}>▼</Text>
+        </Pressable>
+
+        {showLanguageMenu && (
+          <View style={themed($languageMenu)}>
+            {LANGUAGES.map((lang) => (
+              <Pressable
+                key={lang.code}
+                style={[
+                  themed($languageMenuItem),
+                  lang.code === currentLanguage.code && themed($languageMenuItemActive),
+                ]}
+                onPress={() => handleChangeLanguage(lang.code)}
+              >
+                <Text style={themed($languageFlag)}>{lang.flag}</Text>
+                <Text
+                  style={[
+                    themed($languageMenuItemText),
+                    lang.code === currentLanguage.code && themed($languageMenuItemTextActive),
+                  ]}
+                >
+                  {lang.name}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
       </View>
 
       <View style={themed($content)}>
         <View style={themed($logoContainer)}>
-          <Text style={themed($logo)}>🐄</Text>
-          <Text preset="heading" style={themed($title)}>Welcome to HerdTrackr</Text>
+          <Image
+            source={require("../../../assets/images/splash-logo-all.png")}
+            style={themed($logoImage)}
+            resizeMode="contain"
+          />
+          <Text preset="heading" style={themed($title)}>HerdTrackr</Text>
           <Text style={themed($subtitle)}>
             Manage your livestock with ease
           </Text>
@@ -232,19 +256,19 @@ export function AuthScreen() {
           <View style={themed($benefitsContainer)}>
             <Text style={themed($benefitsTitle)}>What you can do:</Text>
             <View style={themed($benefitRow)}>
-              <Text style={themed($benefitIcon)}>📱</Text>
+              <MaterialCommunityIcons name="cellphone" size={20} color="#4A8C3F" />
               <Text style={themed($benefitText)}>Track animals, health & breeding</Text>
             </View>
             <View style={themed($benefitRow)}>
-              <Text style={themed($benefitIcon)}>🌾</Text>
+              <MaterialCommunityIcons name="grass" size={20} color="#4A8C3F" />
               <Text style={themed($benefitText)}>Manage pastures & rotations</Text>
             </View>
             <View style={themed($benefitRow)}>
-              <Text style={themed($benefitIcon)}>👥</Text>
+              <MaterialCommunityIcons name="account-multiple" size={20} color="#4A8C3F" />
               <Text style={themed($benefitText)}>Invite your farm workers</Text>
             </View>
             <View style={themed($benefitRow)}>
-              <Text style={themed($benefitIcon)}>☁️</Text>
+              <MaterialCommunityIcons name="cloud-sync" size={20} color="#4A8C3F" />
               <Text style={themed($benefitText)}>Sync across all devices</Text>
             </View>
           </View>
@@ -274,9 +298,10 @@ const $logoContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   marginBottom: spacing.xxl,
 })
 
-const $logo: ThemedStyle<TextStyle> = () => ({
-  fontSize: 72,
-  marginBottom: 8,
+const $logoImage: ThemedStyle<ImageStyle> = () => ({
+  width: 120,
+  height: 120,
+  marginBottom: 16,
 })
 
 const $title: ThemedStyle<TextStyle> = ({ spacing }) => ({
@@ -433,15 +458,14 @@ const $devBannerText: ThemedStyle<TextStyle> = ({ colors }) => ({
   textAlign: "center",
 })
 
-const $languageSelector: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flexDirection: "row",
-  justifyContent: "center",
-  gap: spacing.xs,
-  paddingTop: spacing.md,
-  paddingBottom: spacing.sm,
+const $languageSelectorContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  position: "absolute",
+  top: spacing.md,
+  left: spacing.md,
+  zIndex: 1000,
 })
 
-const $languageButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+const $languageTrigger: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
   gap: spacing.xxs,
@@ -451,23 +475,59 @@ const $languageButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   borderWidth: 1,
   borderColor: colors.palette.neutral300,
   backgroundColor: colors.background,
-})
-
-const $languageButtonActive: ThemedStyle<ViewStyle> = ({ colors }) => ({
-  borderColor: colors.palette.primary500,
-  backgroundColor: colors.palette.primary100,
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.1,
+  shadowRadius: 4,
+  elevation: 3,
 })
 
 const $languageFlag: ThemedStyle<TextStyle> = () => ({
-  fontSize: 16,
+  fontSize: 20,
 })
 
-const $languageName: ThemedStyle<TextStyle> = ({ colors }) => ({
-  fontSize: 12,
-  fontWeight: "600",
+const $languageDropdownIcon: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 10,
   color: colors.textDim,
+  marginLeft: 4,
 })
 
-const $languageNameActive: ThemedStyle<TextStyle> = ({ colors }) => ({
+const $languageMenu: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  position: "absolute",
+  top: 44,
+  left: 0,
+  backgroundColor: colors.background,
+  borderRadius: 8,
+  borderWidth: 1,
+  borderColor: colors.palette.neutral300,
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.15,
+  shadowRadius: 8,
+  elevation: 5,
+  minWidth: 160,
+  overflow: "hidden",
+})
+
+const $languageMenuItem: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.sm,
+  paddingHorizontal: spacing.md,
+  paddingVertical: spacing.sm,
+})
+
+const $languageMenuItemActive: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  backgroundColor: colors.palette.primary100,
+})
+
+const $languageMenuItemText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 14,
+  fontWeight: "500",
+  color: colors.text,
+})
+
+const $languageMenuItemTextActive: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.palette.primary600,
+  fontWeight: "600",
 })

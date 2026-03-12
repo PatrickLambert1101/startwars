@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react"
 import { View, ViewStyle, TextStyle, ScrollView, Pressable, FlatList, Alert } from "react-native"
+import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { Screen, Text, TextField, Button, Icon } from "@/components"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -152,7 +153,7 @@ export function MovementFormScreen({ navigation, route }: MovementFormScreenProp
             {animal.breed} • {animal.sexLabel}
           </Text>
         </View>
-        {isSelected && <Text style={themed($animalPickerCheck)}>✓</Text>}
+        {isSelected && <MaterialCommunityIcons name="check-circle" size={24} color="#10B981" />}
       </Pressable>
     )
   }
@@ -160,7 +161,10 @@ export function MovementFormScreen({ navigation, route }: MovementFormScreenProp
   const renderSelectedAnimal = ({ item: animal }: { item: Animal }) => (
     <View style={themed($selectedAnimalRow)}>
       <View style={themed($selectedAnimalInfo)}>
-        <Text style={themed($selectedAnimalTag)}>✓ {animal.visualTag || animal.rfidTag}</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+          <MaterialCommunityIcons name="check" size={14} color="#10B981" />
+          <Text style={themed($selectedAnimalTag)}>{animal.visualTag || animal.rfidTag}</Text>
+        </View>
         <Text style={themed($selectedAnimalDetails)}>
           {animal.breed} • {animal.sexLabel}
         </Text>
@@ -223,7 +227,7 @@ export function MovementFormScreen({ navigation, route }: MovementFormScreenProp
                   <Text style={[themed($pastureOptionText), isSelected && themed($pastureOptionTextSelected)]}>
                     {pasture.name} ({pasture.code})
                   </Text>
-                  {isSelected && <Text style={themed($pastureOptionCheck)}>✓</Text>}
+                  {isSelected && <MaterialCommunityIcons name="check-circle" size={20} color="#10B981" />}
                 </Pressable>
               )
             })}

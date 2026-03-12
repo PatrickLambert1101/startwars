@@ -1,5 +1,6 @@
 import React, { useState } from "react"
 import { View, ViewStyle, TextStyle, Pressable } from "react-native"
+import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { Screen, Text, TextField, Button, Icon } from "@/components"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -144,7 +145,10 @@ export function PastureWizardScreen({ navigation }: PastureWizardScreenProps) {
           <View style={themed($codePreview)}>
             <Text style={themed($codeLabel)}>Short code:</Text>
             <Text style={themed($codeValue)}>{formData.code || "___"}</Text>
-            <Text style={themed($codeHint)}>✓ Auto-generated</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <MaterialCommunityIcons name="check" size={12} color="#10B981" />
+              <Text style={themed($codeHint)}>Auto-generated</Text>
+            </View>
           </View>
 
           <View style={themed($buttonRow)}>
@@ -310,7 +314,7 @@ export function PastureWizardScreen({ navigation }: PastureWizardScreenProps) {
                 style={themed($checkbox)}
               >
                 <View style={[themed($checkboxBox), formData.hasSaltBlocks && themed($checkboxBoxChecked)]}>
-                  {formData.hasSaltBlocks && <Text style={themed($checkboxCheck)}>✓</Text>}
+                  {formData.hasSaltBlocks && <MaterialCommunityIcons name="check" size={16} color="#FFF" />}
                 </View>
                 <Text style={themed($checkboxLabel)}>Salt Blocks</Text>
               </Pressable>
@@ -319,7 +323,7 @@ export function PastureWizardScreen({ navigation }: PastureWizardScreenProps) {
                 style={themed($checkbox)}
               >
                 <View style={[themed($checkboxBox), formData.hasMineralFeeders && themed($checkboxBoxChecked)]}>
-                  {formData.hasMineralFeeders && <Text style={themed($checkboxCheck)}>✓</Text>}
+                  {formData.hasMineralFeeders && <MaterialCommunityIcons name="check" size={16} color="#FFF" />}
                 </View>
                 <Text style={themed($checkboxLabel)}>Mineral Feeders</Text>
               </Pressable>

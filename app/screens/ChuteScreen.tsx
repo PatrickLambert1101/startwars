@@ -1,5 +1,6 @@
 import { FC, useCallback, useEffect, useRef, useState } from "react"
 import { Alert, FlatList, Pressable, ScrollView, TextInput, View, ViewStyle, TextStyle } from "react-native"
+import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { format } from "date-fns"
 
 import { Screen, Text, TextField, Button, ScanTagButton } from "@/components"
@@ -273,21 +274,31 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
             onPress={() => setSessionMode("weight")}
             style={[themed($modeCard), { borderColor: "#4A8C3F" }]}
           >
-            <Text preset="subheading" text="⚖️ Weigh" style={{ color: "#4A8C3F" }} />
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <MaterialCommunityIcons name="scale" size={20} color="#4A8C3F" />
+              <Text preset="subheading" text="Weigh" style={{ color: "#4A8C3F" }} />
+            </View>
             <Text size="xs" text="Record weight and optional condition score" style={themed($dimText)} />
           </Pressable>
           <Pressable
             onPress={() => setSessionMode("protocol")}
             style={[themed($modeCard), { borderColor: "#10B981" }]}
           >
-            <Text preset="subheading" text="💉 Vaccinate / Treat" style={{ color: "#10B981" }} />
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <MaterialCommunityIcons name="needle" size={20} color="#10B981" />
+              <Text preset="subheading" text="Vaccinate / Treat" style={{ color: "#10B981" }} />
+            </View>
             <Text size="xs" text="Apply vaccination or treatment protocols with auto-calculated dosages" style={themed($dimText)} />
           </Pressable>
           <Pressable
             onPress={() => setSessionMode("weight_and_treatment")}
             style={[themed($modeCard), { borderColor: "#8B5CF6" }]}
           >
-            <Text preset="subheading" text="⚖️💉 Weigh + Treat" style={{ color: "#8B5CF6" }} />
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <MaterialCommunityIcons name="scale" size={18} color="#8B5CF6" />
+              <MaterialCommunityIcons name="needle" size={18} color="#8B5CF6" />
+              <Text preset="subheading" text="Weigh + Treat" style={{ color: "#8B5CF6" }} />
+            </View>
             <Text size="xs" text="Record weight and apply protocol in one go" style={themed($dimText)} />
           </Pressable>
         </View>
@@ -501,7 +512,7 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
 
                           return (
                             <View style={{ backgroundColor: "#FFF3CD", borderRadius: 8, padding: spacing.md, marginBottom: spacing.sm, borderWidth: 2, borderColor: "#FFEB3B" }}>
-                              <Text preset="bold" text="💡 Calculated Dosage" size="sm" style={{ color: "#856404", marginBottom: spacing.xs }} />
+                              <Text preset="bold" text="Calculated Dosage" size="sm" style={{ color: "#856404", marginBottom: spacing.xs }} />
                               <Text text={`At ${enteredWeight} kg:`} size="xs" style={{ color: "#856404" }} />
                               <Text preset="bold" text={`Give: ${calculatedMl.toFixed(1)} ml`} size="lg" style={{ color: "#856404", marginTop: spacing.xxs }} />
                             </View>
@@ -685,7 +696,7 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
 
                       return (
                         <View style={{ backgroundColor: "#FFF3CD", borderRadius: 8, padding: spacing.md, marginBottom: spacing.sm, borderWidth: 2, borderColor: "#FFEB3B" }}>
-                          <Text preset="bold" text="💡 Auto-Calculated Dosage" size="sm" style={{ color: "#856404", marginBottom: spacing.xs }} />
+                          <Text preset="bold" text="Auto-Calculated Dosage" size="sm" style={{ color: "#856404", marginBottom: spacing.xs }} />
                           <Text text={`Last weight: ${latestWeight} kg`} size="xs" style={{ color: "#856404" }} />
                           <Text preset="bold" text={`Give: ${calculatedMl.toFixed(1)} ml`} size="lg" style={{ color: "#856404", marginTop: spacing.xxs }} />
                           <Text text={`Based on ${mlPerDose}ml per ${kgPerDose}kg`} size="xxs" style={{ color: "#856404", marginTop: spacing.xxs }} />
@@ -703,7 +714,7 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
 
                   {weightHistory.length === 0 && (
                     <View style={{ backgroundColor: "#FFEBEE", borderRadius: 8, padding: spacing.md, marginBottom: spacing.sm }}>
-                      <Text preset="bold" text="⚠️ No Weight on Record" size="xs" style={{ color: "#C62828" }} />
+                      <Text preset="bold" text="No Weight on Record" size="xs" style={{ color: "#C62828" }} />
                       <Text text="Weigh this animal first for accurate dosage calculation" size="xxs" style={{ color: "#C62828", marginTop: spacing.xxs }} />
                     </View>
                   )}
