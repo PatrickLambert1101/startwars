@@ -760,15 +760,15 @@
             </div>
             <div class="camera-features">
                 <div class="camera-feature">
-                    <h4><span class="feature-icon-inline"><i class="mdi mdi-lightning-bolt"></i></span>Sub-Second Recognition</h4>
+                    <h4><span class="feature-icon-inline">⚡</span>Sub-Second Recognition</h4>
                     <p>Point and shoot. Tag number appears in under a second. Record entire herd in minutes.</p>
                 </div>
                 <div class="camera-feature">
-                    <h4><span class="feature-icon-inline"><i class="mdi mdi-weather-night"></i></span>Works in Low Light</h4>
+                    <h4><span class="feature-icon-inline">🌙</span>Works in Low Light</h4>
                     <p>Reliable recognition in shade, dusk, or barn conditions. No perfect lighting required.</p>
                 </div>
                 <div class="camera-feature">
-                    <h4><span class="feature-icon-inline"><i class="mdi mdi-cellphone"></i></span>Standard Phone Camera</h4>
+                    <h4><span class="feature-icon-inline">📱</span>Standard Phone Camera</h4>
                     <p>Uses your regular smartphone camera. No additional hardware investment needed.</p>
                 </div>
             </div>
@@ -784,43 +784,41 @@
             </p>
 
             <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-radius: 16px; padding: 50px 40px; border: 3px solid #0E95D8; box-shadow: 0 8px 24px rgba(14, 149, 216, 0.15);">
-                <h3 style="text-align: center; font-size: 28px; color: #0B7AB8; margin-bottom: 35px; font-weight: 700;">
-                    <i class="mdi mdi-clipboard-list-outline"></i> Complete Animal History in One Click
-                </h3>
+                <h3 style="text-align: center; font-size: 28px; color: #0B7AB8; margin-bottom: 35px; font-weight: 700;">📋 Complete Animal History in One Click</h3>
 
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; margin-bottom: 35px;">
                     <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-                        <div style="font-size: 32px; margin-bottom: 12px; color: #0E95D8;"><i class="mdi mdi-needle"></i></div>
+                        <div style="font-size: 32px; margin-bottom: 12px;">💉</div>
                         <h4 style="color: #0B7AB8; font-size: 18px; margin-bottom: 10px;">All Vaccines & Treatments</h4>
                         <p style="color: #666; font-size: 15px; line-height: 1.6;">Every vaccine, dewormer, and medication logged with dates, dosages, and products used. Withdrawal periods tracked automatically.</p>
                     </div>
 
                     <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-                        <div style="font-size: 32px; margin-bottom: 12px; color: #0E95D8;"><i class="mdi mdi-scale"></i></div>
+                        <div style="font-size: 32px; margin-bottom: 12px;">⚖️</div>
                         <h4 style="color: #0B7AB8; font-size: 18px; margin-bottom: 10px;">Weight & Growth Records</h4>
                         <p style="color: #666; font-size: 15px; line-height: 1.6;">Complete weight history with charts showing growth curves. See exactly how each animal performed from birth to sale weight.</p>
                     </div>
 
                     <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-                        <div style="font-size: 32px; margin-bottom: 12px; color: #0E95D8;"><i class="mdi mdi-cow"></i></div>
+                        <div style="font-size: 32px; margin-bottom: 12px;">🐂</div>
                         <h4 style="color: #0B7AB8; font-size: 18px; margin-bottom: 10px;">Full Breeding History</h4>
                         <p style="color: #666; font-size: 15px; line-height: 1.6;">Dam, sire, breeding dates, calving records, and offspring lineage. Complete genetic history for pedigree documentation.</p>
                     </div>
 
                     <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-                        <div style="font-size: 32px; margin-bottom: 12px; color: #0E95D8;"><i class="mdi mdi-grass"></i></div>
+                        <div style="font-size: 32px; margin-bottom: 12px;">🌾</div>
                         <h4 style="color: #0B7AB8; font-size: 18px; margin-bottom: 10px;">Grazing & Feed History</h4>
                         <p style="color: #666; font-size: 15px; line-height: 1.6;">Track where animals grazed, pasture moves, and feeding programs. Know exactly what they ate and when.</p>
                     </div>
 
                     <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-                        <div style="font-size: 32px; margin-bottom: 12px; color: #0E95D8;"><i class="mdi mdi-camera-outline"></i></div>
+                        <div style="font-size: 32px; margin-bottom: 12px;">📸</div>
                         <h4 style="color: #0B7AB8; font-size: 18px; margin-bottom: 10px;">Photos & Attachments</h4>
                         <p style="color: #666; font-size: 15px; line-height: 1.6;">Attach photos of animals, health issues, or documents. Visual proof for insurance claims or vet consultations.</p>
                     </div>
 
                     <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-                        <div style="font-size: 32px; margin-bottom: 12px; color: #0E95D8;"><i class="mdi mdi-email-outline"></i></div>
+                        <div style="font-size: 32px; margin-bottom: 12px;">📧</div>
                         <h4 style="color: #0B7AB8; font-size: 18px; margin-bottom: 10px;">Email Ready Reports</h4>
                         <p style="color: #666; font-size: 15px; line-height: 1.6;">Generate professional PDF reports for buyers, auditors, or vets. Email them directly from the app in seconds.</p>
                     </div>
@@ -828,7 +826,7 @@
 
                 <div style="background: white; padding: 30px; border-radius: 12px; border-left: 6px solid #10B981; box-shadow: 0 2px 12px rgba(0,0,0,0.1);">
                     <p style="font-size: 18px; color: #333; margin-bottom: 15px; font-weight: 600;">
-                        <i class="mdi mdi-check-circle" style="font-size: 24px; color: #10B981;"></i> Perfect for Compliance & Sales
+                        <span style="font-size: 24px; color: #10B981;">✓</span> Perfect for Compliance & Sales
                     </p>
                     <p style="font-size: 16px; color: #666; line-height: 1.7;">
                         Whether it's a livestock inspector, a buyer wanting full history, your vet needing treatment records, or insurance requiring proof of vaccination - just export the report and send it. Everything documented, timestamped, and professional. No more searching through filing cabinets or trying to remember dates from last year.
@@ -917,44 +915,44 @@
 
             <div style="background: white; border-radius: 16px; padding: 50px 40px; box-shadow: 0 8px 24px rgba(16, 185, 129, 0.15); border: 3px solid #10B981; margin-bottom: 50px;">
                 <h3 style="text-align: center; font-size: 28px; color: #059669; margin-bottom: 35px; font-weight: 700;">
-                    <i class="mdi mdi-check-circle"></i> Compliance Built In From Day One
+                    ✓ Compliance Built In From Day One
                 </h3>
 
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px;">
                     <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); padding: 25px; border-radius: 12px; border-left: 4px solid #10B981;">
-                        <h4 style="color: #059669; font-size: 18px; margin-bottom: 12px; font-weight: 700;"><i class="mdi mdi-clipboard-text-outline"></i> Complete Movement History</h4>
+                        <h4 style="color: #059669; font-size: 18px; margin-bottom: 12px; font-weight: 700;">📋 Complete Movement History</h4>
                         <p style="color: #065f46; font-size: 15px; line-height: 1.6;">Track every animal movement between pastures with timestamps, GPS locations, and responsible personnel. Export movement reports for authorities on demand.</p>
                     </div>
 
                     <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); padding: 25px; border-radius: 12px; border-left: 4px solid #10B981;">
-                        <h4 style="color: #059669; font-size: 18px; margin-bottom: 12px; font-weight: 700;"><i class="mdi mdi-needle"></i> Treatment & Medication Records</h4>
+                        <h4 style="color: #059669; font-size: 18px; margin-bottom: 12px; font-weight: 700;">💉 Treatment & Medication Records</h4>
                         <p style="color: #065f46; font-size: 15px; line-height: 1.6;">Full pharmaceutical traceability including batch numbers, withdrawal periods, administering personnel, and dosage calculations - exactly what regulations require.</p>
                     </div>
 
                     <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); padding: 25px; border-radius: 12px; border-left: 4px solid #10B981;">
-                        <h4 style="color: #059669; font-size: 18px; margin-bottom: 12px; font-weight: 700;"><i class="mdi mdi-tag-outline"></i> Birth to Sale Tracking</h4>
+                        <h4 style="color: #059669; font-size: 18px; margin-bottom: 12px; font-weight: 700;">🏷️ Birth to Sale Tracking</h4>
                         <p style="color: #065f46; font-size: 15px; line-height: 1.6;">Complete lifetime documentation from birth registration through ownership transfers and sales. Instant PDF export for transport permits and sale documentation.</p>
                     </div>
 
                     <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); padding: 25px; border-radius: 12px; border-left: 4px solid #10B981;">
-                        <h4 style="color: #059669; font-size: 18px; margin-bottom: 12px; font-weight: 700;"><i class="mdi mdi-file-search-outline"></i> Audit-Ready Reports</h4>
+                        <h4 style="color: #059669; font-size: 18px; margin-bottom: 12px; font-weight: 700;">🔍 Audit-Ready Reports</h4>
                         <p style="color: #065f46; font-size: 15px; line-height: 1.6;">Generate compliance reports for inspections in seconds. Filter by date ranges, animal groups, or activities. Export to PDF or CSV for submission to authorities.</p>
                     </div>
 
                     <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); padding: 25px; border-radius: 12px; border-left: 4px solid #10B981;">
-                        <h4 style="color: #059669; font-size: 18px; margin-bottom: 12px; font-weight: 700;"><i class="mdi mdi-camera-outline"></i> Photo Documentation</h4>
+                        <h4 style="color: #059669; font-size: 18px; margin-bottom: 12px; font-weight: 700;">📸 Photo Documentation</h4>
                         <p style="color: #065f46; font-size: 15px; line-height: 1.6;">Attach photos to records for visual verification of ear tags, health conditions, or infrastructure. Timestamped and GPS-tagged for authenticity.</p>
                     </div>
 
                     <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); padding: 25px; border-radius: 12px; border-left: 4px solid #10B981;">
-                        <h4 style="color: #059669; font-size: 18px; margin-bottom: 12px; font-weight: 700;"><i class="mdi mdi-cloud-check-outline"></i> Secure Cloud Backup</h4>
+                        <h4 style="color: #059669; font-size: 18px; margin-bottom: 12px; font-weight: 700;">☁️ Secure Cloud Backup</h4>
                         <p style="color: #065f46; font-size: 15px; line-height: 1.6;">Regulations require data retention for years. Your records are automatically backed up to the cloud with bank-level security and guaranteed availability.</p>
                     </div>
                 </div>
 
                 <div style="margin-top: 35px; padding: 30px; background: linear-gradient(135deg, #10B981 0%, #059669 100%); border-radius: 12px; box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);">
                     <p style="text-align: center; color: white; font-size: 20px; font-weight: 600; line-height: 1.6; margin: 0;">
-                        <span style="font-size: 28px; display: block; margin-bottom: 10px;"><i class="mdi mdi-lightning-bolt"></i></span>
+                        <span style="font-size: 28px; display: block; margin-bottom: 10px;">⚡</span>
                         Don't Wait Until 2027 to Get Compliant
                     </p>
                     <p style="text-align: center; color: rgba(255,255,255,0.95); font-size: 17px; line-height: 1.7; margin-top: 15px; margin-bottom: 0;">
@@ -966,7 +964,7 @@
             <h3 style="text-align: center; font-size: 26px; color: #0B7AB8; margin-bottom: 35px;">Why South African Farmers Choose HerdTrackr</h3>
             <div class="benefits-list" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px; max-width: 900px; margin: 0 auto;">
                 <div class="benefit-item">
-                    <div class="benefit-icon"><i class="mdi mdi-check-circle" style="font-size: 24px; color: #0E95D8;"></i></div>
+                    <div class="benefit-icon">✅</div>
                     <div class="benefit-text">
                         <h4>Save Time</h4>
                         <p>Cut paperwork time by 80%. Record keeping that's as fast as your cattle move through the chute.</p>
@@ -974,7 +972,7 @@
                 </div>
 
                 <div class="benefit-item">
-                    <div class="benefit-icon"><i class="mdi mdi-check-circle" style="font-size: 24px; color: #0E95D8;"></i></div>
+                    <div class="benefit-icon">✅</div>
                     <div class="benefit-text">
                         <h4>Regulation Ready</h4>
                         <p>Built-in compliance with upcoming 2025/2027 traceability regulations. Complete audit-ready records from day one.</p>
@@ -982,7 +980,7 @@
                 </div>
 
                 <div class="benefit-item">
-                    <div class="benefit-icon"><i class="mdi mdi-check-circle" style="font-size: 24px; color: #0E95D8;"></i></div>
+                    <div class="benefit-icon">✅</div>
                     <div class="benefit-text">
                         <h4>Farm Anywhere</h4>
                         <p>Built for real South African farm conditions. Works in areas with poor or no cell coverage.</p>
@@ -990,7 +988,7 @@
                 </div>
 
                 <div class="benefit-item">
-                    <div class="benefit-icon"><i class="mdi mdi-check-circle" style="font-size: 24px; color: #0E95D8;"></i></div>
+                    <div class="benefit-icon">✅</div>
                     <div class="benefit-text">
                         <h4>Increase Profits</h4>
                         <p>Identify underperforming animals early. Optimize treatment costs with accurate dose calculations.</p>
@@ -1068,22 +1066,22 @@
             </p>
             <div class="tech-grid">
                 <div class="tech-card">
-                    <h4><i class="mdi mdi-shield-lock-outline"></i> Enterprise Security</h4>
+                    <h4>🔒 Enterprise Security</h4>
                     <p>Bank-level encryption using Supabase infrastructure. Your livestock data is protected with the same security protocols used by financial institutions worldwide.</p>
                 </div>
 
                 <div class="tech-card">
-                    <h4><i class="mdi mdi-cloud-sync-outline"></i> Automatic Cloud Sync</h4>
+                    <h4>☁️ Automatic Cloud Sync</h4>
                     <p>Seamless synchronization across all devices. Data automatically backed up to the cloud with 99.9% uptime guarantee and redundant storage.</p>
                 </div>
 
                 <div class="tech-card">
-                    <h4><i class="mdi mdi-cellphone"></i> Native Mobile Apps</h4>
+                    <h4>📱 Native Mobile Apps</h4>
                     <p>Built specifically for iOS and Android using React Native. Optimized performance, native UI components, and smooth user experience.</p>
                 </div>
 
                 <div class="tech-card">
-                    <h4><i class="mdi mdi-database-outline"></i> Local-First Architecture</h4>
+                    <h4>💾 Local-First Architecture</h4>
                     <p>All records stored on device using WatermelonDB. Work offline indefinitely with intelligent sync when connectivity is restored.</p>
                 </div>
             </div>
@@ -1100,43 +1098,43 @@
                 </p>
                 <div class="legitimacy-badges">
                     <div class="badge">
-                        <h4><i class="mdi mdi-office-building-outline"></i> Registered SA Company</h4>
+                        <h4>🇿🇦 Registered SA Company</h4>
                         <p>Officially registered, tax compliant, and here to stay.</p>
                     </div>
 
                     <div class="badge">
-                        <h4><i class="mdi mdi-earth"></i> Built in Africa</h4>
+                        <h4>🌍 Built in Africa</h4>
                         <p>We get it. Sketchy signal, dusty conditions, and real farming work.</p>
                     </div>
 
                     <div class="badge">
-                        <h4><i class="mdi mdi-headset"></i> Local Support</h4>
+                        <h4>📞 Local Support</h4>
                         <p>Actual South Africans who know what a chute is and speak your language.</p>
                     </div>
                 </div>
 
                 <div style="margin-top: 50px; padding: 35px; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-radius: 16px; border: 2px solid #0E95D8; box-shadow: 0 4px 16px rgba(14, 149, 216, 0.1);">
                     <h3 style="color: #0B7AB8; margin-bottom: 20px; font-size: 24px; text-align: center; font-weight: 700;">
-                        <i class="mdi mdi-translate"></i> Available in Your Language
+                        🌍 Available in Your Language
                     </h3>
                     <p style="color: #555; font-size: 17px; text-align: center; margin-bottom: 25px; line-height: 1.6;">
                         HerdTrackr speaks the languages of South African farmers. Switch between languages anytime, right from the app.
                     </p>
                     <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-bottom: 20px;">
                         <div style="background: white; padding: 20px 30px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border: 2px solid #0E95D8;">
-                            <div style="font-size: 32px; text-align: center; margin-bottom: 8px; color: #0E95D8;"><i class="mdi mdi-alpha-e-circle"></i></div>
+                            <div style="font-size: 32px; text-align: center; margin-bottom: 8px;">🇬🇧</div>
                             <p style="font-weight: 600; color: #0B7AB8; text-align: center; font-size: 16px;">English</p>
                         </div>
                         <div style="background: white; padding: 20px 30px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border: 2px solid #0E95D8;">
-                            <div style="font-size: 32px; text-align: center; margin-bottom: 8px; color: #0E95D8;"><i class="mdi mdi-alpha-a-circle"></i></div>
+                            <div style="font-size: 32px; text-align: center; margin-bottom: 8px;">🇿🇦</div>
                             <p style="font-weight: 600; color: #0B7AB8; text-align: center; font-size: 16px;">Afrikaans</p>
                         </div>
                         <div style="background: white; padding: 20px 30px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border: 2px solid #0E95D8;">
-                            <div style="font-size: 32px; text-align: center; margin-bottom: 8px; color: #0E95D8;"><i class="mdi mdi-alpha-z-circle"></i></div>
+                            <div style="font-size: 32px; text-align: center; margin-bottom: 8px;">🇿🇦</div>
                             <p style="font-weight: 600; color: #0B7AB8; text-align: center; font-size: 16px;">isiZulu</p>
                         </div>
                         <div style="background: white; padding: 20px 30px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border: 2px solid #0E95D8;">
-                            <div style="font-size: 32px; text-align: center; margin-bottom: 8px; color: #0E95D8;"><i class="mdi mdi-alpha-x-circle"></i></div>
+                            <div style="font-size: 32px; text-align: center; margin-bottom: 8px;">🇿🇦</div>
                             <p style="font-weight: 600; color: #0B7AB8; text-align: center; font-size: 16px;">isiXhosa</p>
                         </div>
                     </div>
@@ -1168,13 +1166,13 @@
                     <h3>Starter</h3>
                     <div class="price">R0<span>/month</span></div>
                     <ul class="pricing-features">
-                        <li><i class="mdi mdi-check"></i> Up to 100 animals</li>
-                        <li><i class="mdi mdi-check"></i> 1 pasture</li>
-                        <li><i class="mdi mdi-check"></i> Camera tag scanning</li>
-                        <li><i class="mdi mdi-check"></i> Basic health records</li>
-                        <li><i class="mdi mdi-check"></i> Weight tracking</li>
-                        <li><i class="mdi mdi-check"></i> Offline mode</li>
-                        <li><i class="mdi mdi-check"></i> 1 user</li>
+                        <li>✓ Up to 100 animals</li>
+                        <li>✓ 1 pasture</li>
+                        <li>✓ Camera tag scanning</li>
+                        <li>✓ Basic health records</li>
+                        <li>✓ Weight tracking</li>
+                        <li>✓ Offline mode</li>
+                        <li>✓ 1 user</li>
                     </ul>
                     <a href="#download" class="pricing-button secondary">Get Started Free</a>
                 </div>
@@ -1185,15 +1183,15 @@
                     <h3>Farm</h3>
                     <div class="price">R245<span>/month</span></div>
                     <ul class="pricing-features">
-                        <li><i class="mdi mdi-check"></i> Up to 1,000 animals</li>
-                        <li><i class="mdi mdi-check"></i> Up to 15 pastures</li>
-                        <li><i class="mdi mdi-check"></i> Camera tag scanning</li>
-                        <li><i class="mdi mdi-check"></i> Full health tracking</li>
-                        <li><i class="mdi mdi-check"></i> Breeding records</li>
-                        <li><i class="mdi mdi-check"></i> Reports & CSV export</li>
-                        <li><i class="mdi mdi-check"></i> Up to 5 users</li>
-                        <li><i class="mdi mdi-check"></i> Photo attachments</li>
-                        <li><i class="mdi mdi-check"></i> Priority support</li>
+                        <li>✓ Up to 1,000 animals</li>
+                        <li>✓ Up to 15 pastures</li>
+                        <li>✓ Camera tag scanning</li>
+                        <li>✓ Full health tracking</li>
+                        <li>✓ Breeding records</li>
+                        <li>✓ Reports & CSV export</li>
+                        <li>✓ Up to 5 users</li>
+                        <li>✓ Photo attachments</li>
+                        <li>✓ Priority support</li>
                     </ul>
                     <a href="#download" class="pricing-button">Start Free Trial</a>
                 </div>
@@ -1203,16 +1201,16 @@
                     <h3>Commercial</h3>
                     <div class="price">R999<span>/month</span></div>
                     <ul class="pricing-features">
-                        <li><i class="mdi mdi-check"></i> Unlimited animals</li>
-                        <li><i class="mdi mdi-check"></i> Unlimited pastures</li>
-                        <li><i class="mdi mdi-check"></i> Camera tag scanning</li>
-                        <li><i class="mdi mdi-check"></i> RFID handheld scanner*</li>
-                        <li><i class="mdi mdi-check"></i> Advanced analytics</li>
-                        <li><i class="mdi mdi-check"></i> Treatment protocols</li>
-                        <li><i class="mdi mdi-check"></i> Unlimited users</li>
-                        <li><i class="mdi mdi-check"></i> Custom reports</li>
-                        <li><i class="mdi mdi-check"></i> API access</li>
-                        <li><i class="mdi mdi-check"></i> Dedicated support</li>
+                        <li>✓ Unlimited animals</li>
+                        <li>✓ Unlimited pastures</li>
+                        <li>✓ Camera tag scanning</li>
+                        <li>✓ RFID handheld scanner*</li>
+                        <li>✓ Advanced analytics</li>
+                        <li>✓ Treatment protocols</li>
+                        <li>✓ Unlimited users</li>
+                        <li>✓ Custom reports</li>
+                        <li>✓ API access</li>
+                        <li>✓ Dedicated support</li>
                     </ul>
                     <a href="#download" class="pricing-button">Contact Sales</a>
                 </div>

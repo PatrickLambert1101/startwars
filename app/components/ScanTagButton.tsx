@@ -1,6 +1,7 @@
 import { FC } from "react"
-import { Pressable, ViewStyle, TextStyle } from "react-native"
+import { Pressable, ViewStyle, TextStyle, View } from "react-native"
 import { useNavigation } from "@react-navigation/native"
+import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { Text } from "./Text"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -14,7 +15,7 @@ interface ScanTagButtonProps {
 }
 
 export const ScanTagButton: FC<ScanTagButtonProps> = ({ onTagScanned, style, compact = false }) => {
-  const { themed } = useAppTheme()
+  const { themed, theme } = useAppTheme()
   const navigation = useNavigation<AppStackScreenProps<"TagScanner">["navigation"]>()
 
   const handlePress = () => {
@@ -26,14 +27,17 @@ export const ScanTagButton: FC<ScanTagButtonProps> = ({ onTagScanned, style, com
   if (compact) {
     return (
       <Pressable onPress={handlePress} style={[themed($compactButton), style]}>
-        <Text text="📷" size="lg" />
+        <MaterialCommunityIcons name="camera-outline" size={20} color="#FFF" />
       </Pressable>
     )
   }
 
   return (
     <Pressable onPress={handlePress} style={[themed($button), style]}>
-      <Text text="📷 Scan Tag" size="sm" style={themed($buttonText)} />
+      <View style={themed($buttonContent)}>
+        <MaterialCommunityIcons name="camera-outline" size={20} color="#FFF" />
+        <Text text="Scan Tag" size="sm" style={themed($buttonText)} />
+      </View>
     </Pressable>
   )
 }
@@ -48,6 +52,12 @@ const $button: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   alignItems: "center",
   justifyContent: "center",
   minHeight: 44,
+})
+
+const $buttonContent: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.xs,
 })
 
 const $buttonText: ThemedStyle<TextStyle> = () => ({

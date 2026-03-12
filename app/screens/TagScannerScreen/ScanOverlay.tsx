@@ -1,5 +1,6 @@
 import { FC } from "react"
 import { View, ViewStyle, Pressable, TextStyle } from "react-native"
+import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { Text } from "@/components"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -26,10 +27,14 @@ export const ScanOverlay: FC<ScanOverlayProps> = ({
       {/* Top bar */}
       <View style={themed($topBar)}>
         <Pressable onPress={onClose} style={themed($closeButton)}>
-          <Text text="✕" size="xl" style={themed($closeText)} />
+          <MaterialCommunityIcons name="close" size={28} color="#FFF" />
         </Pressable>
         <Pressable onPress={onToggleTorch} style={themed($torchButton)}>
-          <Text text={torchEnabled ? "🔦" : "💡"} size="xl" />
+          <MaterialCommunityIcons
+            name={torchEnabled ? "flashlight" : "flashlight-off"}
+            size={28}
+            color={torchEnabled ? "#FFD700" : "#FFF"}
+          />
         </Pressable>
       </View>
 
@@ -45,7 +50,7 @@ export const ScanOverlay: FC<ScanOverlayProps> = ({
           {/* Detected tag display */}
           {stableTagNumber && (
             <View style={themed($detectedBadge)}>
-              <Text text="✓" style={themed($checkmark)} size="md" />
+              <MaterialCommunityIcons name="check-circle" size={24} color="#FFF" />
               <Text text={stableTagNumber} preset="bold" style={themed($tagText)} size="xl" />
             </View>
           )}

@@ -1,5 +1,6 @@
 import { FC, useCallback, useEffect, useState } from "react"
 import { Alert, Pressable, View, ViewStyle, TextStyle, ActivityIndicator, Modal, FlatList } from "react-native"
+import { MaterialCommunityIcons } from "@expo/vector-icons"
 
 import { Screen, Text, TextField, Button, ScanTagButton } from "@/components"
 import { DateField } from "@/components/DateField"
@@ -253,7 +254,16 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
 
         {/* RFID Tag Field with Scanner */}
         <View>
-          <Text preset="formLabel" text="RFID Tag" style={themed($pickerLabel)} />
+          <View style={themed($labelWithHint)}>
+            <Text preset="formLabel" text="RFID Tag" style={themed($pickerLabel)} />
+            <View style={themed($hint)}>
+              <MaterialCommunityIcons name="information-outline" size={14} color={colors.textDim} />
+            </View>
+          </View>
+          <View style={themed($helpBox)}>
+            <MaterialCommunityIcons name="lightbulb-on-outline" size={14} color={colors.palette.primary700 || colors.tint} style={{ marginRight: 6 }} />
+            <Text text="Electronic tag embedded in ear tag - Commercial plan includes RFID scanner support" size="xxs" style={themed($helpText)} />
+          </View>
           {hasRfidHardware ? (
             <View>
               {isScanning ? (
@@ -283,7 +293,16 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
         </View>
 
         <View>
-          <Text preset="formLabel" text="Visual Tag (ear tag/brand)" style={themed($pickerLabel)} />
+          <View style={themed($labelWithHint)}>
+            <Text preset="formLabel" text="Visual Tag (ear tag/brand)" style={themed($pickerLabel)} />
+            <View style={themed($hint)}>
+              <MaterialCommunityIcons name="camera-outline" size={14} color={colors.textDim} />
+            </View>
+          </View>
+          <View style={themed($helpBox)}>
+            <MaterialCommunityIcons name="camera-outline" size={14} color={colors.palette.primary700 || colors.tint} style={{ marginRight: 6 }} />
+            <Text text="Use camera scanner button to automatically read tag numbers from photos" size="xxs" style={themed($helpText)} />
+          </View>
           <View style={themed($tagInputRow)}>
             <TextField
               value={visualTag}
@@ -340,7 +359,16 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
 
         {/* Lineage Section */}
         <View style={themed($lineageSection)}>
-          <Text text="Lineage (optional)" preset="formLabel" />
+          <View style={themed($labelWithHint)}>
+            <Text text="Lineage (optional)" preset="formLabel" />
+            <View style={themed($hint)}>
+              <MaterialCommunityIcons name="dna" size={14} color={colors.textDim} />
+            </View>
+          </View>
+          <View style={themed($helpBox)}>
+            <MaterialCommunityIcons name="dna" size={14} color={colors.palette.primary700 || colors.tint} style={{ marginRight: 6 }} />
+            <Text text="Track genetics for breeding programs and pedigree documentation" size="xxs" style={themed($helpText)} />
+          </View>
 
           <View>
             <Text text="Sire (Father)" size="xs" style={themed($lineageLabel)} />
@@ -350,6 +378,12 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
                 style={!selectedSire && themed($placeholderText)}
               />
             </Pressable>
+            {!selectedSire && maleAnimals.length === 0 && (
+              <View style={themed($inlineHint)}>
+                <MaterialCommunityIcons name="information-outline" size={12} color={colors.textDim} style={{ marginRight: 4 }} />
+                <Text text="Add male animals to your herd first to select as sires" size="xxs" style={themed($hintTextSmall)} />
+              </View>
+            )}
           </View>
 
           <View>
@@ -360,6 +394,12 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
                 style={!selectedDame && themed($placeholderText)}
               />
             </Pressable>
+            {!selectedDame && femaleAnimals.length === 0 && (
+              <View style={themed($inlineHint)}>
+                <MaterialCommunityIcons name="information-outline" size={12} color={colors.textDim} style={{ marginRight: 4 }} />
+                <Text text="Add female animals to your herd first to select as dames" size="xxs" style={themed($hintTextSmall)} />
+              </View>
+            )}
           </View>
         </View>
 
@@ -650,6 +690,54 @@ const $farmBadge: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   gap: spacing.xs,
   marginBottom: spacing.md,
   alignSelf: "flex-start",
+})
+
+const $labelWithHint: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.xs,
+  marginBottom: spacing.xs,
+})
+
+const $hint: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.palette.neutral200,
+  borderRadius: 10,
+  width: 20,
+  height: 20,
+  justifyContent: "center",
+  alignItems: "center",
+})
+
+const $helpBox: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.palette.primary50 || colors.palette.primary100,
+  borderLeftWidth: 3,
+  borderLeftColor: colors.palette.primary500,
+  borderRadius: 6,
+  padding: spacing.xs,
+  marginBottom: spacing.xs,
+  flexDirection: "row",
+  alignItems: "flex-start",
+})
+
+const $helpText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.palette.primary700 || colors.tint,
+  lineHeight: 16,
+  flex: 1,
+})
+
+const $inlineHint: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.palette.neutral100,
+  borderRadius: 6,
+  padding: spacing.xs,
+  marginTop: spacing.xs,
+  flexDirection: "row",
+  alignItems: "center",
+})
+
+const $hintTextSmall: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.textDim,
+  lineHeight: 14,
+  fontStyle: "italic",
 })
 
 const $farmLabel: ThemedStyle<TextStyle> = ({ colors }) => ({

@@ -1,5 +1,6 @@
 import React, { useState } from "react"
 import { View, ViewStyle, TextStyle, ScrollView, Pressable, FlatList, Alert } from "react-native"
+import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { Screen, Text, Button, Icon, TextField } from "@/components"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -167,7 +168,7 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
               onPress={() => handleRemoveMember(member)}
               style={themed($actionButtonDanger)}
             >
-              <Text style={themed($actionButtonText)}>✕</Text>
+              <MaterialCommunityIcons name="close" size={18} color="#FFF" />
             </Pressable>
           </View>
         )}

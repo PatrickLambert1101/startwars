@@ -39,6 +39,8 @@ export type AppStackParamList = {
   MovementForm: { pastureId?: string; movementType?: "move_in" | "move_out" }
   TagScanner: { onTagScanned?: (tagNumber: string) => void }
   Upgrade: undefined
+  Paywall: undefined
+  CustomerCenter: undefined
 }
 
 export type AppStackScreenProps<T extends keyof AppStackParamList> = NativeStackScreenProps<

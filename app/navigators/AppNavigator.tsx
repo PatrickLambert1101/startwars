@@ -29,6 +29,8 @@ import { MovementFormScreen } from "@/screens/MovementFormScreen"
 import { TagScannerScreen } from "@/screens/TagScannerScreen"
 import { OrgSetupScreen } from "@/screens/OrgSetupScreen"
 import { UpgradeScreen } from "@/screens/UpgradeScreen"
+import { PaywallScreen } from "@/screens/PaywallScreen"
+import { CustomerCenterScreen } from "@/screens/CustomerCenterScreen"
 import { useAppTheme } from "@/theme/context"
 
 import { MainTabNavigator } from "./MainTabNavigator"
@@ -79,6 +81,8 @@ const AppStack = () => {
           <Stack.Screen name="MovementForm" component={MovementFormScreen} />
           <Stack.Screen name="TagScanner" component={TagScannerScreen} />
           <Stack.Screen name="Upgrade" component={UpgradeScreen} />
+          <Stack.Screen name="Paywall" component={PaywallScreen} />
+          <Stack.Screen name="CustomerCenter" component={CustomerCenterScreen} />
         </>
       ) : (
         <>

@@ -43,33 +43,70 @@ export type SubscriptionContextType = {
 
 const PREMIUM_FEATURES: PremiumFeature[] = ["vaccines", "pastures"]
 
-// RevenueCat API keys — replace with your real keys from the RevenueCat dashboard
-const REVENUECAT_API_KEY_APPLE = "appl_YOUR_REVENUECAT_APPLE_API_KEY"
-const REVENUECAT_API_KEY_GOOGLE = "goog_YOUR_REVENUECAT_GOOGLE_API_KEY"
+// RevenueCat API key - using test key (replace with production key later)
+const REVENUECAT_API_KEY = "test_HiAakRXKRndBIBZdYHlGVISoCmX"
 
 // RevenueCat entitlement identifier — must match what you set up in the RC dashboard
-const PRO_ENTITLEMENT_ID = "pro"
+const PRO_ENTITLEMENT_ID = "Herdtrackr Pro"
 
 export const SubscriptionContext = createContext<SubscriptionContextType | null>(null)
 
 export const SubscriptionProvider: FC<PropsWithChildren> = ({ children }) => {
   const { currentOrg } = useDatabase()
 
-  // TEMP: Give everyone Pro access while billing is disabled
-  const [plan, setPlan] = useState<PlanTier>("pro")
+  const [plan, setPlan] = useState<PlanTier>("free")
   const [packages, setPackages] = useState<PurchasesPackage[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
   // Get current subscription tier from database
   const currentPlan = currentOrg?.subscriptionTier || "starter"
 
-  const isPro = true // TEMP: Always true while billing is disabled
+  const isPro = plan === "pro"
 
   // ── Initialise RevenueCat ─────────────────────────────────
   useEffect(() => {
-    // TEMP: Disabled RevenueCat initialization while billing is disabled
-    console.log("[Subscriptions] Billing temporarily disabled - all users have Pro access")
-    setIsLoading(false)
+    const initRevenueCat = async () => {
+      try {
+        // Configure RevenueCat with debug logging
+        Purchases.setLogLevel(LOG_LEVEL.DEBUG)
+
+        // Initialize SDK
+        await Purchases.configure({
+          apiKey: REVENUECAT_API_KEY,
+          appUserID: undefined, // Let RevenueCat generate anonymous ID (will link on login)
+        })
+
+        console.log("[Subscriptions] RevenueCat initialized successfully")
+
+        // Fetch available offerings
+        const offerings = await Purchases.getOfferings()
+        console.log("[Subscriptions] Available offerings:", offerings)
+
+        if (offerings.current?.availablePackages) {
+          setPackages(offerings.current.availablePackages)
+          console.log("[Subscriptions] Found packages:", offerings.current.availablePackages.length)
+        } else {
+          console.warn("[Subscriptions] No current offering found")
+        }
+
+        // Check current subscription status
+        const customerInfo = await Purchases.getCustomerInfo()
+        console.log("[Subscriptions] Customer info:", {
+          activeEntitlements: Object.keys(customerInfo.entitlements.active),
+          allEntitlements: Object.keys(customerInfo.entitlements.all),
+        })
+        updatePlanFromCustomerInfo(customerInfo)
+
+      } catch (error) {
+        console.error("[Subscriptions] Failed to initialize RevenueCat:", error)
+        // Default to free plan on error
+        setPlan("free")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    initRevenueCat()
   }, [])
 
   // ── Helpers ───────────────────────────────────────────────
@@ -80,8 +117,7 @@ export const SubscriptionProvider: FC<PropsWithChildren> = ({ children }) => {
 
   const hasFeature = useCallback(
     (feature: PremiumFeature) => {
-      // TEMP: Allow all features while billing is disabled
-      return true
+      return isPro
     },
     [isPro],
   )

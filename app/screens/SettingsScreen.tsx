@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next"
 import { Screen, Text, ListItem, Button, Icon } from "@/components"
 import { useAuth } from "@/context/AuthContext"
 import { useDatabase } from "@/context/DatabaseContext"
+import { useSubscription } from "@/context/SubscriptionContext"
 import { useRfidReader } from "@/hooks/useRfidReader"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -28,6 +29,7 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
   const { themed, themeContext, setThemeContextOverride } = useAppTheme()
   const { logout, user } = useAuth()
   const { currentOrg } = useDatabase()
+  const { isPro, plan, isLoading } = useSubscription()
   const { setOutputPower, isInitialized, initialize, hasRfidHardware } = useRfidReader()
   const { i18n } = useTranslation()
 
@@ -168,6 +170,53 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
         <Text preset="formLabel" text="ACCOUNT" style={themed($sectionLabel)} />
         <ListItem text={user?.email || "Not signed in"} bottomSeparator />
         <ListItem text={`Org: ${currentOrg?.name || "None"}`} bottomSeparator />
+      </View>
+
+      <View style={themed($section)}>
+        <Text preset="formLabel" text="SUBSCRIPTION" style={themed($sectionLabel)} />
+        <View style={themed($subscriptionCard)}>
+          <View style={themed($subscriptionHeader)}>
+            <View>
+              <Text style={themed($subscriptionPlan)}>
+                {isPro ? "HerdTrackr Pro" : "Free Plan"}
+              </Text>
+              <Text style={themed($subscriptionStatus)}>
+                {isLoading ? "Loading..." : isPro ? "Active subscription" : "Limited features"}
+              </Text>
+            </View>
+            {isPro && (
+              <View style={themed($proBadge)}>
+                <Text style={themed($proBadgeText)}>PRO</Text>
+              </View>
+            )}
+          </View>
+
+          {isPro ? (
+            <>
+              <Text style={themed($subscriptionDescription)}>
+                You have access to all premium features including pasture management, advanced health tracking, and unlimited animals.
+              </Text>
+              <Button
+                text="Manage Subscription"
+                preset="default"
+                onPress={() => navigation.navigate("CustomerCenter")}
+                style={themed($subscriptionButton)}
+              />
+            </>
+          ) : (
+            <>
+              <Text style={themed($subscriptionDescription)}>
+                Upgrade to Pro to unlock pasture management, advanced health tracking, and unlimited animals.
+              </Text>
+              <Button
+                text="Upgrade to Pro"
+                preset="filled"
+                onPress={() => navigation.navigate("Paywall")}
+                style={themed($subscriptionButton)}
+              />
+            </>
+          )}
+        </View>
       </View>
 
       <View style={themed($section)}>
@@ -603,4 +652,58 @@ const $languageChipSubtext: ThemedStyle<TextStyle> = ({ colors }) => ({
 
 const $languageChipSubtextActive: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.palette.primary500,
+})
+
+// --- SUBSCRIPTION styles ---
+
+const $subscriptionCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.palette.neutral100,
+  borderRadius: 12,
+  padding: spacing.md,
+  borderWidth: 1,
+  borderColor: colors.palette.neutral200,
+})
+
+const $subscriptionHeader: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  marginBottom: spacing.sm,
+})
+
+const $subscriptionPlan: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 18,
+  fontWeight: "700",
+  color: colors.text,
+})
+
+const $subscriptionStatus: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 13,
+  color: colors.textDim,
+  marginTop: 2,
+})
+
+const $proBadge: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.palette.primary500,
+  paddingHorizontal: spacing.sm,
+  paddingVertical: spacing.xxs,
+  borderRadius: 6,
+})
+
+const $proBadgeText: ThemedStyle<TextStyle> = () => ({
+  fontSize: 11,
+  fontWeight: "700",
+  color: "#FFFFFF",
+  letterSpacing: 1,
+})
+
+const $subscriptionDescription: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  fontSize: 14,
+  color: colors.textDim,
+  lineHeight: 20,
+  marginBottom: spacing.md,
+})
+
+const $subscriptionButton: ThemedStyle<ViewStyle> = () => ({
+  marginTop: 0,
 })
