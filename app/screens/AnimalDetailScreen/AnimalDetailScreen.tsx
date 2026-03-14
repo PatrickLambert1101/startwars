@@ -1,6 +1,7 @@
 import { FC, useCallback, useState } from "react"
 import { Pressable, View, ViewStyle, TextStyle } from "react-native"
 import { format } from "date-fns"
+import { useTranslation } from "react-i18next"
 
 import { Screen, Text, Button } from "@/components"
 import { WeightChart } from "@/components/WeightChart"
@@ -14,6 +15,7 @@ import { useHealthRecords, useWeightRecords, useBreedingRecords } from "@/hooks/
 type Tab = "overview" | "health" | "weight" | "breeding"
 
 export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ route, navigation }) => {
+  const { t } = useTranslation()
   const { themed, theme } = useAppTheme()
   const { animalId } = route.params
   const { animal, isLoading } = useAnimal(animalId)
@@ -36,19 +38,19 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
     return (
       <Screen preset="fixed" safeAreaEdges={["top"]}>
         <View style={themed($centered)}>
-          <Text text={isLoading ? "Loading..." : "Animal not found"} />
+          <Text text={isLoading ? t("animalDetailScreen.loading") : t("animalDetailScreen.notFound")} />
         </View>
       </Screen>
     )
   }
 
-  const formatDate = (d: Date | null) => d ? format(d, "dd MMM yyyy") : "—"
+  const formatDate = (d: Date | null) => d ? format(d, "dd MMM yyyy") : t("animalDetailScreen.overview.noValue")
 
   return (
     <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
       <View style={themed($headerRow)}>
-        <Button text="Back" preset="default" onPress={() => navigation.goBack()} />
-        <Button text="Edit" preset="default" onPress={handleEdit} />
+        <Button text={t("animalDetailScreen.backButton")} preset="default" onPress={() => navigation.goBack()} />
+        <Button text={t("animalDetailScreen.editButton")} preset="default" onPress={handleEdit} />
       </View>
 
       <Text preset="heading" text={animal.displayName} style={themed($heading)} />
@@ -69,7 +71,7 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
           >
             <Text
               preset="formLabel"
-              text={tab.charAt(0).toUpperCase() + tab.slice(1)}
+              text={t(`animalDetailScreen.tabs.${tab}`)}
               style={activeTab === tab ? themed($tabTextActive) : themed($tabText)}
             />
           </Pressable>
@@ -80,14 +82,14 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
       {activeTab === "overview" && (
         <View style={themed($section)}>
           <PhotoGallery photosJson={animal.photos} />
-          <DetailRow label="RFID Tag" value={animal.rfidTag} themed={themed} />
-          <DetailRow label="Visual Tag" value={animal.visualTag} themed={themed} />
-          <DetailRow label="Date of Birth" value={formatDate(animal.dateOfBirth)} themed={themed} />
-          <DetailRow label="Registration #" value={animal.registrationNumber || "—"} themed={themed} />
-          {animal.notes ? <DetailRow label="Notes" value={animal.notes} themed={themed} /> : null}
+          <DetailRow label={t("animalDetailScreen.overview.rfidTag")} value={animal.rfidTag} themed={themed} />
+          <DetailRow label={t("animalDetailScreen.overview.visualTag")} value={animal.visualTag} themed={themed} />
+          <DetailRow label={t("animalDetailScreen.overview.dateOfBirth")} value={formatDate(animal.dateOfBirth)} themed={themed} />
+          <DetailRow label={t("animalDetailScreen.overview.registrationNumber")} value={animal.registrationNumber || t("animalDetailScreen.overview.noValue")} themed={themed} />
+          {animal.notes ? <DetailRow label={t("animalDetailScreen.overview.notes")} value={animal.notes} themed={themed} /> : null}
 
           <Button
-            text="Delete Animal"
+            text={t("animalDetailScreen.deleteButton")}
             preset="default"
             textStyle={themed($deleteText)}
             style={themed($deleteButton)}
@@ -99,13 +101,13 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
       {activeTab === "health" && (
         <View style={themed($section)}>
           <Button
-            text="+ Add Health Record"
+            text={t("animalDetailScreen.health.addButton")}
             preset="filled"
             style={themed($addRecordButton)}
             onPress={() => navigation.navigate("HealthRecordForm", { animalId })}
           />
           {healthRecords.length === 0 ? (
-            <Text text="No health records yet." style={themed($dimText)} />
+            <Text text={t("animalDetailScreen.health.empty")} style={themed($dimText)} />
           ) : (
             healthRecords.map((r) => (
               <View key={r.id} style={themed($recordCard)}>
@@ -114,11 +116,11 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
                   <Text size="xs" text={formatDate(r.recordDate)} style={themed($dimText)} />
                 </View>
                 <Text text={r.description} size="sm" />
-                {r.productName ? <Text text={`Product: ${r.productName}`} size="xs" style={themed($dimText)} /> : null}
+                {r.productName ? <Text text={t("animalDetailScreen.health.product", { product: r.productName })} size="xs" style={themed($dimText)} /> : null}
                 <PhotoGallery photosJson={r.photos} />
                 {r.createdByName ? (
                   <Text
-                    text={`Recorded by ${r.createdByName.split('@')[0]}`}
+                    text={t("animalDetailScreen.health.recordedBy", { name: r.createdByName.split('@')[0] })}
                     size="xxs"
                     style={themed($createdByText)}
                   />
@@ -132,26 +134,26 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
       {activeTab === "weight" && (
         <View style={themed($section)}>
           <Button
-            text="+ Add Weight Record"
+            text={t("animalDetailScreen.weight.addButton")}
             preset="filled"
             style={themed($addRecordButton)}
             onPress={() => navigation.navigate("WeightRecordForm", { animalId })}
           />
           {weightRecords.length >= 2 && <WeightChart records={weightRecords} />}
           {weightRecords.length === 0 ? (
-            <Text text="No weight records yet." style={themed($dimText)} />
+            <Text text={t("animalDetailScreen.weight.empty")} style={themed($dimText)} />
           ) : (
             weightRecords.map((r) => (
               <View key={r.id} style={themed($recordCard)}>
                 <View style={themed($recordHeader)}>
-                  <Text preset="bold" text={`${r.weightKg} kg`} />
+                  <Text preset="bold" text={t("animalDetailScreen.weight.weightValue", { weight: r.weightKg })} />
                   <Text size="xs" text={formatDate(r.recordDate)} style={themed($dimText)} />
                 </View>
-                {r.conditionScore ? <Text text={`Condition: ${r.conditionScore}/9`} size="sm" /> : null}
+                {r.conditionScore ? <Text text={t("animalDetailScreen.weight.condition", { score: r.conditionScore })} size="sm" /> : null}
                 <PhotoGallery photosJson={r.photos} />
                 {r.createdByName ? (
                   <Text
-                    text={`Recorded by ${r.createdByName.split('@')[0]}`}
+                    text={t("animalDetailScreen.weight.recordedBy", { name: r.createdByName.split('@')[0] })}
                     size="xxs"
                     style={themed($createdByText)}
                   />
@@ -165,13 +167,13 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
       {activeTab === "breeding" && (
         <View style={themed($section)}>
           <Button
-            text="+ Add Breeding Record"
+            text={t("animalDetailScreen.breeding.addButton")}
             preset="filled"
             style={themed($addRecordButton)}
             onPress={() => navigation.navigate("BreedingRecordForm", { animalId })}
           />
           {breedingRecords.length === 0 ? (
-            <Text text="No breeding records yet." style={themed($dimText)} />
+            <Text text={t("animalDetailScreen.breeding.empty")} style={themed($dimText)} />
           ) : (
             breedingRecords.map((r) => (
               <View key={r.id} style={themed($recordCard)}>
@@ -179,14 +181,14 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
                   <Text preset="bold" text={r.method} />
                   <Text size="xs" text={r.outcome} style={themed($dimText)} />
                 </View>
-                <Text text={`Bred: ${formatDate(r.breedingDate)}`} size="sm" />
+                <Text text={t("animalDetailScreen.breeding.bred", { date: formatDate(r.breedingDate) })} size="sm" />
                 {r.expectedCalvingDate ? (
-                  <Text text={`Expected calving: ${formatDate(r.expectedCalvingDate)}`} size="xs" style={themed($dimText)} />
+                  <Text text={t("animalDetailScreen.breeding.expectedCalving", { date: formatDate(r.expectedCalvingDate) })} size="xs" style={themed($dimText)} />
                 ) : null}
                 <PhotoGallery photosJson={r.photos} />
                 {r.createdByName ? (
                   <Text
-                    text={`Recorded by ${r.createdByName.split('@')[0]}`}
+                    text={t("animalDetailScreen.breeding.recordedBy", { name: r.createdByName.split('@')[0] })}
                     size="xxs"
                     style={themed($createdByText)}
                   />

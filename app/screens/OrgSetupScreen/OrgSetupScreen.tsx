@@ -6,6 +6,7 @@ import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { AppStackScreenProps } from "@/navigators"
 import { useDatabase } from "@/context/DatabaseContext"
+import { useAuth } from "@/context/AuthContext"
 import { LivestockType } from "@/db/models/Organization"
 
 const LIVESTOCK_OPTIONS: { type: LivestockType; label: string; icon: string }[] = [
@@ -23,6 +24,7 @@ interface OrgSetupScreenProps extends AppStackScreenProps<"OrgSetup"> {}
 export function OrgSetupScreen({ navigation }: OrgSetupScreenProps) {
   const { themed } = useAppTheme()
   const { createOrganization } = useDatabase()
+  const { user } = useAuth()
 
   const [farmName, setFarmName] = useState("")
   const [location, setLocation] = useState("")
@@ -62,6 +64,9 @@ export function OrgSetupScreen({ navigation }: OrgSetupScreenProps) {
         name: farmName.trim(),
         livestockTypes: selectedTypes,
         location: location.trim() || undefined,
+        userIdForAdmin: user?.id,
+        userEmailForAdmin: user?.email,
+        userDisplayName: user?.user_metadata?.display_name || user?.user_metadata?.full_name || null,
       })
 
       // Navigate to main app

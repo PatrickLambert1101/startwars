@@ -20,7 +20,7 @@ const LANGUAGES = [
 export function AuthScreen() {
   const { themed } = useAppTheme()
   const { authEmail, setAuthEmail, signInWithOTP, verifyOTP, validationError } = useAuth()
-  const { i18n } = useTranslation()
+  const { i18n, t } = useTranslation()
   const [isSending, setIsSending] = useState(false)
   const [codeSent, setCodeSent] = useState(false)
   const [code, setCode] = useState("")
@@ -98,27 +98,27 @@ export function AuthScreen() {
               resizeMode="contain"
             />
             <Text preset="heading" style={themed($title)}>
-              {DEV_SKIP_AUTH ? "Dev Mode: Auto-Signing In..." : "Enter Code"}
+              {DEV_SKIP_AUTH ? "Dev Mode: Auto-Signing In..." : t("authScreen.enterCode")}
             </Text>
             <Text style={themed($subtitle)}>
               {DEV_SKIP_AUTH
                 ? "Authentication bypassed for development"
-                : "Check your email for the 7-digit code"
+                : t("authScreen.checkEmail")
               }
             </Text>
           </View>
 
           <View style={themed($form)}>
-            <Text style={themed($formTitle)}>Sent to {authEmail}</Text>
+            <Text style={themed($formTitle)}>{t("authScreen.sentTo")} {authEmail}</Text>
 
             <TextField
-              label="7-Digit Code"
+              label={t("authScreen.codeLabel")}
               value={code}
               onChangeText={(text) => {
                 setCode(text.replace(/[^0-9]/g, ""))
                 setError("")
               }}
-              placeholder="0000000"
+              placeholder={t("authScreen.codePlaceholder")}
               keyboardType="number-pad"
               maxLength={7}
               helper={error}
@@ -129,7 +129,7 @@ export function AuthScreen() {
             />
 
             <Button
-              text={isVerifying ? "Verifying..." : "Verify Code"}
+              text={isVerifying ? t("authScreen.verifying") : t("authScreen.verifyCode")}
               preset="filled"
               onPress={handleVerifyCode}
               disabled={isVerifying || code.length !== 7}
@@ -137,7 +137,7 @@ export function AuthScreen() {
             />
 
             <Button
-              text="← Back"
+              text={`← ${t("common.back")}`}
               preset="default"
               onPress={() => {
                 setCodeSent(false)
@@ -148,12 +148,12 @@ export function AuthScreen() {
             />
 
             <Text style={themed($helpText)}>
-              Didn't receive the code?{" "}
+              {t("authScreen.didntReceive")}{" "}
               <Text
                 style={themed($linkText)}
                 onPress={handleSendCode}
               >
-                Resend
+                {t("authScreen.resend")}
               </Text>
             </Text>
           </View>
@@ -207,9 +207,9 @@ export function AuthScreen() {
             style={themed($logoImage)}
             resizeMode="contain"
           />
-          <Text preset="heading" style={themed($title)}>HerdTrackr</Text>
+          <Text preset="heading" style={themed($title)}>{t("authScreen.title")}</Text>
           <Text style={themed($subtitle)}>
-            Manage your livestock with ease
+            {t("authScreen.subtitle")}
           </Text>
         </View>
 
@@ -219,22 +219,22 @@ export function AuthScreen() {
               <Text style={themed($devBannerText)}>🚧 DEV MODE - Auth Bypassed</Text>
             </View>
           )}
-          <Text style={themed($formTitle)}>Sign in with your email</Text>
+          <Text style={themed($formTitle)}>{t("authScreen.formTitle")}</Text>
           <Text style={themed($formSubtitle)}>
             {DEV_SKIP_AUTH
               ? "Enter any email - you'll be auto-signed in (no OTP needed)"
-              : "We'll send you a 7-digit code - no password needed!"
+              : t("authScreen.formSubtitle")
             }
           </Text>
 
           <TextField
-            label="Email Address"
+            label={t("authScreen.emailLabel")}
             value={authEmail}
             onChangeText={(text) => {
               setAuthEmail(text)
               setError("")
             }}
-            placeholder="farmer@example.com"
+            placeholder={t("authScreen.emailPlaceholder")}
             keyboardType="email-address"
             autoCapitalize="none"
             autoComplete="email"
@@ -246,7 +246,7 @@ export function AuthScreen() {
           />
 
           <Button
-            text={isSending ? "Sending..." : "Send Code"}
+            text={isSending ? t("authScreen.sending") : t("authScreen.sendCode")}
             preset="filled"
             onPress={handleSendCode}
             disabled={isSending || !!validationError}
@@ -254,28 +254,28 @@ export function AuthScreen() {
           />
 
           <View style={themed($benefitsContainer)}>
-            <Text style={themed($benefitsTitle)}>What you can do:</Text>
+            <Text style={themed($benefitsTitle)}>{t("authScreen.benefits.title")}</Text>
             <View style={themed($benefitRow)}>
               <MaterialCommunityIcons name="cellphone" size={20} color="#4A8C3F" />
-              <Text style={themed($benefitText)}>Track animals, health & breeding</Text>
+              <Text style={themed($benefitText)}>{t("authScreen.benefits.animals")}</Text>
             </View>
             <View style={themed($benefitRow)}>
               <MaterialCommunityIcons name="grass" size={20} color="#4A8C3F" />
-              <Text style={themed($benefitText)}>Manage pastures & rotations</Text>
+              <Text style={themed($benefitText)}>{t("authScreen.benefits.pastures")}</Text>
             </View>
             <View style={themed($benefitRow)}>
               <MaterialCommunityIcons name="account-multiple" size={20} color="#4A8C3F" />
-              <Text style={themed($benefitText)}>Invite your farm workers</Text>
+              <Text style={themed($benefitText)}>{t("authScreen.benefits.team")}</Text>
             </View>
             <View style={themed($benefitRow)}>
               <MaterialCommunityIcons name="cloud-sync" size={20} color="#4A8C3F" />
-              <Text style={themed($benefitText)}>Sync across all devices</Text>
+              <Text style={themed($benefitText)}>{t("authScreen.benefits.sync")}</Text>
             </View>
           </View>
         </View>
 
         <Text style={themed($footerText)}>
-          By continuing, you agree to our Terms of Service
+          {t("authScreen.termsNotice")}
         </Text>
       </View>
     </Screen>

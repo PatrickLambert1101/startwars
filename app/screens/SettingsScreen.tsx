@@ -29,9 +29,9 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
   const { themed, themeContext, setThemeContextOverride } = useAppTheme()
   const { logout, user } = useAuth()
   const { currentOrg } = useDatabase()
-  const { isPro, plan, isLoading } = useSubscription()
+  const { plan, isPremium, isLoading } = useSubscription()
   const { setOutputPower, isInitialized, initialize, hasRfidHardware } = useRfidReader()
-  const { i18n } = useTranslation()
+  const { i18n, t } = useTranslation()
 
   const [readerPower, setReaderPower] = useState(POWER_DEFAULT)
   const [powerSaved, setPowerSaved] = useState(false)
@@ -72,27 +72,27 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
 
   const handleResetDatabase = useCallback(async () => {
     Alert.alert(
-      "Reset Local Database",
-      "This will delete ALL local data including your organization, animals, and records. This cannot be undone!\n\nOnly do this if you're starting fresh after wiping Supabase.",
+      t("settingsScreen.dangerZone.alerts.confirmTitle"),
+      t("settingsScreen.dangerZone.alerts.confirmMessage"),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "WIPE EVERYTHING",
+          text: t("settingsScreen.dangerZone.alerts.wipeButton"),
           style: "destructive",
           onPress: async () => {
             try {
               await database.write(async () => {
                 await database.unsafeResetDatabase()
               })
-              Alert.alert("Success", "Local database reset! Please restart the app.")
+              Alert.alert(t("settingsScreen.dangerZone.alerts.successTitle"), t("settingsScreen.dangerZone.alerts.successMessage"))
             } catch (error) {
-              Alert.alert("Error", `Failed to reset database: ${error}`)
+              Alert.alert(t("settingsScreen.dangerZone.alerts.errorTitle"), t("settingsScreen.dangerZone.alerts.errorMessage", { error }))
             }
           },
         },
       ],
     )
-  }, [])
+  }, [t])
 
   const powerPercent = Math.round(((readerPower - POWER_MIN) / (POWER_MAX - POWER_MIN)) * 100)
 
@@ -114,18 +114,18 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
 
   return (
     <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
-      <Text preset="heading" text="Settings" style={themed($heading)} />
+      <Text preset="heading" text={t("settingsScreen.title")} style={themed($heading)} />
 
       <View style={themed($section)}>
-        <Text preset="formLabel" text="APPEARANCE" style={themed($sectionLabel)} />
+        <Text preset="formLabel" text={t("settingsScreen.sections.appearance")} style={themed($sectionLabel)} />
         <View style={themed($themeCard)}>
           <View style={themed($themeRow)}>
             <View style={themed($themeContent)}>
               <Icon icon={isDarkMode ? "view" : "hidden"} size={24} color={themed($themeIcon).color} />
               <View>
-                <Text style={themed($themeTitle)}>Dark Mode</Text>
+                <Text style={themed($themeTitle)}>{t("settingsScreen.appearance.darkMode")}</Text>
                 <Text style={themed($themeSubtext)}>
-                  {isDarkMode ? "Dark theme enabled" : "Light theme enabled"}
+                  {isDarkMode ? t("settingsScreen.appearance.darkThemeEnabled") : t("settingsScreen.appearance.lightThemeEnabled")}
                 </Text>
               </View>
             </View>
@@ -140,10 +140,10 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
       </View>
 
       <View style={themed($section)}>
-        <Text preset="formLabel" text="LANGUAGE" style={themed($sectionLabel)} />
+        <Text preset="formLabel" text={t("settingsScreen.sections.language")} style={themed($sectionLabel)} />
         <View style={themed($languageCard)}>
-          <Text style={themed($languageTitle)}>App Language</Text>
-          <Text style={themed($languageSubtext)}>Current: {currentLanguage.nativeName}</Text>
+          <Text style={themed($languageTitle)}>{t("settingsScreen.language.appLanguage")}</Text>
+          <Text style={themed($languageSubtext)}>{t("settingsScreen.language.current", { language: currentLanguage.nativeName })}</Text>
           <View style={themed($languageGrid)}>
             {LANGUAGES.map((lang) => {
               const isActive = lang.code === currentLanguage.code
@@ -167,37 +167,57 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
       </View>
 
       <View style={themed($section)}>
-        <Text preset="formLabel" text="ACCOUNT" style={themed($sectionLabel)} />
-        <ListItem text={user?.email || "Not signed in"} bottomSeparator />
-        <ListItem text={`Org: ${currentOrg?.name || "None"}`} bottomSeparator />
+        <Text preset="formLabel" text={t("settingsScreen.sections.account")} style={themed($sectionLabel)} />
+        <ListItem text={user?.email || t("settingsScreen.account.notSignedIn")} bottomSeparator />
+        <ListItem text={t("settingsScreen.account.org", { orgName: currentOrg?.name || t("settingsScreen.account.noOrg") })} bottomSeparator />
       </View>
 
       <View style={themed($section)}>
-        <Text preset="formLabel" text="SUBSCRIPTION" style={themed($sectionLabel)} />
+        <Text preset="formLabel" text={t("settingsScreen.sections.subscription")} style={themed($sectionLabel)} />
         <View style={themed($subscriptionCard)}>
           <View style={themed($subscriptionHeader)}>
             <View>
               <Text style={themed($subscriptionPlan)}>
-                {isPro ? "HerdTrackr Pro" : "Free Plan"}
+                {plan === "commercial" ? t("settingsScreen.subscription.plans.commercial") : plan === "farm" ? t("settingsScreen.subscription.plans.farm") : t("settingsScreen.subscription.plans.starter")}
               </Text>
               <Text style={themed($subscriptionStatus)}>
-                {isLoading ? "Loading..." : isPro ? "Active subscription" : "Limited features"}
+                {isLoading
+                  ? t("settingsScreen.subscription.status.loading")
+                  : plan === "commercial"
+                  ? t("settingsScreen.subscription.status.commercialAccess")
+                  : plan === "farm"
+                  ? t("settingsScreen.subscription.status.farmAccess")
+                  : t("settingsScreen.subscription.status.freeTier")}
               </Text>
             </View>
-            {isPro && (
+            {isPremium && (
               <View style={themed($proBadge)}>
-                <Text style={themed($proBadgeText)}>PRO</Text>
+                <Text style={themed($proBadgeText)}>
+                  {plan === "commercial" ? t("settingsScreen.subscription.badges.com") : t("settingsScreen.subscription.badges.farm")}
+                </Text>
               </View>
             )}
           </View>
 
-          {isPro ? (
+          {plan === "commercial" ? (
             <>
               <Text style={themed($subscriptionDescription)}>
-                You have access to all premium features including pasture management, advanced health tracking, and unlimited animals.
+                {t("settingsScreen.subscription.descriptions.commercial")}
               </Text>
               <Button
-                text="Manage Subscription"
+                text={t("settingsScreen.subscription.buttons.manageSubscription")}
+                preset="default"
+                onPress={() => navigation.navigate("CustomerCenter")}
+                style={themed($subscriptionButton)}
+              />
+            </>
+          ) : plan === "farm" ? (
+            <>
+              <Text style={themed($subscriptionDescription)}>
+                {t("settingsScreen.subscription.descriptions.farm")}
+              </Text>
+              <Button
+                text={t("settingsScreen.subscription.buttons.manageSubscription")}
                 preset="default"
                 onPress={() => navigation.navigate("CustomerCenter")}
                 style={themed($subscriptionButton)}
@@ -206,10 +226,10 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
           ) : (
             <>
               <Text style={themed($subscriptionDescription)}>
-                Upgrade to Pro to unlock pasture management, advanced health tracking, and unlimited animals.
+                {t("settingsScreen.subscription.descriptions.starter")}
               </Text>
               <Button
-                text="Upgrade to Pro"
+                text={t("settingsScreen.subscription.buttons.viewPlans")}
                 preset="filled"
                 onPress={() => navigation.navigate("Paywall")}
                 style={themed($subscriptionButton)}
@@ -220,15 +240,15 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
       </View>
 
       <View style={themed($section)}>
-        <Text preset="formLabel" text="MANAGEMENT" style={themed($sectionLabel)} />
+        <Text preset="formLabel" text={t("settingsScreen.sections.management")} style={themed($sectionLabel)} />
         <ListItem
-          text="Team"
+          text={t("settingsScreen.management.team")}
           bottomSeparator
           rightIcon="caretRight"
           onPress={() => navigation.navigate("Team")}
         />
         <ListItem
-          text="Treatment Protocols"
+          text={t("settingsScreen.management.treatmentProtocols")}
           bottomSeparator
           rightIcon="caretRight"
           onPress={() => navigation.navigate("TreatmentProtocols")}
@@ -237,15 +257,15 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
 
       {hasRfidHardware && (
         <View style={themed($section)}>
-          <Text preset="formLabel" text="RFID SCANNER" style={themed($sectionLabel)} />
+          <Text preset="formLabel" text={t("settingsScreen.sections.rfidScanner")} style={themed($sectionLabel)} />
 
           <View style={themed($rfidCard)}>
             <View style={themed($rfidStatusRow)}>
               <View style={themed($rfidStatusDot)} />
-              <Text style={themed($rfidStatusText)}>Hand scanner connected</Text>
+              <Text style={themed($rfidStatusText)}>{t("settingsScreen.rfid.connected")}</Text>
             </View>
 
-            <Text style={themed($rfidPowerLabel)}>Reader Power</Text>
+            <Text style={themed($rfidPowerLabel)}>{t("settingsScreen.rfid.readerPower")}</Text>
             <View style={themed($rfidPowerControl)}>
               <Pressable
                 style={themed($rfidPowerButton)}
@@ -275,10 +295,10 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
 
             <View style={themed($rfidPresetRow)}>
               {[
-                { label: "Low", value: 18 },
-                { label: "Med", value: 21 },
-                { label: "High", value: 24 },
-                { label: "Max", value: 27 },
+                { label: t("settingsScreen.rfid.presets.low"), value: 18 },
+                { label: t("settingsScreen.rfid.presets.med"), value: 21 },
+                { label: t("settingsScreen.rfid.presets.high"), value: 24 },
+                { label: t("settingsScreen.rfid.presets.max"), value: 27 },
               ].map((preset) => (
                 <Pressable
                   key={preset.label}
@@ -301,25 +321,25 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
             </View>
 
             {powerSaved && (
-              <Text style={themed($rfidSavedText)}>Power set to {readerPower}</Text>
+              <Text style={themed($rfidSavedText)}>{t("settingsScreen.rfid.powerSaved", { power: readerPower })}</Text>
             )}
 
             <Text style={themed($rfidHint)}>
-              Range: {POWER_MIN} (shortest) to {POWER_MAX} (longest). Higher power drains battery faster.
+              {t("settingsScreen.rfid.rangeHint", { min: POWER_MIN, max: POWER_MAX })}
             </Text>
           </View>
         </View>
       )}
 
       <View style={themed($section)}>
-        <Text preset="formLabel" text="DANGER ZONE" style={themed($dangerLabel)} />
+        <Text preset="formLabel" text={t("settingsScreen.sections.dangerZone")} style={themed($dangerLabel)} />
         <View style={themed($dangerCard)}>
-          <Text style={themed($dangerTitle)}>Reset Local Database</Text>
+          <Text style={themed($dangerTitle)}>{t("settingsScreen.dangerZone.resetTitle")}</Text>
           <Text style={themed($dangerText)}>
-            Wipes ALL local data. Only use if starting fresh after wiping Supabase.
+            {t("settingsScreen.dangerZone.resetDescription")}
           </Text>
           <Button
-            text="Wipe Local Database"
+            text={t("settingsScreen.dangerZone.resetButton")}
             preset="filled"
             onPress={handleResetDatabase}
             style={themed($dangerButton)}
@@ -327,9 +347,9 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
         </View>
       </View>
 
-      <Button text="Sign Out" preset="default" onPress={handleLogout} style={themed($logoutButton)} />
+      <Button text={t("settingsScreen.signOut")} preset="default" onPress={handleLogout} style={themed($logoutButton)} />
 
-      <Text preset="formHelper" text="HerdTrackr v0.1.0" style={themed($version)} />
+      <Text preset="formHelper" text={t("settingsScreen.version")} style={themed($version)} />
     </Screen>
   )
 }

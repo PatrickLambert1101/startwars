@@ -12,9 +12,11 @@ import { useAuth } from "@/context/AuthContext"
 import { uploadPhoto } from "@/services/photoStorage"
 import type { PhotoWithMetadata } from "@/types/Photo"
 import { serializePhotos } from "@/types/Photo"
+import { useTranslation } from "@/i18n"
 
 export const WeightRecordFormScreen: FC<AppStackScreenProps<"WeightRecordForm">> = ({ route, navigation }) => {
   const { themed } = useAppTheme()
+  const { t } = useTranslation()
   const { animalId } = route.params
   const { createWeightRecord } = useWeightRecordActions()
   const { currentOrg } = useDatabase()
@@ -29,18 +31,27 @@ export const WeightRecordFormScreen: FC<AppStackScreenProps<"WeightRecordForm">>
   const handleSave = useCallback(async () => {
     const kg = parseFloat(weight)
     if (isNaN(kg) || kg <= 0) {
-      Alert.alert("Required", "Enter a valid weight in kg")
+      Alert.alert(
+        t("weightRecordFormScreen.alerts.invalidWeight.title"),
+        t("weightRecordFormScreen.alerts.invalidWeight.message"),
+      )
       return
     }
 
     const cs = conditionScore ? parseInt(conditionScore, 10) : undefined
     if (cs !== undefined && (isNaN(cs) || cs < 1 || cs > 9)) {
-      Alert.alert("Invalid", "Condition score must be 1-9")
+      Alert.alert(
+        t("weightRecordFormScreen.alerts.invalidConditionScore.title"),
+        t("weightRecordFormScreen.alerts.invalidConditionScore.message"),
+      )
       return
     }
 
     if (!currentOrg) {
-      Alert.alert("Error", "No organization selected")
+      Alert.alert(
+        t("weightRecordFormScreen.alerts.noOrganization.title"),
+        t("weightRecordFormScreen.alerts.noOrganization.message"),
+      )
       return
     }
 
@@ -63,10 +74,13 @@ export const WeightRecordFormScreen: FC<AppStackScreenProps<"WeightRecordForm">>
       navigation.goBack()
     } catch (error) {
       console.error("Failed to save weight record:", error)
-      Alert.alert("Error", "Failed to save weight record")
+      Alert.alert(
+        t("weightRecordFormScreen.alerts.saveError.title"),
+        t("weightRecordFormScreen.alerts.saveError.message"),
+      )
     }
     setIsSubmitting(false)
-  }, [animalId, weight, conditionScore, notes, photos, currentOrg, createWeightRecord, navigation])
+  }, [animalId, weight, conditionScore, notes, photos, currentOrg, createWeightRecord, navigation, t])
 
   const uploadPhotosInBackground = async (recordId: string, photosToUpload: PhotoWithMetadata[]) => {
     try {
@@ -109,32 +123,32 @@ export const WeightRecordFormScreen: FC<AppStackScreenProps<"WeightRecordForm">>
   return (
     <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
       <View style={themed($headerRow)}>
-        <Button text="Cancel" preset="default" onPress={() => navigation.goBack()} />
-        <Text preset="heading" text="Weight Record" />
+        <Button text={t("weightRecordFormScreen.cancelButton")} preset="default" onPress={() => navigation.goBack()} />
+        <Text preset="heading" text={t("weightRecordFormScreen.title")} />
         <View style={{ width: 60 }} />
       </View>
 
       <View style={themed($form)}>
         <TextField
-          label="Weight (kg) *"
+          label={t("weightRecordFormScreen.fields.weight.label")}
           value={weight}
           onChangeText={setWeight}
-          placeholder="e.g. 450"
+          placeholder={t("weightRecordFormScreen.fields.weight.placeholder")}
           keyboardType="numeric"
           autoFocus
         />
         <TextField
-          label="Condition Score (1-9)"
+          label={t("weightRecordFormScreen.fields.conditionScore.label")}
           value={conditionScore}
           onChangeText={setConditionScore}
-          placeholder="Optional, e.g. 6"
+          placeholder={t("weightRecordFormScreen.fields.conditionScore.placeholder")}
           keyboardType="numeric"
         />
         <TextField
-          label="Notes"
+          label={t("weightRecordFormScreen.fields.notes.label")}
           value={notes}
           onChangeText={setNotes}
-          placeholder="Additional notes..."
+          placeholder={t("weightRecordFormScreen.fields.notes.placeholder")}
           multiline
         />
 
@@ -142,11 +156,11 @@ export const WeightRecordFormScreen: FC<AppStackScreenProps<"WeightRecordForm">>
           photos={photos}
           onPhotosChange={setPhotos}
           maxPhotos={3}
-          label="Photos (Optional)"
+          label={t("weightRecordFormScreen.fields.photos.label")}
         />
 
         <Button
-          text={isSubmitting ? "Saving..." : "Save Record"}
+          text={isSubmitting ? t("weightRecordFormScreen.buttons.saving") : t("weightRecordFormScreen.buttons.save")}
           preset="reversed"
           style={themed($saveButton)}
           onPress={handleSave}

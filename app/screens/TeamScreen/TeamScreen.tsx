@@ -8,14 +8,20 @@ import { AppStackScreenProps } from "@/navigators"
 import { useTeam, useTeamActions, TeamMember, PendingInvite } from "@/hooks/useTeam"
 import { formatDate } from "@/utils/formatDate"
 import { useAuth } from "@/context/AuthContext"
+import { useTranslation } from "react-i18next"
+import { useSync } from "@/hooks/useSync"
+import { useDatabase } from "@/context/DatabaseContext"
 
 interface TeamScreenProps extends AppStackScreenProps<"Team"> {}
 
 export function TeamScreen({ navigation }: TeamScreenProps) {
+  const { t } = useTranslation()
   const { themed, theme: { colors } } = useAppTheme()
-  const { members, invites, isLoading, refetch } = useTeam()
+  const { members, invites, isLoading, needsSync, refetch } = useTeam()
   const { inviteMember, cancelInvite, updateMemberRole, removeMember } = useTeamActions()
   const { user } = useAuth()
+  const { sync, status: syncStatus, error: syncError } = useSync()
+  const { currentOrg } = useDatabase()
 
   const [showInviteForm, setShowInviteForm] = useState(false)
   const [inviteEmail, setInviteEmail] = useState("")
@@ -29,12 +35,12 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
 
   const handleInvite = async () => {
     if (!inviteEmail.trim()) {
-      setInviteError("Email is required")
+      setInviteError(t("teamScreen.inviteForm.errors.emailRequired"))
       return
     }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail)) {
-      setInviteError("Please enter a valid email")
+      setInviteError(t("teamScreen.inviteForm.errors.invalidEmail"))
       return
     }
 
@@ -45,15 +51,15 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
 
     if (result.success) {
       Alert.alert(
-        "Invite Sent!",
-        `We've sent an invitation to ${inviteEmail}.\n\nInvite code: ${result.inviteCode}\n\nThey can use this code or click the link in the email.`,
-        [{ text: "OK" }]
+        t("teamScreen.alerts.inviteSent.title"),
+        t("teamScreen.alerts.inviteSent.message", { email: inviteEmail, code: result.inviteCode }),
+        [{ text: t("teamScreen.alerts.inviteSent.ok") }]
       )
       setInviteEmail("")
       setShowInviteForm(false)
       refetch()
     } else {
-      setInviteError(result.error || "Failed to send invite")
+      setInviteError(result.error || t("teamScreen.inviteForm.errors.failedToSend"))
     }
 
     setIsInviting(false)
@@ -61,19 +67,22 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
 
   const handleCancelInvite = async (invite: PendingInvite) => {
     Alert.alert(
-      "Cancel Invite?",
-      `Cancel the invitation for ${invite.email}?`,
+      t("teamScreen.alerts.cancelInvite.title"),
+      t("teamScreen.alerts.cancelInvite.message", { email: invite.email }),
       [
-        { text: "No", style: "cancel" },
+        { text: t("teamScreen.alerts.cancelInvite.no"), style: "cancel" },
         {
-          text: "Yes, Cancel",
+          text: t("teamScreen.alerts.cancelInvite.yes"),
           style: "destructive",
           onPress: async () => {
             const result = await cancelInvite(invite.id)
             if (result.success) {
               refetch()
             } else {
-              Alert.alert("Error", result.error || "Failed to cancel invite")
+              Alert.alert(
+                t("teamScreen.alerts.error.title"),
+                result.error || t("teamScreen.alerts.error.cancelInviteFailed")
+              )
             }
           },
         },
@@ -83,20 +92,27 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
 
   const handleChangeRole = async (member: TeamMember) => {
     const newRole = member.role === "admin" ? "worker" : "admin"
+    const roleText = newRole === "admin" ? t("teamScreen.member.roleAdmin") : t("teamScreen.member.roleWorker")
 
     Alert.alert(
-      "Change Role?",
-      `Change ${member.userDisplayName || member.userEmail} to ${newRole === "admin" ? "Admin" : "Worker"}?`,
+      t("teamScreen.alerts.changeRole.title"),
+      t("teamScreen.alerts.changeRole.message", {
+        name: member.userDisplayName || member.userEmail,
+        role: roleText
+      }),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("teamScreen.alerts.changeRole.cancel"), style: "cancel" },
         {
-          text: "Change",
+          text: t("teamScreen.alerts.changeRole.change"),
           onPress: async () => {
             const result = await updateMemberRole(member.id, newRole)
             if (result.success) {
               refetch()
             } else {
-              Alert.alert("Error", result.error || "Failed to update role")
+              Alert.alert(
+                t("teamScreen.alerts.error.title"),
+                result.error || t("teamScreen.alerts.error.updateRoleFailed")
+              )
             }
           },
         },
@@ -106,19 +122,22 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
 
   const handleRemoveMember = async (member: TeamMember) => {
     Alert.alert(
-      "Remove Team Member?",
-      `Remove ${member.userDisplayName || member.userEmail} from the team?\n\nThey will lose access to this farm.`,
+      t("teamScreen.alerts.removeMember.title"),
+      t("teamScreen.alerts.removeMember.message", { name: member.userDisplayName || member.userEmail }),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("teamScreen.alerts.removeMember.cancel"), style: "cancel" },
         {
-          text: "Remove",
+          text: t("teamScreen.alerts.removeMember.remove"),
           style: "destructive",
           onPress: async () => {
             const result = await removeMember(member.id)
             if (result.success) {
               refetch()
             } else {
-              Alert.alert("Error", result.error || "Failed to remove member")
+              Alert.alert(
+                t("teamScreen.alerts.error.title"),
+                result.error || t("teamScreen.alerts.error.removeMemberFailed")
+              )
             }
           },
         },
@@ -135,13 +154,15 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
           <View style={themed($memberHeader)}>
             <Text style={themed($memberName)}>
               {member.userDisplayName || member.userEmail}
-              {isCurrentUser && <Text style={themed($youLabel)}> (You)</Text>}
+              {isCurrentUser && <Text style={themed($youLabel)}>{t("teamScreen.member.you")}</Text>}
             </Text>
             <View style={[
               themed($roleBadge),
               member.role === "admin" ? themed($roleBadgeAdmin) : themed($roleBadgeWorker)
             ]}>
-              <Text style={themed($roleBadgeText)}>{member.role === "admin" ? "Admin" : "Worker"}</Text>
+              <Text style={themed($roleBadgeText)}>
+                {member.role === "admin" ? t("teamScreen.member.roleAdmin") : t("teamScreen.member.roleWorker")}
+              </Text>
             </View>
           </View>
           {member.userDisplayName && (
@@ -149,7 +170,7 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
           )}
           {member.joinedAt && (
             <Text style={themed($memberJoined)}>
-              Joined {formatDate(member.joinedAt, "PP")}
+              {t("teamScreen.member.joined", { date: formatDate(member.joinedAt, "PP") })}
             </Text>
           )}
         </View>
@@ -185,11 +206,13 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
             themed($roleBadge),
             invite.role === "admin" ? themed($roleBadgeAdmin) : themed($roleBadgeWorker)
           ]}>
-            <Text style={themed($roleBadgeText)}>{invite.role === "admin" ? "Admin" : "Worker"}</Text>
+            <Text style={themed($roleBadgeText)}>
+              {invite.role === "admin" ? t("teamScreen.member.roleAdmin") : t("teamScreen.member.roleWorker")}
+            </Text>
           </View>
           {invite.expiresAt && (
             <Text style={themed($inviteExpires)}>
-              Code: {invite.inviteCode} • Expires {formatDate(invite.expiresAt, "PP")}
+              {t("teamScreen.invite.code", { code: invite.inviteCode })} • {t("teamScreen.invite.expires", { date: formatDate(invite.expiresAt, "PP") })}
             </Text>
           )}
         </View>
@@ -200,7 +223,7 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
           onPress={() => handleCancelInvite(invite)}
           style={themed($cancelButton)}
         >
-          <Text style={themed($cancelButtonText)}>Cancel</Text>
+          <Text style={themed($cancelButtonText)}>{t("teamScreen.invite.cancelButton")}</Text>
         </Pressable>
       )}
     </View>
@@ -211,7 +234,7 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
       <Pressable onPress={() => navigation.goBack()} style={themed($backButton)}>
         <Icon icon="back" size={24} />
       </Pressable>
-      <Text preset="heading" style={themed($headerTitle)}>Team</Text>
+      <Text preset="heading" style={themed($headerTitle)}>{t("teamScreen.title")}</Text>
     </View>
   )
 
@@ -220,28 +243,102 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
       <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={themed($container)}>
         {renderHeader()}
         <View style={themed($content)}>
-          <Text>Loading...</Text>
+          <Text>{t("teamScreen.loading")}</Text>
+        </View>
+      </Screen>
+    )
+  }
+
+  // Handle manual sync
+  const handleManualSync = async () => {
+    console.log("[Team] Manual sync triggered")
+    const result = await sync()
+    if (result.success) {
+      console.log("[Team] Sync completed successfully")
+      // Wait a bit for data to propagate, then refetch
+      setTimeout(() => refetch(), 1000)
+    } else {
+      console.error("[Team] Sync failed:", result.error)
+      Alert.alert("Sync Failed", result.error || "Unable to sync. Please try again.")
+    }
+  }
+
+  // Show syncing message if organization hasn't synced yet
+  if (needsSync) {
+    const isSyncing = syncStatus === "syncing"
+    const hasSyncError = syncStatus === "error"
+
+    return (
+      <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={themed($container)}>
+        {renderHeader()}
+        <View style={themed($content)}>
+          <View style={themed($syncNotice)}>
+            {isSyncing ? (
+              <>
+                <MaterialCommunityIcons name="cloud-sync" size={48} color={colors.palette.primary500} />
+                <Text style={themed($syncNoticeTitle)}>Syncing Organization...</Text>
+                <Text style={themed($syncNoticeText)}>
+                  Pushing your organization "{currentOrg?.name}" to the cloud. This usually takes just a few seconds.
+                </Text>
+              </>
+            ) : hasSyncError ? (
+              <>
+                <MaterialCommunityIcons name="cloud-alert" size={48} color={colors.error} />
+                <Text style={themed($syncNoticeTitle)}>Sync Error</Text>
+                <Text style={themed($syncNoticeText)}>
+                  {syncError || "Unable to sync organization to the cloud."}
+                </Text>
+                <Text style={themed($syncDebugText)}>
+                  Org: {currentOrg?.name} ({currentOrg?.id})
+                  {"\n"}Remote ID: {currentOrg?.remoteId || "null"}
+                </Text>
+              </>
+            ) : (
+              <>
+                <MaterialCommunityIcons name="cloud-off-outline" size={48} color={colors.palette.accent500} />
+                <Text style={themed($syncNoticeTitle)}>Organization Not Synced</Text>
+                <Text style={themed($syncNoticeText)}>
+                  Your organization "{currentOrg?.name}" needs to be synced to the cloud before you can use team features.
+                </Text>
+              </>
+            )}
+            <Button
+              text={isSyncing ? "Syncing..." : "Sync Now"}
+              preset="filled"
+              onPress={handleManualSync}
+              disabled={isSyncing}
+              style={themed($syncNoticeButton)}
+            />
+          </View>
         </View>
       </Screen>
     )
   }
 
   if (!isAdmin) {
+    const isSyncing = syncStatus === "syncing"
+
     return (
       <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={themed($container)}>
         {renderHeader()}
         <ScrollView style={themed($content)}>
           {hasNoMembership ? (
             <View style={themed($syncNotice)}>
-              <Icon icon="view" size={48} color={colors.palette.accent500} />
-              <Text style={themed($syncNoticeTitle)}>Sync Required</Text>
+              <MaterialCommunityIcons name="account-off-outline" size={48} color={colors.palette.accent500} />
+              <Text style={themed($syncNoticeTitle)}>No Team Access</Text>
               <Text style={themed($syncNoticeText)}>
-                Your farm needs to sync with the server to enable team management.{"\n\n"}
-                Go to Settings and tap "Sync Now" to become an admin and start inviting team members.
+                You don't appear to be a member of this organization. Try syncing to refresh your team membership from the cloud.
               </Text>
               <Button
-                text="Go to Settings"
+                text={isSyncing ? "Syncing..." : "Sync Now"}
                 preset="filled"
+                onPress={handleManualSync}
+                disabled={isSyncing}
+                style={themed($syncNoticeButton)}
+              />
+              <Button
+                text="Go to Settings"
+                preset="default"
                 onPress={() => navigation.navigate("Main", { screen: "Settings" })}
                 style={themed($syncNoticeButton)}
               />
@@ -249,7 +346,9 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
           ) : (
             <>
               <View style={themed($section)}>
-                <Text style={themed($sectionTitle)}>Team Members ({members.length})</Text>
+                <Text style={themed($sectionTitle)}>
+                  {t("teamScreen.sections.teamMembers", { count: members.length })}
+                </Text>
                 <FlatList
                   data={members}
                   renderItem={renderMember}
@@ -258,7 +357,7 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
                 />
               </View>
               <Text style={themed($noAccessText)}>
-                Only admins can invite and manage team members.
+                {t("teamScreen.noAccess.text")}
               </Text>
             </>
           )}
@@ -274,16 +373,16 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
         {/* Invite Form */}
         {showInviteForm ? (
           <View style={themed($inviteForm)}>
-            <Text style={themed($formTitle)}>Invite Team Member</Text>
+            <Text style={themed($formTitle)}>{t("teamScreen.inviteForm.title")}</Text>
 
             <TextField
-              label="Email Address"
+              label={t("teamScreen.inviteForm.emailLabel")}
               value={inviteEmail}
               onChangeText={(text) => {
                 setInviteEmail(text)
                 setInviteError("")
               }}
-              placeholder="worker@example.com"
+              placeholder={t("teamScreen.inviteForm.emailPlaceholder")}
               keyboardType="email-address"
               autoCapitalize="none"
               autoComplete="email"
@@ -294,14 +393,14 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
             />
 
             <View style={themed($roleSelector)}>
-              <Text style={themed($roleSelectorLabel)}>Role</Text>
+              <Text style={themed($roleSelectorLabel)}>{t("teamScreen.inviteForm.roleLabel")}</Text>
               <View style={themed($roleOptions)}>
                 <Pressable
                   onPress={() => setInviteRole("worker")}
                   style={[themed($roleOption), inviteRole === "worker" && themed($roleOptionSelected)]}
                 >
                   <Text style={[themed($roleOptionText), inviteRole === "worker" && themed($roleOptionTextSelected)]}>
-                    Worker
+                    {t("teamScreen.inviteForm.roleWorker")}
                   </Text>
                 </Pressable>
                 <Pressable
@@ -309,7 +408,7 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
                   style={[themed($roleOption), inviteRole === "admin" && themed($roleOptionSelected)]}
                 >
                   <Text style={[themed($roleOptionText), inviteRole === "admin" && themed($roleOptionTextSelected)]}>
-                    Admin
+                    {t("teamScreen.inviteForm.roleAdmin")}
                   </Text>
                 </Pressable>
               </View>
@@ -317,7 +416,7 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
 
             <View style={themed($formActions)}>
               <Button
-                text="Cancel"
+                text={t("teamScreen.inviteForm.cancelButton")}
                 preset="default"
                 onPress={() => {
                   setShowInviteForm(false)
@@ -327,7 +426,7 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
                 style={themed($formActionButton)}
               />
               <Button
-                text={isInviting ? "Sending..." : "Send Invite"}
+                text={isInviting ? t("teamScreen.inviteForm.sending") : t("teamScreen.inviteForm.sendButton")}
                 preset="filled"
                 onPress={handleInvite}
                 disabled={isInviting}
@@ -337,7 +436,7 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
           </View>
         ) : (
           <Button
-            text="+ Invite Team Member"
+            text={t("teamScreen.inviteButton")}
             preset="filled"
             onPress={() => setShowInviteForm(true)}
             style={themed($inviteButton)}
@@ -347,7 +446,9 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
         {/* Pending Invites */}
         {invites.length > 0 && (
           <View style={themed($section)}>
-            <Text style={themed($sectionTitle)}>Pending Invites ({invites.length})</Text>
+            <Text style={themed($sectionTitle)}>
+              {t("teamScreen.sections.pendingInvites", { count: invites.length })}
+            </Text>
             <FlatList
               data={invites}
               renderItem={renderInvite}
@@ -359,7 +460,9 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
 
         {/* Team Members */}
         <View style={themed($section)}>
-          <Text style={themed($sectionTitle)}>Team Members ({members.length})</Text>
+          <Text style={themed($sectionTitle)}>
+            {t("teamScreen.sections.teamMembers", { count: members.length })}
+          </Text>
           <FlatList
             data={members}
             renderItem={renderMember}
@@ -664,4 +767,15 @@ const $syncNoticeText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
 
 const $syncNoticeButton: ThemedStyle<ViewStyle> = () => ({
   minWidth: 200,
+})
+
+const $syncDebugText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  fontSize: 11,
+  color: colors.textDim,
+  fontFamily: "monospace",
+  marginTop: spacing.md,
+  textAlign: "center",
+  backgroundColor: colors.palette.neutral100,
+  padding: spacing.sm,
+  borderRadius: 8,
 })

@@ -32,7 +32,7 @@ const PRICING_TIERS = [
   {
     id: "farm",
     name: "Farm",
-    price: "R245",
+    price: "R249,99",
     period: "/month",
     description: "Most popular for growing farms",
     features: [
@@ -74,15 +74,12 @@ const PRICING_TIERS = [
 
 export const UpgradeScreen: FC<AppStackScreenProps<"Upgrade">> = ({ navigation }) => {
   const { themed, theme: { colors } } = useAppTheme()
-  const { upgradeToPro, currentPlan } = useSubscription()
+  const { plan } = useSubscription()
 
   const handleUpgrade = (tierId: string) => {
-    if (tierId === "farm") {
-      upgradeToPro()
-      navigation.goBack()
-    } else if (tierId === "commercial") {
-      // Open email to contact sales
-      Linking.openURL("mailto:info@herdtrackr.co.za?subject=Commercial Plan Inquiry")
+    if (tierId === "farm" || tierId === "commercial") {
+      // Navigate to paywall screen for RevenueCat purchase flow
+      navigation.navigate("Paywall")
     }
   }
 
@@ -106,7 +103,7 @@ export const UpgradeScreen: FC<AppStackScreenProps<"Upgrade">> = ({ navigation }
       <ScrollView style={themed($scrollView)} showsVerticalScrollIndicator={false}>
         <View style={themed($pricingGrid)}>
           {PRICING_TIERS.map((tier) => {
-            const isCurrentPlan = tier.id === currentPlan
+            const isCurrentPlan = tier.id === plan
 
             return (
               <View
@@ -288,18 +285,24 @@ const $priceSection: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   alignItems: "baseline",
   marginBottom: spacing.md,
+  flexWrap: "wrap",
+  maxWidth: "100%",
 })
 
 const $price: ThemedStyle<TextStyle> = ({ colors }) => ({
-  fontSize: 40,
+  fontSize: 28,
   fontWeight: "800",
   color: colors.text,
+  flexShrink: 1,
+  maxWidth: "100%",
+  lineHeight: 36,
 })
 
 const $period: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 16,
   color: colors.textDim,
   marginLeft: 4,
+  flexShrink: 0,
 })
 
 const $featuresContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({

@@ -1,76 +1,114 @@
 import React, { useState } from "react"
-import { View, ViewStyle, Alert, Platform } from "react-native"
+import { View, ViewStyle, Alert, ScrollView, Pressable, TextStyle } from "react-native"
 import { AppStackScreenProps } from "@/navigators"
 import { Screen, Button, Text } from "@/components"
+import { CheckBadge } from "@/components/icons"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { useSubscription } from "@/context/SubscriptionContext"
-import { RevenueCatUI, PAYWALL_RESULT } from "react-native-purchases-ui"
 
 interface PaywallScreenProps extends AppStackScreenProps<"Paywall"> {}
 
+// Define our pricing tiers - monthly only
+const PRICING_TIERS = [
+  {
+    id: "monthly",
+    rcIdentifier: "farm_monthly", // RevenueCat product identifier
+    name: "Farm Plan",
+    price: "R249,99",
+    period: "/month",
+    description: "Perfect for growing farms",
+    features: [
+      "Up to 1,000 animals",
+      "Up to 15 pastures",
+      "Full health tracking",
+      "Breeding records",
+      "Reports & CSV export",
+      "Up to 5 users",
+      "Photo attachments",
+      "Priority support",
+    ],
+  },
+  {
+    id: "yearly",
+    rcIdentifier: "commercial_yearly", // RevenueCat product identifier
+    name: "Commercial Plan",
+    price: "R999",
+    period: "/month",
+    description: "For large commercial operations (billed annually)",
+    features: [
+      "Unlimited animals",
+      "Unlimited pastures",
+      "Advanced analytics",
+      "Treatment protocols",
+      "Unlimited users",
+      "Custom reports",
+      "API access",
+      "Dedicated support",
+    ],
+  },
+]
+
 export function PaywallScreen(props: PaywallScreenProps) {
   const { navigation } = props
-  const { themed } = useAppTheme()
-  const { packages, isPro, restorePurchases } = useSubscription()
-  const [isRestoring, setIsRestoring] = useState(false)
+  const { themed, theme } = useAppTheme()
+  const { packages, isPremium, plan, purchasePackage, restorePurchases } = useSubscription()
+  const [isLoading, setIsLoading] = useState(false)
 
-  // Handle paywall result
-  const handlePaywallResult = async (result: any) => {
-    console.log("[Paywall] Result:", result)
+  const handlePurchase = async (rcIdentifier: string) => {
+    // Find package by RevenueCat identifier
+    const pkg = packages.find(p =>
+      p.identifier.toLowerCase().includes(rcIdentifier.toLowerCase()) ||
+      p.product.identifier.toLowerCase().includes(rcIdentifier.toLowerCase())
+    )
 
-    switch (result) {
-      case PAYWALL_RESULT.PURCHASED:
-      case PAYWALL_RESULT.RESTORED:
-        // Success! User is now subscribed
-        Alert.alert(
-          "Welcome to Pro!",
-          "You now have access to all premium features.",
-          [{ text: "Get Started", onPress: () => navigation.goBack() }]
-        )
-        break
+    if (!pkg) {
+      Alert.alert("Error", `Package "${rcIdentifier}" not found. Please try again.`)
+      console.log("[Paywall] Available packages:", packages.map(p => ({ id: p.identifier, productId: p.product.identifier })))
+      return
+    }
 
-      case PAYWALL_RESULT.CANCELLED:
-        // User cancelled - do nothing
-        console.log("[Paywall] User cancelled")
-        break
-
-      case PAYWALL_RESULT.ERROR:
-        Alert.alert(
-          "Something went wrong",
-          "We couldn't process your purchase. Please try again.",
-        )
-        break
-
-      case PAYWALL_RESULT.NOT_PRESENTED:
-        // Paywall couldn't be presented
-        console.error("[Paywall] Could not present paywall")
-        navigation.goBack()
-        break
+    setIsLoading(true)
+    try {
+      await purchasePackage(pkg)
+      // Success - close paywall and let user see unlocked features
+      Alert.alert(
+        "Welcome to Premium! 🎉",
+        "You now have access to premium features. Check out the Pastures tab!",
+        [{ text: "Get Started", onPress: () => navigation.goBack() }]
+      )
+    } catch (error: any) {
+      console.error("[Paywall] Purchase error:", error)
+      // Don't show error if user cancelled
+      if (!error.userCancelled) {
+        Alert.alert("Purchase Failed", error.message || "Something went wrong. Please try again.")
+      }
+    } finally {
+      setIsLoading(false)
     }
   }
 
   const handleRestore = async () => {
-    setIsRestoring(true)
+    setIsLoading(true)
     try {
       await restorePurchases()
     } catch (error) {
       console.error("[Paywall] Restore error:", error)
     } finally {
-      setIsRestoring(false)
+      setIsLoading(false)
     }
   }
 
-  // If already Pro, show success message
-  if (isPro) {
+  // If already subscribed, show success message
+  if (isPremium) {
     return (
       <Screen preset="fixed" safeAreaEdges={["top", "bottom"]} contentContainerStyle={themed($container)}>
         <View style={themed($successContainer)}>
           <Text preset="heading" style={themed($successTitle)}>
-            You're already Pro!
+            You're on the {plan === "commercial" ? "Commercial" : "Farm"} plan!
           </Text>
           <Text style={themed($successMessage)}>
-            You have access to all premium features.
+            You have access to premium features.
           </Text>
           <Button
             text="Continue"
@@ -83,38 +121,70 @@ export function PaywallScreen(props: PaywallScreenProps) {
     )
   }
 
-  // Show RevenueCat Paywall UI
+  // Show custom paywall
   return (
-    <Screen preset="fixed" safeAreaEdges={["top", "bottom"]} contentContainerStyle={themed($fullscreen)}>
-      <RevenueCatUI.Paywall
-        options={{
-          // Optional: customize the paywall
-          // displayCloseButton: true,
-          // shouldBlockTouchesOnPaywallPresented: true,
-        }}
-        onPurchaseCompleted={({ customerInfo }) => {
-          console.log("[Paywall] Purchase completed:", customerInfo)
-          handlePaywallResult(PAYWALL_RESULT.PURCHASED)
-        }}
-        onRestoreCompleted={({ customerInfo }) => {
-          console.log("[Paywall] Restore completed:", customerInfo)
-          handlePaywallResult(PAYWALL_RESULT.RESTORED)
-        }}
-        onDismiss={() => {
-          console.log("[Paywall] Dismissed")
-          navigation.goBack()
-        }}
-        onPurchaseError={({ error }) => {
-          console.error("[Paywall] Purchase error:", error)
-          if (!error.userCancelled) {
-            handlePaywallResult(PAYWALL_RESULT.ERROR)
-          }
-        }}
-        onRestoreError={({ error }) => {
-          console.error("[Paywall] Restore error:", error)
-          Alert.alert("Restore Failed", error.message || "Could not restore purchases.")
-        }}
-      />
+    <Screen preset="fixed" contentContainerStyle={themed($fullContainer)} safeAreaEdges={["top", "bottom"]}>
+      <View style={themed($header)}>
+        <Button text="Close" preset="default" onPress={() => navigation.goBack()} />
+      </View>
+
+      <ScrollView style={themed($scrollView)} showsVerticalScrollIndicator={false}>
+        <View style={themed($titleSection)}>
+          <Text text="Upgrade to Premium" preset="heading" style={themed($title)} />
+          <Text
+            text="Unlock advanced features for your farm"
+            style={themed($subtitle)}
+          />
+        </View>
+
+        <View style={themed($pricingGrid)}>
+          {PRICING_TIERS.map((tier) => (
+            <View key={tier.id} style={themed($pricingCard)}>
+              <Text text={tier.name} preset="subheading" style={themed($planName)} />
+              <Text text={tier.description} size="xs" style={themed($planDescription)} />
+
+              <View style={themed($priceSection)}>
+                <Text text={tier.price} style={themed($price)} />
+                <Text text={tier.period} style={themed($period)} />
+              </View>
+
+              <View style={themed($featuresContainer)}>
+                {tier.features.map((feature, index) => (
+                  <View key={index} style={themed($featureRow)}>
+                    <CheckBadge size={18} color={theme.colors.tint} />
+                    <Text text={feature} style={themed($featureText)} />
+                  </View>
+                ))}
+              </View>
+
+              <Button
+                text={isLoading ? "Processing..." : `Subscribe to ${tier.name}`}
+                preset="reversed"
+                style={themed($actionButton)}
+                onPress={() => handlePurchase(tier.rcIdentifier)}
+                disabled={isLoading}
+              />
+            </View>
+          ))}
+        </View>
+
+        <View style={themed($restoreSection)}>
+          <Button
+            text={isLoading ? "Restoring..." : "Restore Purchases"}
+            preset="default"
+            onPress={handleRestore}
+            disabled={isLoading}
+          />
+        </View>
+
+        <View style={themed($finePrintSection)}>
+          <Text
+            text="Prices in South African Rands (ZAR). Subscriptions auto-renew monthly. Cancel anytime from your account settings."
+            size="xxs"
+            style={themed($finePrint)}
+          />
+        </View>
+      </ScrollView>
     </Screen>
   )
 }
@@ -125,7 +195,7 @@ const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   justifyContent: "center",
 })
 
-const $fullscreen: ThemedStyle<ViewStyle> = () => ({
+const $fullContainer: ThemedStyle<ViewStyle> = () => ({
   flex: 1,
 })
 
@@ -148,4 +218,114 @@ const $successMessage: ThemedStyle<ViewStyle> = ({ spacing, colors }) => ({
 
 const $button: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   marginTop: spacing.md,
+})
+
+const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  paddingHorizontal: spacing.lg,
+  paddingTop: spacing.md,
+  marginBottom: spacing.md,
+})
+
+const $scrollView: ThemedStyle<ViewStyle> = () => ({
+  flex: 1,
+})
+
+const $titleSection: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  paddingHorizontal: spacing.lg,
+  marginBottom: spacing.lg,
+})
+
+const $title: ThemedStyle<TextStyle> = ({ spacing }) => ({
+  marginBottom: spacing.xs,
+  textAlign: "center",
+})
+
+const $subtitle: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.textDim,
+  textAlign: "center",
+  fontSize: 15,
+  lineHeight: 22,
+})
+
+const $pricingGrid: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  gap: spacing.md,
+  paddingHorizontal: spacing.lg,
+  paddingBottom: spacing.md,
+})
+
+const $pricingCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.palette.neutral100,
+  borderRadius: 16,
+  padding: spacing.lg,
+  borderWidth: 2,
+  borderColor: colors.tint,
+})
+
+const $planName: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  color: colors.text,
+  marginBottom: spacing.xxs,
+})
+
+const $planDescription: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  color: colors.textDim,
+  marginBottom: spacing.md,
+})
+
+const $priceSection: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  alignItems: "baseline",
+  marginBottom: spacing.md,
+  flexWrap: "wrap",
+})
+
+const $price: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 28,
+  fontWeight: "800",
+  color: colors.text,
+  lineHeight: 36,
+})
+
+const $period: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 16,
+  color: colors.textDim,
+  marginLeft: 4,
+})
+
+const $featuresContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  gap: spacing.sm,
+  marginBottom: spacing.lg,
+})
+
+const $featureRow: ThemedStyle<ViewStyle> = () => ({
+  flexDirection: "row",
+  alignItems: "flex-start",
+  gap: 10,
+})
+
+const $featureText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  flex: 1,
+  fontSize: 14,
+  color: colors.text,
+  lineHeight: 20,
+})
+
+const $actionButton: ThemedStyle<ViewStyle> = () => ({
+  width: "100%",
+})
+
+const $restoreSection: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  paddingHorizontal: spacing.lg,
+  marginBottom: spacing.lg,
+  alignItems: "center",
+})
+
+const $finePrintSection: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  paddingHorizontal: spacing.lg,
+  marginBottom: spacing.xl,
+})
+
+const $finePrint: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.textDim,
+  textAlign: "center",
+  lineHeight: 16,
 })

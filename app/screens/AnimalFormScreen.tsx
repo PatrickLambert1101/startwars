@@ -1,6 +1,7 @@
 import { FC, useCallback, useEffect, useState } from "react"
 import { Alert, Pressable, View, ViewStyle, TextStyle, ActivityIndicator, Modal, FlatList } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
+import { useTranslation } from "react-i18next"
 
 import { Screen, Text, TextField, Button, ScanTagButton } from "@/components"
 import { DateField } from "@/components/DateField"
@@ -20,7 +21,6 @@ import type { PhotoWithMetadata } from "@/types/Photo"
 import { serializePhotos } from "@/types/Photo"
 
 const SEX_OPTIONS: AnimalSex[] = ["male", "female", "castrated", "unknown"]
-const SEX_DISPLAY: Record<AnimalSex, string> = { male: "Bull", female: "Cow", castrated: "Steer/Ox", unknown: "Unknown" }
 const STATUS_OPTIONS: AnimalStatus[] = ["active", "sold", "deceased", "transferred"]
 
 const COMMON_BREEDS = [
@@ -38,6 +38,7 @@ const COMMON_BREEDS = [
 ]
 
 export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route, navigation }) => {
+  const { t } = useTranslation()
   const { themed, theme: { colors } } = useAppTheme()
   const isEditing = route.params?.mode === "edit"
   const animalId = route.params?.animalId
@@ -138,17 +139,38 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
   const selectedDame = dameId ? animals.find(a => a.id === dameId) : null
 
   const handleSave = useCallback(async () => {
-    // Require at least one tag (RFID or Visual)
-    if (!rfidTag.trim() && !visualTag.trim()) {
-      Alert.alert("Required", "Please enter either an RFID Tag or Visual Tag (at least one is required)")
-      return
+    // Require at least one tag
+    // If device has RFID hardware: require RFID or Visual tag
+    // If no RFID hardware: only require Visual tag
+    if (hasRfidHardware) {
+      if (!rfidTag.trim() && !visualTag.trim()) {
+        Alert.alert(
+          t("animalFormScreen.alerts.validation.tagRequired.title"),
+          t("animalFormScreen.alerts.validation.tagRequired.message")
+        )
+        return
+      }
+    } else {
+      if (!visualTag.trim()) {
+        Alert.alert(
+          t("animalFormScreen.alerts.validation.tagRequired.title"),
+          "Please enter a visual tag number."
+        )
+        return
+      }
     }
     if (!breed.trim()) {
-      Alert.alert("Required", "Breed is required")
+      Alert.alert(
+        t("animalFormScreen.alerts.validation.breedRequired.title"),
+        t("animalFormScreen.alerts.validation.breedRequired.message")
+      )
       return
     }
     if (!currentOrg) {
-      Alert.alert("Error", "No organization selected")
+      Alert.alert(
+        t("animalFormScreen.alerts.validation.noOrganization.title"),
+        t("animalFormScreen.alerts.validation.noOrganization.message")
+      )
       return
     }
 
@@ -185,10 +207,13 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
       navigation.goBack()
     } catch (e) {
       console.error("Failed to save animal:", e)
-      Alert.alert("Error", "Failed to save animal. Please try again.")
+      Alert.alert(
+        t("animalFormScreen.alerts.saveError.title"),
+        t("animalFormScreen.alerts.saveError.message")
+      )
     }
     setIsSubmitting(false)
-  }, [rfidTag, visualTag, name, breed, sex, dateOfBirth, status, registrationNumber, herdTag, notes, photos, currentOrg, isEditing, animalId, createAnimal, updateAnimal, navigation])
+  }, [rfidTag, visualTag, name, breed, sex, dateOfBirth, status, registrationNumber, herdTag, notes, photos, currentOrg, isEditing, animalId, createAnimal, updateAnimal, navigation, t, hasRfidHardware])
 
   const uploadPhotosInBackground = async (savedAnimalId: string, photosToUpload: PhotoWithMetadata[]) => {
     try {
@@ -234,80 +259,73 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
   return (
     <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
       <View style={themed($headerRow)}>
-        <Button text="Cancel" preset="default" onPress={() => navigation.goBack()} />
-        <Text preset="heading" text={isEditing ? "Edit Animal" : "Add Animal"} />
+        <Button text={t("animalFormScreen.buttons.cancel")} preset="default" onPress={() => navigation.goBack()} />
+        <Text preset="heading" text={isEditing ? t("animalFormScreen.title.edit") : t("animalFormScreen.title.add")} />
         <View style={{ width: 60 }} />
       </View>
 
       {/* Current Farm Display */}
       {currentOrg && (
         <View style={themed($farmBadge)}>
-          <Text text="Farm:" size="xs" style={themed($farmLabel)} />
+          <Text text={t("animalFormScreen.farmLabel")} size="xs" style={themed($farmLabel)} />
           <Text text={currentOrg.name} preset="bold" size="sm" />
         </View>
       )}
 
       <View style={themed($form)}>
-        <View style={themed($helperNote)}>
-          <Text text="* At least one tag (RFID or Visual) is required" size="xs" style={themed($helperText)} />
-        </View>
+        {/* Only show helper note about tags if RFID hardware is present */}
+        {hasRfidHardware && (
+          <View style={themed($helperNote)}>
+            <Text text={t("animalFormScreen.helperNote")} size="xs" style={themed($helperText)} />
+          </View>
+        )}
 
-        {/* RFID Tag Field with Scanner */}
-        <View>
-          <View style={themed($labelWithHint)}>
-            <Text preset="formLabel" text="RFID Tag" style={themed($pickerLabel)} />
-            <View style={themed($hint)}>
-              <MaterialCommunityIcons name="information-outline" size={14} color={colors.textDim} />
+        {/* RFID Tag Field with Scanner - only show if device has RFID hardware */}
+        {hasRfidHardware && (
+          <View>
+            <View style={themed($labelWithHint)}>
+              <Text preset="formLabel" text={t("animalFormScreen.fields.rfidTag.label")} style={themed($pickerLabel)} />
+              <View style={themed($hint)}>
+                <MaterialCommunityIcons name="information-outline" size={14} color={colors.textDim} />
+              </View>
             </View>
-          </View>
-          <View style={themed($helpBox)}>
-            <MaterialCommunityIcons name="lightbulb-on-outline" size={14} color={colors.palette.primary700 || colors.tint} style={{ marginRight: 6 }} />
-            <Text text="Electronic tag embedded in ear tag - Commercial plan includes RFID scanner support" size="xxs" style={themed($helpText)} />
-          </View>
-          {hasRfidHardware ? (
-            <View>
-              {isScanning ? (
-                <View style={themed($scanningBox)}>
-                  <ActivityIndicator size="small" color={colors.tint} />
-                  <Text text="Pull trigger to scan..." size="sm" style={{ color: colors.tint }} />
-                </View>
-              ) : (
-                <TextField
-                  value={rfidTag}
-                  onChangeText={setRfidTag}
-                  placeholder="Pull trigger to scan RFID tag"
-                  autoCapitalize="characters"
-                  containerStyle={{ marginTop: 0 }}
-                />
-              )}
+            <View style={themed($helpBox)}>
+              <MaterialCommunityIcons name="lightbulb-on-outline" size={14} color={colors.palette.primary700 || colors.tint} style={{ marginRight: 6 }} />
+              <Text text={t("animalFormScreen.fields.rfidTag.helpText")} size="xxs" style={themed($helpText)} />
             </View>
-          ) : (
-            <TextField
-              value={rfidTag}
-              onChangeText={setRfidTag}
-              placeholder="Enter RFID tag number"
-              autoCapitalize="characters"
-              containerStyle={{ marginTop: 0 }}
-            />
-          )}
-        </View>
+            {isScanning ? (
+              <View style={themed($scanningBox)}>
+                <ActivityIndicator size="small" color={colors.tint} />
+                <Text text={t("animalFormScreen.fields.rfidTag.scanning")} size="sm" style={{ color: colors.tint }} />
+              </View>
+            ) : (
+              <TextField
+                value={rfidTag}
+                onChangeText={setRfidTag}
+                placeholder={t("animalFormScreen.fields.rfidTag.scanPlaceholder")}
+                autoCapitalize="characters"
+                containerStyle={{ marginTop: 0 }}
+              />
+            )}
+          </View>
+        )}
 
         <View>
           <View style={themed($labelWithHint)}>
-            <Text preset="formLabel" text="Visual Tag (ear tag/brand)" style={themed($pickerLabel)} />
+            <Text preset="formLabel" text={t("animalFormScreen.fields.visualTag.label")} style={themed($pickerLabel)} />
             <View style={themed($hint)}>
               <MaterialCommunityIcons name="camera-outline" size={14} color={colors.textDim} />
             </View>
           </View>
           <View style={themed($helpBox)}>
             <MaterialCommunityIcons name="camera-outline" size={14} color={colors.palette.primary700 || colors.tint} style={{ marginRight: 6 }} />
-            <Text text="Use camera scanner button to automatically read tag numbers from photos" size="xxs" style={themed($helpText)} />
+            <Text text={t("animalFormScreen.fields.visualTag.helpText")} size="xxs" style={themed($helpText)} />
           </View>
           <View style={themed($tagInputRow)}>
             <TextField
               value={visualTag}
               onChangeText={setVisualTag}
-              placeholder="Ear tag or brand number"
+              placeholder={t("animalFormScreen.fields.visualTag.placeholder")}
               containerStyle={themed($tagInput)}
             />
             <ScanTagButton
@@ -318,41 +336,41 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
         </View>
 
         <TextField
-          label="Name (optional)"
+          label={t("animalFormScreen.fields.name.label")}
           value={name}
           onChangeText={setName}
-          placeholder="Animal name"
+          placeholder={t("animalFormScreen.fields.name.placeholder")}
         />
 
         <PhotoPicker
           photos={photos}
           onPhotosChange={setPhotos}
           maxPhotos={5}
-          label="Photos (for identification)"
+          label={t("animalFormScreen.fields.photos.label")}
         />
 
         {/* Breed Picker */}
         <View>
-          <Text preset="formLabel" text="Breed *" style={themed($pickerLabel)} />
+          <Text preset="formLabel" text={t("animalFormScreen.fields.breed.label")} style={themed($pickerLabel)} />
           <Pressable onPress={() => setShowBreedPicker(true)} style={themed($pickerButton)}>
-            <Text text={breed || "Select breed"} style={!breed && themed($placeholderText)} />
+            <Text text={breed || t("animalFormScreen.fields.breed.placeholder")} style={!breed && themed($placeholderText)} />
           </Pressable>
         </View>
 
         {/* Sex Picker */}
         <View style={themed($row)}>
           <View style={themed($halfField)}>
-            <Text preset="formLabel" text="Sex *" style={themed($pickerLabel)} />
+            <Text preset="formLabel" text={t("animalFormScreen.fields.sex.label")} style={themed($pickerLabel)} />
             <Pressable onPress={() => setShowSexPicker(true)} style={themed($pickerButton)}>
-              <Text text={SEX_DISPLAY[sex]} />
+              <Text text={t(`animalFormScreen.fields.sex.options.${sex}`)} />
             </Pressable>
           </View>
           <View style={themed($halfField)}>
             <DateField
-              label="Date of Birth"
+              label={t("animalFormScreen.fields.dateOfBirth.label")}
               value={dateOfBirth}
               onChange={setDateOfBirth}
-              placeholder="DD/MM/YYYY"
+              placeholder={t("animalFormScreen.fields.dateOfBirth.placeholder")}
             />
           </View>
         </View>
@@ -360,74 +378,74 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
         {/* Lineage Section */}
         <View style={themed($lineageSection)}>
           <View style={themed($labelWithHint)}>
-            <Text text="Lineage (optional)" preset="formLabel" />
+            <Text text={t("animalFormScreen.lineage.title")} preset="formLabel" />
             <View style={themed($hint)}>
               <MaterialCommunityIcons name="dna" size={14} color={colors.textDim} />
             </View>
           </View>
           <View style={themed($helpBox)}>
             <MaterialCommunityIcons name="dna" size={14} color={colors.palette.primary700 || colors.tint} style={{ marginRight: 6 }} />
-            <Text text="Track genetics for breeding programs and pedigree documentation" size="xxs" style={themed($helpText)} />
+            <Text text={t("animalFormScreen.lineage.helpText")} size="xxs" style={themed($helpText)} />
           </View>
 
           <View>
-            <Text text="Sire (Father)" size="xs" style={themed($lineageLabel)} />
+            <Text text={t("animalFormScreen.lineage.sire.label")} size="xs" style={themed($lineageLabel)} />
             <Pressable onPress={() => setShowSirePicker(true)} style={themed($pickerButton)}>
               <Text
-                text={selectedSire ? selectedSire.displayName : "+ Add sire"}
+                text={selectedSire ? selectedSire.displayName : t("animalFormScreen.lineage.sire.placeholder")}
                 style={!selectedSire && themed($placeholderText)}
               />
             </Pressable>
             {!selectedSire && maleAnimals.length === 0 && (
               <View style={themed($inlineHint)}>
                 <MaterialCommunityIcons name="information-outline" size={12} color={colors.textDim} style={{ marginRight: 4 }} />
-                <Text text="Add male animals to your herd first to select as sires" size="xxs" style={themed($hintTextSmall)} />
+                <Text text={t("animalFormScreen.lineage.sire.noMales")} size="xxs" style={themed($hintTextSmall)} />
               </View>
             )}
           </View>
 
           <View>
-            <Text text="Dame (Mother)" size="xs" style={themed($lineageLabel)} />
+            <Text text={t("animalFormScreen.lineage.dame.label")} size="xs" style={themed($lineageLabel)} />
             <Pressable onPress={() => setShowDamePicker(true)} style={themed($pickerButton)}>
               <Text
-                text={selectedDame ? selectedDame.displayName : "+ Add dame"}
+                text={selectedDame ? selectedDame.displayName : t("animalFormScreen.lineage.dame.placeholder")}
                 style={!selectedDame && themed($placeholderText)}
               />
             </Pressable>
             {!selectedDame && femaleAnimals.length === 0 && (
               <View style={themed($inlineHint)}>
                 <MaterialCommunityIcons name="information-outline" size={12} color={colors.textDim} style={{ marginRight: 4 }} />
-                <Text text="Add female animals to your herd first to select as dames" size="xxs" style={themed($hintTextSmall)} />
+                <Text text={t("animalFormScreen.lineage.dame.noFemales")} size="xxs" style={themed($hintTextSmall)} />
               </View>
             )}
           </View>
         </View>
 
         <TextField
-          label="Registration Number"
+          label={t("animalFormScreen.fields.registrationNumber.label")}
           value={registrationNumber}
           onChangeText={setRegistrationNumber}
-          placeholder="Optional"
+          placeholder={t("animalFormScreen.fields.registrationNumber.placeholder")}
         />
 
         <TextField
-          label="Herd/Group Tag"
+          label={t("animalFormScreen.fields.herdTag.label")}
           value={herdTag}
           onChangeText={setHerdTag}
-          placeholder="e.g., 23-C, XYZ, Group A (optional)"
+          placeholder={t("animalFormScreen.fields.herdTag.placeholder")}
           autoCapitalize="characters"
         />
 
         <TextField
-          label="Notes"
+          label={t("animalFormScreen.fields.notes.label")}
           value={notes}
           onChangeText={setNotes}
-          placeholder="Any additional notes..."
+          placeholder={t("animalFormScreen.fields.notes.placeholder")}
           multiline
         />
 
         <Button
-          text={isSubmitting ? "Saving..." : isEditing ? "Save Changes" : "Add Animal"}
+          text={isSubmitting ? t("animalFormScreen.buttons.saving") : isEditing ? t("animalFormScreen.buttons.save") : t("animalFormScreen.buttons.add")}
           preset="reversed"
           style={themed($saveButton)}
           onPress={handleSave}
@@ -438,7 +456,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
       <Modal visible={showBreedPicker} transparent animationType="slide">
         <View style={themed($modalOverlay)}>
           <View style={themed($modalContent)}>
-            <Text preset="heading" text="Select Breed" size="md" />
+            <Text preset="heading" text={t("animalFormScreen.modals.breed.title")} size="md" />
             <FlatList
               data={COMMON_BREEDS}
               keyExtractor={(item) => item}
@@ -454,7 +472,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
                 </Pressable>
               )}
             />
-            <Button text="Cancel" onPress={() => setShowBreedPicker(false)} />
+            <Button text={t("animalFormScreen.modals.breed.cancel")} onPress={() => setShowBreedPicker(false)} />
           </View>
         </View>
       </Modal>
@@ -463,7 +481,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
       <Modal visible={showSexPicker} transparent animationType="slide">
         <View style={themed($modalOverlay)}>
           <View style={themed($modalContent)}>
-            <Text preset="heading" text="Select Sex" size="md" />
+            <Text preset="heading" text={t("animalFormScreen.modals.sex.title")} size="md" />
             {SEX_OPTIONS.map((s) => (
               <Pressable
                 key={s}
@@ -473,10 +491,10 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
                   setShowSexPicker(false)
                 }}
               >
-                <Text text={SEX_DISPLAY[s]} />
+                <Text text={t(`animalFormScreen.fields.sex.options.${s}`)} />
               </Pressable>
             ))}
-            <Button text="Cancel" onPress={() => setShowSexPicker(false)} />
+            <Button text={t("animalFormScreen.modals.sex.cancel")} onPress={() => setShowSexPicker(false)} />
           </View>
         </View>
       </Modal>
@@ -485,11 +503,11 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
       <Modal visible={showSirePicker} transparent animationType="slide">
         <View style={themed($modalOverlay)}>
           <View style={themed($modalContent)}>
-            <Text preset="heading" text="Select Sire" size="md" />
+            <Text preset="heading" text={t("animalFormScreen.modals.sire.title")} size="md" />
             <TextField
               value={parentSearch}
               onChangeText={setParentSearch}
-              placeholder="Search by name or tag..."
+              placeholder={t("animalFormScreen.modals.sire.searchPlaceholder")}
               containerStyle={themed($searchField)}
             />
             <FlatList
@@ -505,12 +523,12 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
                   }}
                 >
                   <Text text={item.displayName} preset="bold" />
-                  <Text text={`RFID: ${item.rfidTag}`} size="xs" style={themed($dimText)} />
+                  <Text text={t("animalFormScreen.modals.sire.rfidLabel", { tag: item.rfidTag })} size="xs" style={themed($dimText)} />
                 </Pressable>
               )}
-              ListEmptyComponent={<Text text="No bulls found" style={themed($emptyText)} />}
+              ListEmptyComponent={<Text text={t("animalFormScreen.modals.sire.empty")} style={themed($emptyText)} />}
             />
-            <Button text="Cancel" onPress={() => { setShowSirePicker(false); setParentSearch("") }} />
+            <Button text={t("animalFormScreen.modals.sire.cancel")} onPress={() => { setShowSirePicker(false); setParentSearch("") }} />
           </View>
         </View>
       </Modal>
@@ -519,11 +537,11 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
       <Modal visible={showDamePicker} transparent animationType="slide">
         <View style={themed($modalOverlay)}>
           <View style={themed($modalContent)}>
-            <Text preset="heading" text="Select Dame" size="md" />
+            <Text preset="heading" text={t("animalFormScreen.modals.dame.title")} size="md" />
             <TextField
               value={parentSearch}
               onChangeText={setParentSearch}
-              placeholder="Search by name or tag..."
+              placeholder={t("animalFormScreen.modals.dame.searchPlaceholder")}
               containerStyle={themed($searchField)}
             />
             <FlatList
@@ -539,12 +557,12 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
                   }}
                 >
                   <Text text={item.displayName} preset="bold" />
-                  <Text text={`RFID: ${item.rfidTag}`} size="xs" style={themed($dimText)} />
+                  <Text text={t("animalFormScreen.modals.dame.rfidLabel", { tag: item.rfidTag })} size="xs" style={themed($dimText)} />
                 </Pressable>
               )}
-              ListEmptyComponent={<Text text="No cows found" style={themed($emptyText)} />}
+              ListEmptyComponent={<Text text={t("animalFormScreen.modals.dame.empty")} style={themed($emptyText)} />}
             />
-            <Button text="Cancel" onPress={() => { setShowDamePicker(false); setParentSearch("") }} />
+            <Button text={t("animalFormScreen.modals.dame.cancel")} onPress={() => { setShowDamePicker(false); setParentSearch("") }} />
           </View>
         </View>
       </Modal>

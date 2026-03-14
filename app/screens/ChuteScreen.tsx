@@ -2,6 +2,7 @@ import { FC, useCallback, useEffect, useRef, useState } from "react"
 import { Alert, FlatList, Pressable, ScrollView, TextInput, View, ViewStyle, TextStyle } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { format } from "date-fns"
+import { useTranslation } from "react-i18next"
 
 import { Screen, Text, TextField, Button, ScanTagButton } from "@/components"
 import { WeightChart } from "@/components/WeightChart"
@@ -30,6 +31,7 @@ type ProcessedEntry = {
 }
 
 export const ChuteScreen: FC<any> = ({ navigation }: any) => {
+  const { t } = useTranslation()
   const { themed, theme } = useAppTheme()
   const { currentOrg } = useDatabase()
   const { hasFeature } = useSubscription()
@@ -134,14 +136,14 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
         if (byVisual.length > 0) {
           setScannedAnimal(byVisual[0])
         } else {
-          Alert.alert("Not Found", `No animal found with tag "${rfid.trim()}". Add it first in the Herd tab.`)
+          Alert.alert(t("common.notFound"), t("chuteScreen.scan.notFound", { tag: rfid.trim() }))
         }
       }
     } catch {
-      Alert.alert("Error", "Failed to look up animal")
+      Alert.alert(t("common.error"), t("common.failedToLoad"))
     }
     setIsSearching(false)
-  }, [currentOrg])
+  }, [currentOrg, t])
 
   const handleScanSubmit = useCallback(() => {
     lookupAnimal(rfidInput)
@@ -165,13 +167,13 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
 
     const kg = parseFloat(weightValue)
     if (isNaN(kg) || kg <= 0) {
-      Alert.alert("Invalid", "Enter a valid weight in kg")
+      Alert.alert(t("common.invalid"), t("chuteScreen.weight.invalidWeight"))
       return
     }
 
     const cs = conditionScore ? parseInt(conditionScore, 10) : undefined
     if (cs !== undefined && (isNaN(cs) || cs < 1 || cs > 9)) {
-      Alert.alert("Invalid", "Condition score must be 1-9")
+      Alert.alert(t("common.invalid"), t("chuteScreen.weight.invalidConditionScore"))
       return
     }
 
@@ -193,16 +195,16 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
 
       resetForNextAnimal()
     } catch {
-      Alert.alert("Error", "Failed to save weight record")
+      Alert.alert(t("common.error"), t("common.failedToSave"))
     }
-  }, [scannedAnimal, weightValue, conditionScore, createWeightRecord, resetForNextAnimal])
+  }, [scannedAnimal, weightValue, conditionScore, createWeightRecord, resetForNextAnimal, t])
 
   const handleSaveCondition = useCallback(async () => {
     if (!scannedAnimal) return
 
     const score = parseInt(conditionValue, 10)
     if (isNaN(score) || score < 1 || score > 9) {
-      Alert.alert("Invalid", "Condition score must be 1-9")
+      Alert.alert(t("common.invalid"), t("chuteScreen.weight.invalidConditionScore"))
       return
     }
 
@@ -224,9 +226,9 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
 
       resetForNextAnimal()
     } catch {
-      Alert.alert("Error", "Failed to save condition score")
+      Alert.alert(t("common.error"), t("common.failedToSave"))
     }
-  }, [scannedAnimal, conditionValue, createHealthRecord, resetForNextAnimal])
+  }, [scannedAnimal, conditionValue, createHealthRecord, resetForNextAnimal, t])
 
   const handleClearAnimal = useCallback(() => {
     resetForNextAnimal()
@@ -256,9 +258,9 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
 
       resetForNextAnimal()
     } catch {
-      Alert.alert("Error", "Failed to apply protocol")
+      Alert.alert(t("common.error"), t("common.failedToSave"))
     }
-  }, [scannedAnimal, selectedProtocol, createHealthRecord, resetForNextAnimal])
+  }, [scannedAnimal, selectedProtocol, createHealthRecord, resetForNextAnimal, t])
 
   const activeMode = sessionMode
 
@@ -266,8 +268,8 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
   if (!sessionMode) {
     return (
       <Screen preset="fixed" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
-        <Text preset="heading" text="Chute Mode" style={themed($heading)} />
-        <Text text="Select what you're recording today" style={themed($subtitle)} />
+        <Text preset="heading" text={t("chuteScreen.title")} style={themed($heading)} />
+        <Text text={t("chuteScreen.selectMode")} style={themed($subtitle)} />
 
         <View style={themed($modePickerArea)}>
           <Pressable
@@ -276,9 +278,9 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
           >
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <MaterialCommunityIcons name="scale" size={20} color="#4A8C3F" />
-              <Text preset="subheading" text="Weigh" style={{ color: "#4A8C3F" }} />
+              <Text preset="subheading" text={t("chuteScreen.modes.weight.title")} style={{ color: "#4A8C3F" }} />
             </View>
-            <Text size="xs" text="Record weight and optional condition score" style={themed($dimText)} />
+            <Text size="xs" text={t("chuteScreen.modes.weight.description")} style={themed($dimText)} />
           </Pressable>
           <Pressable
             onPress={() => setSessionMode("protocol")}
@@ -286,9 +288,9 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
           >
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <MaterialCommunityIcons name="needle" size={20} color="#10B981" />
-              <Text preset="subheading" text="Vaccinate / Treat" style={{ color: "#10B981" }} />
+              <Text preset="subheading" text={t("chuteScreen.modes.protocol.title")} style={{ color: "#10B981" }} />
             </View>
-            <Text size="xs" text="Apply vaccination or treatment protocols with auto-calculated dosages" style={themed($dimText)} />
+            <Text size="xs" text={t("chuteScreen.modes.protocol.description")} style={themed($dimText)} />
           </Pressable>
           <Pressable
             onPress={() => setSessionMode("weight_and_treatment")}
@@ -297,16 +299,16 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <MaterialCommunityIcons name="scale" size={18} color="#8B5CF6" />
               <MaterialCommunityIcons name="needle" size={18} color="#8B5CF6" />
-              <Text preset="subheading" text="Weigh + Treat" style={{ color: "#8B5CF6" }} />
+              <Text preset="subheading" text={t("chuteScreen.modes.weightAndTreatment.title")} style={{ color: "#8B5CF6" }} />
             </View>
-            <Text size="xs" text="Record weight and apply protocol in one go" style={themed($dimText)} />
+            <Text size="xs" text={t("chuteScreen.modes.weightAndTreatment.description")} style={themed($dimText)} />
           </Pressable>
         </View>
 
         {/* Previous session log */}
         {processedLog.length > 0 && (
           <View style={themed($sessionInfo)}>
-            <Text preset="formLabel" text={`Previous session: ${processedLog.length} processed`} style={themed($sessionLabel)} />
+            <Text preset="formLabel" text={t("chuteScreen.session.previousSession", { count: processedLog.length })} style={themed($sessionLabel)} />
           </View>
         )}
       </Screen>
@@ -314,7 +316,7 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
   }
 
   const modeColor = activeMode === "weight" ? "#4A8C3F" : activeMode === "weight_and_treatment" ? "#8B5CF6" : activeMode === "protocol" ? "#10B981" : "#F59E0B"
-  const modeLabel = activeMode === "weight" ? "Weigh Session" : activeMode === "weight_and_treatment" ? "Weigh + Treat Session" : activeMode === "protocol" ? "Vaccinate / Treat Session" : "Condition Score Session"
+  const modeLabel = activeMode === "weight" ? t("chuteScreen.modes.weight.sessionTitle") : activeMode === "weight_and_treatment" ? t("chuteScreen.modes.weightAndTreatment.sessionTitle") : activeMode === "protocol" ? t("chuteScreen.modes.protocol.sessionTitle") : t("chuteScreen.modes.condition.sessionTitle")
 
   return (
     <Screen preset="fixed" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
@@ -322,21 +324,21 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
       <View style={themed($sessionHeader)}>
         <View style={{ flex: 1 }}>
           <Text preset="bold" text={modeLabel} style={{ color: modeColor }} size="lg" />
-          <Text text={`${processedLog.length} processed`} size="xs" style={themed($dimText)} />
+          <Text text={t("chuteScreen.session.processed", { count: processedLog.length })} size="xs" style={themed($dimText)} />
         </View>
-        <Button text="End Session" preset="default" onPress={() => { setSessionMode(null); resetForNextAnimal() }} />
+        <Button text={t("chuteScreen.session.endSession")} preset="default" onPress={() => { setSessionMode(null); resetForNextAnimal() }} />
       </View>
 
       {!scannedAnimal ? (
         /* ─── SCAN PHASE ─── */
         <View style={themed($scanArea)}>
           <View style={[themed($scanBox), { borderColor: modeColor }]}>
-            <Text preset="subheading" text="SCAN TAG" style={[themed($scanText), { color: modeColor }]} />
+            <Text preset="subheading" text={t("chuteScreen.scan.title")} style={[themed($scanText), { color: modeColor }]} />
             <TextField
               ref={rfidInputRef}
               value={rfidInput}
               onChangeText={setRfidInput}
-              placeholder="Enter tag or use camera"
+              placeholder={t("chuteScreen.scan.placeholder")}
               containerStyle={themed($scanInput)}
               autoCapitalize="characters"
               autoFocus
@@ -351,7 +353,7 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
                 style={themed($scanTagBtn)}
               />
               <Button
-                text={isSearching ? "Searching..." : "Look Up"}
+                text={isSearching ? t("chuteScreen.scan.searching") : t("chuteScreen.scan.lookUp")}
                 preset="reversed"
                 style={themed($lookupButton)}
                 onPress={handleScanSubmit}
@@ -375,21 +377,21 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
             </View>
             <View style={themed($animalMeta)}>
               <View style={themed($metaItem)}>
-                <Text text="RFID" size="xxs" style={themed($dimText)} />
+                <Text text={t("chuteScreen.animalInfo.rfid")} size="xxs" style={themed($dimText)} />
                 <Text text={scannedAnimal.rfidTag || "—"} size="xs" preset="bold" />
               </View>
               <View style={themed($metaItem)}>
-                <Text text="Visual Tag" size="xxs" style={themed($dimText)} />
+                <Text text={t("chuteScreen.animalInfo.visualTag")} size="xxs" style={themed($dimText)} />
                 <Text text={scannedAnimal.visualTag || "—"} size="xs" preset="bold" />
               </View>
               <View style={themed($metaItem)}>
-                <Text text="DOB" size="xxs" style={themed($dimText)} />
+                <Text text={t("chuteScreen.animalInfo.dob")} size="xxs" style={themed($dimText)} />
                 <Text text={scannedAnimal.dateOfBirth ? format(scannedAnimal.dateOfBirth, "dd MMM yyyy") : "—"} size="xs" preset="bold" />
               </View>
               {weightHistory.length > 0 && (
                 <View style={themed($metaItem)}>
-                  <Text text="Last Weight" size="xxs" style={themed($dimText)} />
-                  <Text text={`${weightHistory[0].weightKg} kg`} size="xs" preset="bold" />
+                  <Text text={t("chuteScreen.animalInfo.lastWeight")} size="xxs" style={themed($dimText)} />
+                  <Text text={t("chuteScreen.animalInfo.lastWeightValue", { weight: weightHistory[0].weightKg })} size="xs" preset="bold" />
                 </View>
               )}
             </View>
@@ -404,34 +406,34 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
               )}
               {weightHistory.length === 1 && (
                 <View style={themed($singleWeightInfo)}>
-                  <Text text="Previous weight:" size="sm" style={themed($dimText)} />
-                  <Text preset="bold" text={`${weightHistory[0].weightKg} kg`} size="lg" />
+                  <Text text={t("chuteScreen.weight.previousWeight")} size="sm" style={themed($dimText)} />
+                  <Text preset="bold" text={t("chuteScreen.weight.weightValue", { weight: weightHistory[0].weightKg })} size="lg" />
                   <Text text={format(weightHistory[0].recordDate, "dd MMM yyyy")} size="xs" style={themed($dimText)} />
                 </View>
               )}
 
               {/* Weight entry */}
               <View style={themed($formCard)}>
-                <Text preset="formLabel" text="New Weight (kg)" />
+                <Text preset="formLabel" text={t("chuteScreen.weight.newWeightLabel")} />
                 <TextField
                   ref={weightInputRef}
                   value={weightValue}
                   onChangeText={setWeightValue}
-                  placeholder="e.g. 450"
+                  placeholder={t("chuteScreen.weight.weightPlaceholder")}
                   keyboardType="numeric"
                   autoFocus
                   onSubmitEditing={handleSaveWeight}
                 />
                 <TextField
-                  label="Condition Score (1-9)"
+                  label={t("chuteScreen.weight.conditionScoreLabel")}
                   value={conditionScore}
                   onChangeText={setConditionScore}
-                  placeholder="Optional, e.g. 6"
+                  placeholder={t("chuteScreen.weight.conditionScorePlaceholder")}
                   keyboardType="numeric"
                 />
                 <View style={themed($formButtons)}>
-                  <Button text="Skip" preset="default" onPress={handleClearAnimal} />
-                  <Button text="Save & Next" preset="reversed" onPress={handleSaveWeight} style={themed($saveNextButton)} />
+                  <Button text={t("common.skip")} preset="default" onPress={handleClearAnimal} />
+                  <Button text={t("chuteScreen.weight.saveAndNext")} preset="reversed" onPress={handleSaveWeight} style={themed($saveNextButton)} />
                 </View>
               </View>
             </View>
@@ -445,33 +447,33 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
                 <WeightChart records={weightHistory} />
               )}
               <View style={themed($formCard)}>
-                <Text preset="bold" text="1. Record Weight" size="md" style={{ color: "#4A8C3F" }} />
+                <Text preset="bold" text={t("chuteScreen.weightAndTreatment.step1")} size="md" style={{ color: "#4A8C3F" }} />
                 <TextField
-                  label="Weight (kg)"
+                  label={t("chuteScreen.weightAndTreatment.weightLabel")}
                   value={weightValue}
                   onChangeText={setWeightValue}
-                  placeholder="e.g. 450"
+                  placeholder={t("chuteScreen.weight.weightPlaceholder")}
                   keyboardType="numeric"
                   autoFocus
                 />
                 <TextField
-                  label="Condition Score (1-9)"
+                  label={t("chuteScreen.weightAndTreatment.conditionScoreLabel")}
                   value={conditionScore}
                   onChangeText={setConditionScore}
-                  placeholder="Optional, e.g. 6"
+                  placeholder={t("chuteScreen.weight.conditionScorePlaceholder")}
                   keyboardType="numeric"
                 />
               </View>
 
               {/* Treatment Protocol Selection */}
               <View style={themed($formCard)}>
-                <Text preset="bold" text="2. Select Treatment" size="md" style={{ color: "#8B5CF6" }} />
+                <Text preset="bold" text={t("chuteScreen.weightAndTreatment.step2")} size="md" style={{ color: "#8B5CF6" }} />
                 {!selectedProtocol ? (
                   protocols.length === 0 ? (
                     <View style={{ paddingVertical: spacing.md, alignItems: "center" }}>
-                      <Text text="No active protocols available" size="sm" style={themed($dimText)} />
+                      <Text text={t("chuteScreen.weightAndTreatment.noProtocols")} size="sm" style={themed($dimText)} />
                       <Button
-                        text="Manage Protocols"
+                        text={t("chuteScreen.weightAndTreatment.manageProtocols")}
                         preset="default"
                         onPress={() => navigation.navigate("TreatmentProtocols")}
                         style={{ marginTop: spacing.sm }}
@@ -512,9 +514,9 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
 
                           return (
                             <View style={{ backgroundColor: "#FFF3CD", borderRadius: 8, padding: spacing.md, marginBottom: spacing.sm, borderWidth: 2, borderColor: "#FFEB3B" }}>
-                              <Text preset="bold" text="Calculated Dosage" size="sm" style={{ color: "#856404", marginBottom: spacing.xs }} />
-                              <Text text={`At ${enteredWeight} kg:`} size="xs" style={{ color: "#856404" }} />
-                              <Text preset="bold" text={`Give: ${calculatedMl.toFixed(1)} ml`} size="lg" style={{ color: "#856404", marginTop: spacing.xxs }} />
+                              <Text preset="bold" text={t("chuteScreen.weightAndTreatment.calculatedDosage.title")} size="sm" style={{ color: "#856404", marginBottom: spacing.xs }} />
+                              <Text text={t("chuteScreen.weightAndTreatment.calculatedDosage.atWeight", { weight: enteredWeight })} size="xs" style={{ color: "#856404" }} />
+                              <Text preset="bold" text={t("chuteScreen.weightAndTreatment.calculatedDosage.give", { ml: calculatedMl.toFixed(1) })} size="lg" style={{ color: "#856404", marginTop: spacing.xxs }} />
                             </View>
                           )
                         }
@@ -523,7 +525,7 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
                     })()}
 
                     <Button
-                      text="Change Protocol"
+                      text={t("chuteScreen.weightAndTreatment.changeProtocol")}
                       preset="default"
                       onPress={() => setSelectedProtocol(null)}
                       style={{ marginTop: spacing.xs }}
@@ -533,21 +535,21 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
               </View>
 
               <View style={themed($formButtons)}>
-                <Button text="Skip" preset="default" onPress={handleClearAnimal} />
+                <Button text={t("common.skip")} preset="default" onPress={handleClearAnimal} />
                 <Button
-                  text="Save Both & Next"
+                  text={t("chuteScreen.weightAndTreatment.saveBoth")}
                   preset="reversed"
                   disabled={!selectedProtocol || !weightValue}
                   onPress={async () => {
                     // Validate weight
                     const kg = parseFloat(weightValue)
                     if (isNaN(kg) || kg <= 0) {
-                      Alert.alert("Invalid", "Enter a valid weight in kg")
+                      Alert.alert(t("common.invalid"), t("chuteScreen.weight.invalidWeight"))
                       return
                     }
 
                     if (!selectedProtocol) {
-                      Alert.alert("Required", "Select a treatment protocol")
+                      Alert.alert(t("common.required"), t("chuteScreen.weightAndTreatment.required"))
                       return
                     }
 
@@ -583,7 +585,7 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
 
                       resetForNextAnimal()
                     } catch {
-                      Alert.alert("Error", "Failed to save records")
+                      Alert.alert(t("common.error"), t("common.failedToSave"))
                     }
                   }}
                   style={themed($saveNextButton)}
@@ -596,7 +598,7 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
           {activeMode === "condition" && (
             <View style={themed($actionSection)}>
               <View style={themed($formCard)}>
-                <Text preset="formLabel" text="Condition Score (1-9)" />
+                <Text preset="formLabel" text={t("chuteScreen.weight.conditionScoreLabel")} />
                 <View style={themed($scoreGrid)}>
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((s) => (
                     <Pressable
@@ -614,7 +616,7 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
                         style={conditionValue === `${s}` ? { color: "#FFF" } : {}}
                       />
                       <Text
-                        text={s <= 3 ? "Thin" : s <= 6 ? "Moderate" : "Fat"}
+                        text={s <= 3 ? t("chuteScreen.condition.labels.thin") : s <= 6 ? t("chuteScreen.condition.labels.moderate") : t("chuteScreen.condition.labels.fat")}
                         size="xxs"
                         style={conditionValue === `${s}` ? { color: "#FFF" } : themed($dimText)}
                       />
@@ -622,8 +624,8 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
                   ))}
                 </View>
                 <View style={themed($formButtons)}>
-                  <Button text="Skip" preset="default" onPress={handleClearAnimal} />
-                  <Button text="Save & Next" preset="reversed" onPress={handleSaveCondition} style={themed($saveNextButton)} />
+                  <Button text={t("common.skip")} preset="default" onPress={handleClearAnimal} />
+                  <Button text={t("chuteScreen.weight.saveAndNext")} preset="reversed" onPress={handleSaveCondition} style={themed($saveNextButton)} />
                 </View>
               </View>
             </View>
@@ -635,12 +637,12 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
               {!selectedProtocol ? (
                 /* Protocol selection */
                 <View style={themed($formCard)}>
-                  <Text preset="bold" text="Select Vaccination / Treatment" size="md" style={{ color: "#10B981" }} />
+                  <Text preset="bold" text={t("chuteScreen.protocol.title")} size="md" style={{ color: "#10B981" }} />
                   {protocols.length === 0 ? (
                     <View style={{ paddingVertical: spacing.md, alignItems: "center" }}>
-                      <Text text="No active protocols available" size="sm" style={themed($dimText)} />
+                      <Text text={t("chuteScreen.weightAndTreatment.noProtocols")} size="sm" style={themed($dimText)} />
                       <Button
-                        text="Manage Protocols"
+                        text={t("chuteScreen.weightAndTreatment.manageProtocols")}
                         preset="default"
                         onPress={() => navigation.navigate("TreatmentProtocols")}
                         style={{ marginTop: spacing.sm }}
@@ -665,7 +667,7 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
                       ))}
                     </View>
                   )}
-                  <Button text="Cancel" preset="default" onPress={handleClearAnimal} style={{ marginTop: spacing.sm }} />
+                  <Button text={t("common.cancel")} preset="default" onPress={handleClearAnimal} style={{ marginTop: spacing.sm }} />
                 </View>
               ) : (
                 /* Protocol selected - show calculated dosage */
@@ -673,13 +675,13 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
                   <View style={{ backgroundColor: "#10B98122", borderRadius: 8, padding: spacing.md, marginBottom: spacing.sm }}>
                     <Text preset="bold" text={selectedProtocol.name} size="md" style={{ color: "#10B981" }} />
                     <View style={{ marginTop: spacing.xs, gap: spacing.xxs }}>
-                      <Text text={`Product: ${selectedProtocol.productName}`} size="xs" />
-                      <Text text={`Standard Dosage: ${selectedProtocol.dosage}`} size="xs" />
+                      <Text text={t("chuteScreen.protocol.product", { name: selectedProtocol.productName })} size="xs" />
+                      <Text text={t("chuteScreen.protocol.standardDosage", { dosage: selectedProtocol.dosage })} size="xs" />
                       {selectedProtocol.administrationMethod && (
-                        <Text text={`Method: ${selectedProtocol.administrationMethod}`} size="xs" />
+                        <Text text={t("chuteScreen.protocol.method", { method: selectedProtocol.administrationMethod })} size="xs" />
                       )}
                       {selectedProtocol.withdrawalDays && (
-                        <Text text={`Withdrawal: ${selectedProtocol.withdrawalDays} days`} size="xs" style={{ color: "#DC2626" }} />
+                        <Text text={t("chuteScreen.protocol.withdrawal", { days: selectedProtocol.withdrawalDays })} size="xs" style={{ color: "#DC2626" }} />
                       )}
                     </View>
                   </View>
@@ -696,32 +698,32 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
 
                       return (
                         <View style={{ backgroundColor: "#FFF3CD", borderRadius: 8, padding: spacing.md, marginBottom: spacing.sm, borderWidth: 2, borderColor: "#FFEB3B" }}>
-                          <Text preset="bold" text="Auto-Calculated Dosage" size="sm" style={{ color: "#856404", marginBottom: spacing.xs }} />
-                          <Text text={`Last weight: ${latestWeight} kg`} size="xs" style={{ color: "#856404" }} />
-                          <Text preset="bold" text={`Give: ${calculatedMl.toFixed(1)} ml`} size="lg" style={{ color: "#856404", marginTop: spacing.xxs }} />
-                          <Text text={`Based on ${mlPerDose}ml per ${kgPerDose}kg`} size="xxs" style={{ color: "#856404", marginTop: spacing.xxs }} />
+                          <Text preset="bold" text={t("chuteScreen.protocol.autoCalculated.title")} size="sm" style={{ color: "#856404", marginBottom: spacing.xs }} />
+                          <Text text={t("chuteScreen.protocol.autoCalculated.lastWeight", { weight: latestWeight })} size="xs" style={{ color: "#856404" }} />
+                          <Text preset="bold" text={t("chuteScreen.protocol.autoCalculated.give", { ml: calculatedMl.toFixed(1) })} size="lg" style={{ color: "#856404", marginTop: spacing.xxs }} />
+                          <Text text={t("chuteScreen.protocol.autoCalculated.based", { ml: mlPerDose, kg: kgPerDose })} size="xxs" style={{ color: "#856404", marginTop: spacing.xxs }} />
                         </View>
                       )
                     }
 
                     return (
                       <View style={{ backgroundColor: "#E3F2FD", borderRadius: 8, padding: spacing.md, marginBottom: spacing.sm }}>
-                        <Text text={`Last weight: ${latestWeight} kg`} size="xs" style={{ color: "#1565C0" }} />
-                        <Text text="Manual dosage required - protocol doesn't specify rate per kg" size="xxs" style={{ color: "#1565C0", marginTop: spacing.xxs }} />
+                        <Text text={t("chuteScreen.protocol.autoCalculated.lastWeight", { weight: latestWeight })} size="xs" style={{ color: "#1565C0" }} />
+                        <Text text={t("chuteScreen.protocol.manualDosage")} size="xxs" style={{ color: "#1565C0", marginTop: spacing.xxs }} />
                       </View>
                     )
                   })()}
 
                   {weightHistory.length === 0 && (
                     <View style={{ backgroundColor: "#FFEBEE", borderRadius: 8, padding: spacing.md, marginBottom: spacing.sm }}>
-                      <Text preset="bold" text="No Weight on Record" size="xs" style={{ color: "#C62828" }} />
-                      <Text text="Weigh this animal first for accurate dosage calculation" size="xxs" style={{ color: "#C62828", marginTop: spacing.xxs }} />
+                      <Text preset="bold" text={t("chuteScreen.protocol.noWeight.title")} size="xs" style={{ color: "#C62828" }} />
+                      <Text text={t("chuteScreen.protocol.noWeight.message")} size="xxs" style={{ color: "#C62828", marginTop: spacing.xxs }} />
                     </View>
                   )}
 
                   <View style={themed($formButtons)}>
-                    <Button text="Change Protocol" preset="default" onPress={() => setSelectedProtocol(null)} />
-                    <Button text="Apply & Next" preset="reversed" onPress={handleApplyProtocol} style={themed($saveNextButton)} />
+                    <Button text={t("chuteScreen.protocol.changeProtocol")} preset="default" onPress={() => setSelectedProtocol(null)} />
+                    <Button text={t("chuteScreen.protocol.applyAndNext")} preset="reversed" onPress={handleApplyProtocol} style={themed($saveNextButton)} />
                   </View>
                 </View>
               )}
@@ -733,7 +735,7 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
       {/* Session log */}
       {processedLog.length > 0 && !scannedAnimal && (
         <View style={themed($sessionInfo)}>
-          <Text preset="formLabel" text={`Session: ${processedLog.length} processed`} style={themed($sessionLabel)} />
+          <Text preset="formLabel" text={t("chuteScreen.session.processed", { count: processedLog.length })} style={themed($sessionLabel)} />
           <FlatList
             data={processedLog}
             keyExtractor={(item) => item.id}

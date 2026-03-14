@@ -1,6 +1,7 @@
 import { FC, useCallback, useState } from "react"
 import { FlatList, Pressable, View, ViewStyle, TextStyle, Image, ImageStyle } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
+import { useTranslation } from "react-i18next"
 
 import { Screen, Text, Button, EmptyState, TextField } from "@/components"
 import { useAppTheme } from "@/theme/context"
@@ -12,6 +13,7 @@ import { STATUS_COLORS } from "@/theme/colors"
 import { parsePhotos } from "@/types/Photo"
 
 export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation }) => {
+  const { t } = useTranslation()
   const { themed, theme } = useAppTheme()
   const { animals, isLoading } = useAnimals()
   const [search, setSearch] = useState("")
@@ -59,27 +61,27 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation 
               </View>
             </View>
             <View style={themed($animalCardBody)}>
-              <Text size="xs" text={`Tag: ${item.visualTag}`} style={themed($dimText)} />
-              <Text size="xs" text={`${item.breed} | ${item.sex}`} style={themed($dimText)} />
+              <Text size="xs" text={t("herdListScreen.tag", { tag: item.visualTag })} style={themed($dimText)} />
+              <Text size="xs" text={t("herdListScreen.breedAndSex", { breed: item.breed, sex: item.sex })} style={themed($dimText)} />
             </View>
           </View>
         </View>
       </Pressable>
     )
-  }, [themed, theme, handleAnimalPress])
+  }, [themed, theme, handleAnimalPress, t])
 
   return (
     <Screen preset="fixed" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
       <View style={themed($header)}>
-        <Text preset="heading" text="Herd" />
-        <Button text="+ Add" preset="filled" onPress={handleAddAnimal} style={themed($addButton)} />
+        <Text preset="heading" text={t("herdListScreen.title")} />
+        <Button text={t("herdListScreen.addButton")} preset="filled" onPress={handleAddAnimal} style={themed($addButton)} />
       </View>
 
       {animals.length > 0 && (
         <TextField
           value={search}
           onChangeText={setSearch}
-          placeholder="Search by tag, name, or breed..."
+          placeholder={t("herdListScreen.searchPlaceholder")}
           containerStyle={themed($searchField)}
         />
       )}
@@ -87,7 +89,10 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation 
       {animals.length > 0 ? (
         <>
           <Text
-            text={`${filtered.length} animal${filtered.length !== 1 ? "s" : ""}`}
+            text={t(
+              filtered.length === 1 ? "herdListScreen.count_one" : "herdListScreen.count_other",
+              { count: filtered.length }
+            )}
             size="xs"
             style={themed($countText)}
           />
@@ -104,9 +109,9 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation 
           <View style={themed($emptyIconContainer)}>
             <MaterialCommunityIcons name="cow" size={50} color={theme.colors.palette.primary500} />
           </View>
-          <Text preset="heading" text={isLoading ? "Loading..." : "Start Building Your Herd"} style={themed($emptyHeading)} />
+          <Text preset="heading" text={isLoading ? t("herdListScreen.empty.loading") : t("herdListScreen.empty.title")} style={themed($emptyHeading)} />
           <Text
-            text="Add your first animal to start tracking health records, weights, breeding, and more."
+            text={t("herdListScreen.empty.description")}
             style={themed($emptyContent)}
           />
 
@@ -116,8 +121,8 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation 
                 <MaterialCommunityIcons name="tag-plus-outline" size={20} color={theme.colors.palette.primary500} />
               </View>
               <View style={themed($cardContent)}>
-                <Text preset="bold" text="Add Animal Details" style={themed($cardTitle)} />
-                <Text text="Enter tag number, breed, sex, and optional photo" size="xs" style={themed($cardText)} />
+                <Text preset="bold" text={t("herdListScreen.empty.onboarding.step1.title")} style={themed($cardTitle)} />
+                <Text text={t("herdListScreen.empty.onboarding.step1.description")} size="xs" style={themed($cardText)} />
               </View>
             </View>
 
@@ -126,8 +131,8 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation 
                 <MaterialCommunityIcons name="clipboard-check-outline" size={20} color={theme.colors.palette.primary500} />
               </View>
               <View style={themed($cardContent)}>
-                <Text preset="bold" text="Track Everything" style={themed($cardTitle)} />
-                <Text text="Record treatments, weights, breeding, and movements" size="xs" style={themed($cardText)} />
+                <Text preset="bold" text={t("herdListScreen.empty.onboarding.step2.title")} style={themed($cardTitle)} />
+                <Text text={t("herdListScreen.empty.onboarding.step2.description")} size="xs" style={themed($cardText)} />
               </View>
             </View>
 
@@ -136,15 +141,15 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation 
                 <MaterialCommunityIcons name="file-export-outline" size={20} color={theme.colors.palette.primary500} />
               </View>
               <View style={themed($cardContent)}>
-                <Text preset="bold" text="Export Reports" style={themed($cardTitle)} />
-                <Text text="Generate compliance-ready reports for sales and audits" size="xs" style={themed($cardText)} />
+                <Text preset="bold" text={t("herdListScreen.empty.onboarding.step3.title")} style={themed($cardTitle)} />
+                <Text text={t("herdListScreen.empty.onboarding.step3.description")} size="xs" style={themed($cardText)} />
               </View>
             </View>
           </View>
 
           {!isLoading && (
             <Button
-              text="Add Your First Animal"
+              text={t("herdListScreen.empty.button")}
               preset="filled"
               onPress={handleAddAnimal}
               style={themed($emptyButton)}
@@ -153,7 +158,7 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation 
 
           <View style={themed($helpHint)}>
             <MaterialCommunityIcons name="lightbulb-on-outline" size={16} color={theme.colors.palette.primary700} style={themed($hintIcon)} />
-            <Text text="Tip: Use the camera scanner to automatically read ear tag numbers" size="xs" style={themed($hintText)} />
+            <Text text={t("herdListScreen.empty.tip")} size="xs" style={themed($hintText)} />
           </View>
         </View>
       )}

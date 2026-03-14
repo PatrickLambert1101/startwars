@@ -1,5 +1,6 @@
 import { FC, useCallback, useState, useMemo } from "react"
 import { Alert, Pressable, View, ViewStyle, TextStyle, ScrollView } from "react-native"
+import { useTranslation } from "react-i18next"
 
 import { Screen, Text, TextField, Button, Icon } from "@/components"
 import { PhotoPicker } from "@/components/PhotoPicker"
@@ -19,6 +20,7 @@ import { useProtocols } from "@/hooks/useProtocols"
 const RECORD_TYPES: HealthRecordType[] = ["vaccination", "treatment", "vet_visit", "condition_score", "other"]
 
 export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">> = ({ route, navigation }) => {
+  const { t } = useTranslation()
   const { themed } = useAppTheme()
   const { animalId } = route.params
   const { createHealthRecord } = useHealthRecordActions()
@@ -78,12 +80,12 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
 
   const handleSave = useCallback(async () => {
     if (!description.trim()) {
-      Alert.alert("Required", "Description is required")
+      Alert.alert(t("healthRecordFormScreen.alerts.required.title"), t("healthRecordFormScreen.alerts.required.message"))
       return
     }
 
     if (!currentOrg) {
-      Alert.alert("Error", "No organization selected")
+      Alert.alert(t("healthRecordFormScreen.alerts.noOrganization.title"), t("healthRecordFormScreen.alerts.noOrganization.message"))
       return
     }
 
@@ -107,10 +109,10 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
       navigation.goBack()
     } catch (error) {
       console.error("Failed to save health record:", error)
-      Alert.alert("Error", "Failed to save health record")
+      Alert.alert(t("healthRecordFormScreen.alerts.saveError.title"), t("healthRecordFormScreen.alerts.saveError.message"))
     }
     setIsSubmitting(false)
-  }, [animalId, recordType, description, productName, dosage, administeredBy, notes, photos, currentOrg, createHealthRecord, navigation])
+  }, [animalId, recordType, description, productName, dosage, administeredBy, notes, photos, currentOrg, createHealthRecord, navigation, t])
 
   const uploadPhotosInBackground = async (recordId: string, photosToUpload: PhotoWithMetadata[]) => {
     try {
@@ -152,33 +154,33 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
   return (
     <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
       <View style={themed($headerRow)}>
-        <Button text="Cancel" preset="default" onPress={() => navigation.goBack()} />
-        <Text preset="heading" text="Health Record" />
+        <Button text={t("healthRecordFormScreen.cancelButton")} preset="default" onPress={() => navigation.goBack()} />
+        <Text preset="heading" text={t("healthRecordFormScreen.title")} />
         <View style={{ width: 60 }} />
       </View>
 
       <View style={themed($form)}>
-        <Text preset="formLabel" text="Type" />
+        <Text preset="formLabel" text={t("healthRecordFormScreen.typeLabel")} />
         <View style={themed($typeRow)}>
-          {RECORD_TYPES.map((t) => {
-            const locked = t === "vaccination" && !hasFeature("vaccines")
+          {RECORD_TYPES.map((type) => {
+            const locked = type === "vaccination" && !hasFeature("vaccines")
             return (
               <Pressable
-                key={t}
+                key={type}
                 onPress={() => {
                   if (locked) {
                     navigation.navigate("Upgrade" as any)
                     return
                   }
-                  setRecordType(t)
+                  setRecordType(type)
                   setSelectedProtocolId(null) // Reset protocol when type changes
                 }}
-                style={themed(recordType === t ? $typeChipActive : locked ? $typeChipLocked : $typeChip)}
+                style={themed(recordType === type ? $typeChipActive : locked ? $typeChipLocked : $typeChip)}
               >
                 <Text
-                  text={locked ? `${t.replace("_", " ")} (PRO)` : t.replace("_", " ")}
+                  text={locked ? t("healthRecordFormScreen.recordTypes.vaccinationPro") : t(`healthRecordFormScreen.recordTypes.${type}`)}
                   size="xs"
-                  style={themed(recordType === t ? $typeChipTextActive : $typeChipText)}
+                  style={themed(recordType === type ? $typeChipTextActive : $typeChipText)}
                 />
               </Pressable>
             )
@@ -194,7 +196,7 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
                   <Icon icon="check" size={20} color="#4A8C3F" />
                   <View style={themed($selectedProtocolText)}>
                     <Text style={themed($selectedProtocolName)}>{selectedProtocol.name}</Text>
-                    <Text style={themed($selectedProtocolDetail)}>{selectedProtocol.productName} • {selectedProtocol.dosage}</Text>
+                    <Text style={themed($selectedProtocolDetail)}>{t("healthRecordFormScreen.protocol.selectedDetail", { productName: selectedProtocol.productName, dosage: selectedProtocol.dosage })}</Text>
                   </View>
                 </View>
                 <Pressable onPress={handleClearProtocol} style={themed($clearButton)}>
@@ -208,7 +210,7 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
               >
                 <Icon icon="medical" size={20} color="#666" />
                 <Text style={themed($selectProtocolText)}>
-                  Select from {relevantProtocols.length} saved protocol{relevantProtocols.length !== 1 ? 's' : ''}
+                  {t("healthRecordFormScreen.protocol.selectButton", { count: relevantProtocols.length })}
                 </Text>
                 <Icon icon="caretRight" size={16} color="#999" />
               </Pressable>
@@ -225,7 +227,7 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
                   >
                     <View style={themed($protocolItemContent)}>
                       <Text style={themed($protocolItemName)}>{protocol.name}</Text>
-                      <Text style={themed($protocolItemDetail)}>{protocol.productName} • {protocol.dosage}</Text>
+                      <Text style={themed($protocolItemDetail)}>{t("healthRecordFormScreen.protocol.selectedDetail", { productName: protocol.productName, dosage: protocol.dosage })}</Text>
                     </View>
                     <Icon icon="caretRight" size={16} color="#999" />
                   </Pressable>
@@ -241,41 +243,41 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
             onPress={() => navigation.navigate("TreatmentProtocols")}
           >
             <Text style={themed($noProtocolsText)}>
-              No protocols found. Create one in Settings → Treatment Protocols
+              {t("healthRecordFormScreen.protocol.noProtocols")}
             </Text>
           </Pressable>
         )}
 
         <TextField
-          label="Description *"
+          label={t("healthRecordFormScreen.fields.description.label")}
           value={description}
           onChangeText={setDescription}
-          placeholder="What was done?"
+          placeholder={t("healthRecordFormScreen.fields.description.placeholder")}
           multiline
         />
         <TextField
-          label="Product Name"
+          label={t("healthRecordFormScreen.fields.productName.label")}
           value={productName}
           onChangeText={setProductName}
-          placeholder="e.g. Covexin 10"
+          placeholder={t("healthRecordFormScreen.fields.productName.placeholder")}
         />
         <TextField
-          label="Dosage"
+          label={t("healthRecordFormScreen.fields.dosage.label")}
           value={dosage}
           onChangeText={setDosage}
-          placeholder="e.g. 2ml SC"
+          placeholder={t("healthRecordFormScreen.fields.dosage.placeholder")}
         />
         <TextField
-          label="Administered By"
+          label={t("healthRecordFormScreen.fields.administeredBy.label")}
           value={administeredBy}
           onChangeText={setAdministeredBy}
-          placeholder="Name"
+          placeholder={t("healthRecordFormScreen.fields.administeredBy.placeholder")}
         />
         <TextField
-          label="Notes"
+          label={t("healthRecordFormScreen.fields.notes.label")}
           value={notes}
           onChangeText={setNotes}
-          placeholder="Additional notes..."
+          placeholder={t("healthRecordFormScreen.fields.notes.placeholder")}
           multiline
         />
 
@@ -283,11 +285,11 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
           photos={photos}
           onPhotosChange={setPhotos}
           maxPhotos={3}
-          label="Photos (Optional)"
+          label={t("healthRecordFormScreen.fields.photos.label")}
         />
 
         <Button
-          text={isSubmitting ? "Saving..." : "Save Record"}
+          text={isSubmitting ? t("healthRecordFormScreen.buttons.saving") : t("healthRecordFormScreen.buttons.save")}
           preset="reversed"
           style={themed($saveButton)}
           onPress={handleSave}

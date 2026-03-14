@@ -15,60 +15,62 @@ import Purchases, {
 } from "react-native-purchases"
 import { useDatabase } from "./DatabaseContext"
 
-export type PlanTier = "free" | "pro"
-export type PremiumFeature = "vaccines" | "pastures"
+export type PlanTier = "starter" | "farm" | "commercial"
+export type PremiumFeature = "vaccines" | "pastures" | "unlimited_animals" | "team_members" | "advanced_reports"
 export type BillingPeriod = "monthly" | "annual"
 
 export type SubscriptionContextType = {
   plan: PlanTier
-  isPro: boolean
+  isStarter: boolean
+  isFarm: boolean
+  isCommercial: boolean
+  isPremium: boolean // Farm or Commercial
   isLoading: boolean
-  /** Current subscription tier (starter | farm | commercial) */
-  currentPlan: string
   /** Check if a specific premium feature is unlocked */
   hasFeature: (feature: PremiumFeature) => boolean
   /** Available purchase packages from RevenueCat */
   packages: PurchasesPackage[]
   /** Purchase a specific package */
   purchasePackage: (pkg: PurchasesPackage) => Promise<void>
-  /** Convenience: purchase pro monthly */
-  purchaseProMonthly: () => Promise<void>
-  /** Convenience: purchase pro annual */
-  purchaseProAnnual: () => Promise<void>
   /** Restore previous purchases */
   restorePurchases: () => Promise<void>
-  /** Legacy: immediate upgrade (for dev/testing) */
-  upgradeToPro: () => void
 }
 
-const PREMIUM_FEATURES: PremiumFeature[] = ["vaccines", "pastures"]
+// Feature availability by tier
+const TIER_FEATURES = {
+  starter: [] as PremiumFeature[], // Free tier - no premium features
+  farm: ["vaccines", "pastures", "unlimited_animals"] as PremiumFeature[],
+  commercial: ["vaccines", "pastures", "unlimited_animals", "team_members", "advanced_reports"] as PremiumFeature[],
+}
 
 // RevenueCat API key - using test key (replace with production key later)
 const REVENUECAT_API_KEY = "test_HiAakRXKRndBIBZdYHlGVISoCmX"
 
-// RevenueCat entitlement identifier — must match what you set up in the RC dashboard
-const PRO_ENTITLEMENT_ID = "Herdtrackr Pro"
+// RevenueCat entitlement identifiers — must match what you set up in the RC dashboard
+const FARM_ENTITLEMENT_ID = "farm"
+const COMMERCIAL_ENTITLEMENT_ID = "commercial"
 
 export const SubscriptionContext = createContext<SubscriptionContextType | null>(null)
 
 export const SubscriptionProvider: FC<PropsWithChildren> = ({ children }) => {
   const { currentOrg } = useDatabase()
 
-  const [plan, setPlan] = useState<PlanTier>("free")
+  const [plan, setPlan] = useState<PlanTier>("starter")
   const [packages, setPackages] = useState<PurchasesPackage[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
-  // Get current subscription tier from database
-  const currentPlan = currentOrg?.subscriptionTier || "starter"
-
-  const isPro = plan === "pro"
+  // Computed tier checks
+  const isStarter = plan === "starter"
+  const isFarm = plan === "farm"
+  const isCommercial = plan === "commercial"
+  const isPremium = isFarm || isCommercial
 
   // ── Initialise RevenueCat ─────────────────────────────────
   useEffect(() => {
     const initRevenueCat = async () => {
       try {
-        // Configure RevenueCat with debug logging
-        Purchases.setLogLevel(LOG_LEVEL.DEBUG)
+        // Configure RevenueCat with minimal logging
+        Purchases.setLogLevel(LOG_LEVEL.INFO)
 
         // Initialize SDK
         await Purchases.configure({
@@ -94,13 +96,14 @@ export const SubscriptionProvider: FC<PropsWithChildren> = ({ children }) => {
         console.log("[Subscriptions] Customer info:", {
           activeEntitlements: Object.keys(customerInfo.entitlements.active),
           allEntitlements: Object.keys(customerInfo.entitlements.all),
+          allPurchasedProducts: Object.keys(customerInfo.allPurchasedProductIdentifiers || {}),
         })
         updatePlanFromCustomerInfo(customerInfo)
 
       } catch (error) {
         console.error("[Subscriptions] Failed to initialize RevenueCat:", error)
-        // Default to free plan on error
-        setPlan("free")
+        // Default to starter plan on error
+        setPlan("starter")
       } finally {
         setIsLoading(false)
       }
@@ -111,15 +114,31 @@ export const SubscriptionProvider: FC<PropsWithChildren> = ({ children }) => {
 
   // ── Helpers ───────────────────────────────────────────────
   const updatePlanFromCustomerInfo = (info: CustomerInfo) => {
-    const hasProEntitlement = info.entitlements.active[PRO_ENTITLEMENT_ID] !== undefined
-    setPlan(hasProEntitlement ? "pro" : "free")
+    // DEVELOPMENT WORKAROUND: Check if using test store and grant farm by default if any purchase exists
+    const isTestStore = REVENUECAT_API_KEY.startsWith("test_")
+    const hasAnyPurchase = Object.keys(info.allPurchasedProductIdentifiers || {}).length > 0
+
+    if (isTestStore && hasAnyPurchase && Object.keys(info.entitlements.active).length === 0) {
+      console.log("[Subscriptions] Test store detected with purchase but no entitlements. Granting Farm plan for testing.")
+      setPlan("farm")
+      return
+    }
+
+    // Check for highest tier first
+    if (info.entitlements.active[COMMERCIAL_ENTITLEMENT_ID] !== undefined) {
+      setPlan("commercial")
+    } else if (info.entitlements.active[FARM_ENTITLEMENT_ID] !== undefined) {
+      setPlan("farm")
+    } else {
+      setPlan("starter")
+    }
   }
 
   const hasFeature = useCallback(
     (feature: PremiumFeature) => {
-      return isPro
+      return TIER_FEATURES[plan].includes(feature)
     },
-    [isPro],
+    [plan],
   )
 
   // ── Purchase methods ──────────────────────────────────────
@@ -127,6 +146,10 @@ export const SubscriptionProvider: FC<PropsWithChildren> = ({ children }) => {
     try {
       setIsLoading(true)
       const { customerInfo } = await Purchases.purchasePackage(pkg)
+      console.log("[Subscriptions] Purchase completed. New customer info:", {
+        activeEntitlements: Object.keys(customerInfo.entitlements.active),
+        allPurchasedProducts: Object.keys(customerInfo.allPurchasedProductIdentifiers || {}),
+      })
       updatePlanFromCustomerInfo(customerInfo)
     } catch (e: any) {
       if (!e.userCancelled) {
@@ -137,38 +160,19 @@ export const SubscriptionProvider: FC<PropsWithChildren> = ({ children }) => {
     }
   }, [])
 
-  const purchaseProMonthly = useCallback(async () => {
-    const monthly = packages.find(
-      (p) => p.packageType === "MONTHLY" || p.identifier === "$rc_monthly",
-    )
-    if (monthly) {
-      await purchasePackage(monthly)
-    } else {
-      Alert.alert("Unavailable", "Monthly plan is not available right now.")
-    }
-  }, [packages, purchasePackage])
-
-  const purchaseProAnnual = useCallback(async () => {
-    const annual = packages.find(
-      (p) => p.packageType === "ANNUAL" || p.identifier === "$rc_annual",
-    )
-    if (annual) {
-      await purchasePackage(annual)
-    } else {
-      Alert.alert("Unavailable", "Annual plan is not available right now.")
-    }
-  }, [packages, purchasePackage])
-
   const restorePurchases = useCallback(async () => {
     try {
       setIsLoading(true)
       const info = await Purchases.restorePurchases()
       updatePlanFromCustomerInfo(info)
-      const restored = info.entitlements.active[PRO_ENTITLEMENT_ID] !== undefined
+      const hasAnyEntitlement =
+        info.entitlements.active[COMMERCIAL_ENTITLEMENT_ID] !== undefined ||
+        info.entitlements.active[FARM_ENTITLEMENT_ID] !== undefined
+
       Alert.alert(
-        restored ? "Restored!" : "Nothing to restore",
-        restored
-          ? "Your Pro subscription has been restored."
+        hasAnyEntitlement ? "Restored!" : "Nothing to restore",
+        hasAnyEntitlement
+          ? "Your subscription has been restored."
           : "No previous purchases found for this account.",
       )
     } catch (e: any) {
@@ -178,25 +182,19 @@ export const SubscriptionProvider: FC<PropsWithChildren> = ({ children }) => {
     }
   }, [])
 
-  // Dev/testing fallback
-  const upgradeToPro = useCallback(() => {
-    setPlan("pro")
-  }, [])
-
   return (
     <SubscriptionContext.Provider
       value={{
         plan,
-        isPro,
+        isStarter,
+        isFarm,
+        isCommercial,
+        isPremium,
         isLoading,
-        currentPlan,
         hasFeature,
         packages,
         purchasePackage,
-        purchaseProMonthly,
-        purchaseProAnnual,
         restorePurchases,
-        upgradeToPro,
       }}
     >
       {children}

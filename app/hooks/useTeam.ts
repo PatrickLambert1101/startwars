@@ -26,12 +26,14 @@ export function useTeam() {
   const [members, setMembers] = useState<TeamMember[]>([])
   const [invites, setInvites] = useState<PendingInvite[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [needsSync, setNeedsSync] = useState(false)
   const { user } = useAuth()
   const { currentOrg } = useDatabase()
 
   useEffect(() => {
     if (!currentOrg || !user) {
       setIsLoading(false)
+      setNeedsSync(false)
       return
     }
 
@@ -40,25 +42,47 @@ export function useTeam() {
 
   const loadTeamData = async () => {
     if (!currentOrg || !currentOrg.remoteId || currentOrg.remoteId === "null") {
-      console.log("[Team] No valid organization or remoteId:", { hasOrg: !!currentOrg, remoteId: currentOrg?.remoteId })
+      console.log("[Team] Organization hasn't synced yet. Remote ID will be available after first sync.")
       setIsLoading(false)
       setMembers([])
       setInvites([])
+      setNeedsSync(true) // Flag that org needs to sync to Supabase first
       return
     }
+
+    setNeedsSync(false)
 
     console.log("[Team] Loading team data for org:", currentOrg.remoteId)
     setIsLoading(true)
 
     try {
+      // Debug: Check current user
+      const { data: { user: currentUser } } = await supabase.auth.getUser()
+      console.log("[Team] Current user ID:", currentUser?.id)
+      console.log("[Team] Expected user ID:", user?.id)
+
+      // Debug: Try to see ANY memberships for this user
+      const { data: allMyMemberships, error: allError } = await supabase
+        .from("memberships")
+        .select("*")
+        .eq("user_id", currentUser?.id || user?.id)
+      console.log("[Team] All my memberships (should bypass org filter):", allMyMemberships?.length || 0)
+      if (allError) {
+        console.error("[Team] Error fetching all memberships:", allError)
+      } else if (allMyMemberships && allMyMemberships.length > 0) {
+        console.log("[Team] First membership:", JSON.stringify(allMyMemberships[0], null, 2))
+      }
+
       // Load members
+      console.log("[Team] Querying memberships for org:", currentOrg.remoteId)
       const { data: membersData, error: membersError } = await supabase
         .from("memberships")
         .select("*")
         .eq("organization_id", currentOrg.remoteId)
 
       if (membersError) {
-        console.error("Failed to load members:", membersError)
+        console.error("[Team] Failed to load members:", membersError)
+        console.error("[Team] Error details:", JSON.stringify(membersError, null, 2))
       } else {
         console.log("[Team] Loaded members:", membersData?.length || 0)
         setMembers(
@@ -109,6 +133,7 @@ export function useTeam() {
     members,
     invites,
     isLoading,
+    needsSync, // True if organization hasn't synced to Supabase yet
     refetch: loadTeamData,
   }
 }

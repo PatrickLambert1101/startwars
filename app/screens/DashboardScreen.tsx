@@ -2,6 +2,7 @@ import { FC, useCallback, useState, useEffect } from "react"
 import { Pressable, View, ViewStyle, TextStyle, Modal, FlatList } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { Q } from "@nozbe/watermelondb"
+import { useTranslation } from "react-i18next"
 
 import { Screen, Text, Button } from "@/components"
 import { useAppTheme } from "@/theme/context"
@@ -15,14 +16,16 @@ import { Organization } from "@/db/models/Organization"
 import { OrganizationMember } from "@/db/models/OrganizationMember"
 
 export const DashboardScreen: FC<MainTabScreenProps<"Dashboard">> = ({ navigation }) => {
+  const { t } = useTranslation()
   const { themed, theme: { colors } } = useAppTheme()
   const { stats } = useDashboardStats()
   const { currentOrg, switchOrganization } = useDatabase()
   const { user } = useAuth()
   const [showFarmPicker, setShowFarmPicker] = useState(false)
   const [userOrgs, setUserOrgs] = useState<Organization[]>([])
+  const [userDisplayName, setUserDisplayName] = useState<string | null>(null)
 
-  // Load all organizations the user is a member of
+  // Load all organizations the user is a member of and user's display name
   useEffect(() => {
     if (!user) return
 
@@ -44,10 +47,18 @@ export const DashboardScreen: FC<MainTabScreenProps<"Dashboard">> = ({ navigatio
         .fetch()
 
       setUserOrgs(orgs)
+
+      // Get user's display name from current org membership
+      if (currentOrg && memberships.length > 0) {
+        const currentMembership = memberships.find(m => m.organizationId === currentOrg.id)
+        if (currentMembership?.userDisplayName) {
+          setUserDisplayName(currentMembership.userDisplayName)
+        }
+      }
     }
 
     loadUserOrgs()
-  }, [user])
+  }, [user, currentOrg])
 
   const handleSetupOrg = useCallback(() => {
     navigation.navigate("OrgSetup")
@@ -69,26 +80,33 @@ export const DashboardScreen: FC<MainTabScreenProps<"Dashboard">> = ({ navigatio
 
   return (
     <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
-      <Text preset="heading" text="Dashboard" style={themed($heading)} />
-      {user?.email ? (
-        <Text text={user.email} size="xs" style={themed($emailText)} />
-      ) : null}
+      <View style={themed($headerSection)}>
+        <View>
+          <Text preset="heading" text={t("dashboardScreen.title")} style={themed($heading)} />
+          {userDisplayName ? (
+            <Text text={t("dashboardScreen.welcomeBack", { name: userDisplayName })} size="md" style={themed($welcomeText)} />
+          ) : null}
+          {user?.email ? (
+            <Text text={user.email} size="xs" style={themed($emailText)} />
+          ) : null}
+        </View>
+      </View>
 
       {!currentOrg ? (
         <View style={themed($setupCard)}>
-          <Text preset="subheading" text="Welcome to HerdTrackr" />
+          <Text preset="subheading" text={t("dashboardScreen.setupCard.title")} />
           <Text
-            text="Set up your farm to start managing your herd."
+            text={t("dashboardScreen.setupCard.subtitle")}
             style={themed($dimText)}
           />
-          <Button text="Set Up Farm" preset="reversed" onPress={handleSetupOrg} />
+          <Button text={t("dashboardScreen.setupCard.button")} preset="reversed" onPress={handleSetupOrg} />
         </View>
       ) : (
         <>
           {/* Farm Switcher */}
           <Pressable onPress={() => setShowFarmPicker(true)} style={themed($farmSwitcher)}>
             <View>
-              <Text text="Current Farm" size="xs" style={themed($dimText)} />
+              <Text text={t("dashboardScreen.currentFarm")} size="xs" style={themed($dimText)} />
               <Text text={currentOrg.name} preset="bold" />
             </View>
             <Text text="▼" size="sm" style={themed($dimText)} />
@@ -97,30 +115,30 @@ export const DashboardScreen: FC<MainTabScreenProps<"Dashboard">> = ({ navigatio
           <View style={themed($statsRow)}>
             <View style={themed($statCard)}>
               <Text preset="subheading" text={String(stats.totalHead)} style={themed($statNumber)} />
-              <Text preset="formHelper" text="Total Head" />
+              <Text preset="formHelper" text={t("dashboardScreen.stats.totalHead")} />
             </View>
             <View style={themed($statCard)}>
               <Text preset="subheading" text={String(stats.activeCount)} style={themed($statNumber)} />
-              <Text preset="formHelper" text="Active" />
+              <Text preset="formHelper" text={t("dashboardScreen.stats.active")} />
             </View>
           </View>
 
           <View style={themed($statsRow)}>
             <View style={themed($statCard)}>
               <Text preset="subheading" text={String(stats.dueToCalve)} style={themed($statNumber)} />
-              <Text preset="formHelper" text="Due to Calve" />
+              <Text preset="formHelper" text={t("dashboardScreen.stats.dueToCalve")} />
             </View>
             <View style={themed($statCard)}>
               <Text preset="subheading" text="0" style={themed($statNumber)} />
-              <Text preset="formHelper" text="Pending Sync" />
+              <Text preset="formHelper" text={t("dashboardScreen.stats.pendingSync")} />
             </View>
           </View>
 
           <View style={themed($section)}>
-            <Text preset="subheading" text="Recent Animals" />
+            <Text preset="subheading" text={t("dashboardScreen.recentAnimals.title")} />
             {stats.recentAnimals.length === 0 ? (
               <Text
-                text="No animals yet. Go to the Herd tab to add your first animal."
+                text={t("dashboardScreen.recentAnimals.empty")}
                 style={themed($dimText)}
               />
             ) : (
@@ -144,7 +162,7 @@ export const DashboardScreen: FC<MainTabScreenProps<"Dashboard">> = ({ navigatio
       >
         <Pressable style={themed($modalOverlay)} onPress={() => setShowFarmPicker(false)}>
           <Pressable style={themed($modalContent)} onPress={(e) => e.stopPropagation()}>
-            <Text preset="subheading" text="Switch Farm" style={themed($modalTitle)} />
+            <Text preset="subheading" text={t("dashboardScreen.switchFarm")} style={themed($modalTitle)} />
 
             <FlatList
               data={userOrgs}
@@ -164,13 +182,13 @@ export const DashboardScreen: FC<MainTabScreenProps<"Dashboard">> = ({ navigatio
                 <>
                   <View style={themed($divider)} />
                   <Pressable onPress={handleCreateNewFarm} style={themed($farmOption)}>
-                    <Text text="+ Create New Farm" style={{ color: colors.tint }} />
+                    <Text text={t("dashboardScreen.createNewFarm")} style={{ color: colors.tint }} />
                   </Pressable>
                 </>
               }
             />
 
-            <Button text="Cancel" onPress={() => setShowFarmPicker(false)} style={themed($cancelButton)} />
+            <Button text={t("common.cancel")} onPress={() => setShowFarmPicker(false)} style={themed($cancelButton)} />
           </Pressable>
         </Pressable>
       </Modal>
@@ -183,14 +201,24 @@ const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingBottom: spacing.xl,
 })
 
+const $headerSection: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  marginBottom: spacing.sm,
+})
+
 const $heading: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  marginBottom: spacing.xs,
+  marginBottom: spacing.xxs,
   marginTop: spacing.md,
+})
+
+const $welcomeText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  color: colors.text,
+  fontWeight: "500",
+  marginBottom: spacing.xxs,
 })
 
 const $emailText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   color: colors.textDim,
-  marginBottom: spacing.lg,
+  marginBottom: spacing.md,
 })
 
 const $orgName: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
