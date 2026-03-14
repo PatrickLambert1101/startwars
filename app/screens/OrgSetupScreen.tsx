@@ -1,6 +1,7 @@
-import { FC, useCallback, useState } from "react"
+import { FC, useCallback, useState, useEffect } from "react"
 import { Alert, Pressable, View, ViewStyle, TextStyle, Image, ImageStyle } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
+import { useTranslation } from "react-i18next"
 
 import { Screen, Text, TextField, Button } from "@/components"
 import { useAppTheme } from "@/theme/context"
@@ -10,6 +11,7 @@ import { useDatabase } from "@/context/DatabaseContext"
 import { useAuth } from "@/context/AuthContext"
 import { useSync } from "@/hooks/useSync"
 import type { LivestockType } from "@/db/models/Organization"
+import { loadString, saveString } from "@/utils/storage"
 
 const herdLogo = require("../../assets/images/herd-logo.png")
 
@@ -17,35 +19,16 @@ type LivestockOption = {
   type: LivestockType
   label: string
   icon: string
+  emoji: string
   desc: string
 }
 
-const LIVESTOCK_OPTIONS: LivestockOption[] = [
-  { type: "cattle", label: "Cattle", icon: "cow", desc: "Nguni, Bonsmara, Brahman, Angus..." },
-  { type: "buffalo", label: "Buffalo", icon: "buffalo", desc: "Cape buffalo, water buffalo" },
-  { type: "horses", label: "Horses", icon: "horse-variant", desc: "Boerperd, Nooitgedachter, Thoroughbred..." },
-  { type: "sheep", label: "Sheep", icon: "sheep", desc: "Dorper, Merino, Damara, Dohne..." },
-  { type: "goats", label: "Goats", icon: "goat", desc: "Boer, Angora, Kalahari Red, Savanna..." },
-  { type: "game", label: "Game", icon: "deer", desc: "Springbok, Impala, Kudu, Eland..." },
-]
+// Livestock options - labels and descriptions will be translated in component
 
 type HerdSize = "small" | "medium" | "large" | "xlarge"
 type Purpose = "breeding" | "fattening" | "dairy" | "mixed" | "game"
 
-const HERD_SIZES: { key: HerdSize; label: string; desc: string }[] = [
-  { key: "small", label: "1 – 50", desc: "Smallholding / starter herd" },
-  { key: "medium", label: "50 – 200", desc: "Medium operation" },
-  { key: "large", label: "200 – 500", desc: "Large commercial" },
-  { key: "xlarge", label: "500+", desc: "Enterprise scale" },
-]
-
-const PURPOSE_OPTIONS: { key: Purpose; label: string; icon: string }[] = [
-  { key: "breeding", label: "Breeding / Stud", icon: "cow" },
-  { key: "fattening", label: "Fattening / Feedlot", icon: "food-steak" },
-  { key: "dairy", label: "Dairy", icon: "cup" },
-  { key: "mixed", label: "Mixed Farming", icon: "grass" },
-  { key: "game", label: "Game Farming", icon: "deer" },
-]
+// Herd sizes and purposes - labels will be translated in component
 
 // Breed options for each livestock type
 const BREED_OPTIONS: Record<LivestockType, string[]> = {
@@ -60,12 +43,15 @@ const BREED_OPTIONS: Record<LivestockType, string[]> = {
 const TOTAL_STEPS = 5
 
 export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation }) => {
+  const { t } = useTranslation()
   const { themed, theme: { colors } } = useAppTheme()
   const { createOrganization } = useDatabase()
   const { user } = useAuth()
   const { sync } = useSync()
 
   const [step, setStep] = useState(1)
+  const [userName, setUserName] = useState("")
+  const [showNamePrompt, setShowNamePrompt] = useState(false)
   const [orgName, setOrgName] = useState("")
   const [location, setLocation] = useState("")
   const [selectedTypes, setSelectedTypes] = useState<LivestockType[]>([])
@@ -74,24 +60,45 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
   const [purpose, setPurpose] = useState<Purpose | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  // Load saved user name from storage on mount
+  useEffect(() => {
+    const loadUserName = async () => {
+      const savedName = await loadString("user_display_name")
+      if (savedName) {
+        setUserName(savedName)
+        setShowNamePrompt(false)
+      } else {
+        setShowNamePrompt(true)
+      }
+    }
+    loadUserName()
+  }, [])
+
   const toggleType = useCallback((type: LivestockType) => {
     setSelectedTypes((prev) =>
       prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type],
     )
   }, [])
 
-  const handleNextFromStep1 = useCallback(() => {
+  const handleNextFromStep1 = useCallback(async () => {
     const name = orgName.trim()
-    if (!name) {
-      Alert.alert("Required", "Give your farm or ranch a name")
+    const displayName = userName.trim()
+    if (!displayName) {
+      Alert.alert(t("common.required"), t("orgSetupScreen.step1.alerts.nameRequired"))
       return
     }
+    if (!name) {
+      Alert.alert(t("common.required"), t("orgSetupScreen.step1.alerts.farmRequired"))
+      return
+    }
+    // Save user name to storage for future use
+    await saveString("user_display_name", displayName)
     setStep(2)
-  }, [orgName])
+  }, [userName, orgName, t])
 
   const handleNextFromStep2 = useCallback(() => {
     if (selectedTypes.length === 0) {
-      Alert.alert("Select at least one", "Choose the types of animals you manage")
+      Alert.alert(t("common.required"), t("orgSetupScreen.step2.alert"))
       return
     }
     // Check if any selected types need breed selection
@@ -99,7 +106,7 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
       BREED_OPTIONS[type] && BREED_OPTIONS[type].length > 1
     )
     setStep(needsBreedSelection ? 3 : 4)
-  }, [selectedTypes])
+  }, [selectedTypes, t])
 
   const handleSkipBreedSelection = useCallback(() => {
     // Optional step - can skip without selection
@@ -108,7 +115,7 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
 
   const handleNextFromStep4 = useCallback(async () => {
     if (!herdSize) {
-      Alert.alert("Required", "Select your approximate herd size")
+      Alert.alert(t("common.required"), t("orgSetupScreen.step4.alert"))
       return
     }
 
@@ -121,6 +128,7 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
         defaultBreeds: defaultBreeds,
         userIdForAdmin: user?.id,
         userEmailForAdmin: user?.email || undefined,
+        userDisplayName: userName.trim(),
       })
 
       // Auto-sync to Supabase so the membership syncs
@@ -131,10 +139,10 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
       setStep(5)
     } catch (error) {
       console.error("[OrgSetup] Error:", error)
-      Alert.alert("Error", "Failed to create organization. Please try again.")
+      Alert.alert(t("errors.somethingWentWrong"), t("errors.tryAgain"))
     }
     setIsSubmitting(false)
-  }, [orgName, location, selectedTypes, herdSize, defaultBreeds, createOrganization, sync, user])
+  }, [orgName, location, selectedTypes, herdSize, defaultBreeds, createOrganization, sync, user, userName, t])
 
   const handleGoToDashboard = useCallback(() => {
     navigation.replace("Main", { screen: "Dashboard" })
@@ -149,14 +157,41 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
     navigation.replace("Main", { screen: "Chute" })
   }, [navigation])
 
+  // Translated options
+  const livestockOptions: LivestockOption[] = [
+    { type: "cattle", label: t("orgSetupScreen.step2.livestock.cattle.label"), icon: "cow", emoji: "🐄", desc: t("orgSetupScreen.step2.livestock.cattle.desc") },
+    { type: "buffalo", label: t("orgSetupScreen.step2.livestock.buffalo.label"), icon: "buffalo", emoji: "🐃", desc: t("orgSetupScreen.step2.livestock.buffalo.desc") },
+    { type: "horses", label: t("orgSetupScreen.step2.livestock.horses.label"), icon: "horse-variant", emoji: "🐴", desc: t("orgSetupScreen.step2.livestock.horses.desc") },
+    { type: "sheep", label: t("orgSetupScreen.step2.livestock.sheep.label"), icon: "sheep", emoji: "🐑", desc: t("orgSetupScreen.step2.livestock.sheep.desc") },
+    { type: "goats", label: t("orgSetupScreen.step2.livestock.goats.label"), icon: "goat", emoji: "🐐", desc: t("orgSetupScreen.step2.livestock.goats.desc") },
+    { type: "game", label: t("orgSetupScreen.step2.livestock.game.label"), icon: "elephant", emoji: "🦌", desc: t("orgSetupScreen.step2.livestock.game.desc") },
+    { type: "pigs", label: t("orgSetupScreen.step2.livestock.pigs.label"), icon: "pig", emoji: "🐷", desc: t("orgSetupScreen.step2.livestock.pigs.desc") },
+    { type: "poultry", label: t("orgSetupScreen.step2.livestock.poultry.label"), icon: "bird", emoji: "🐔", desc: t("orgSetupScreen.step2.livestock.poultry.desc") },
+  ]
+
+  const herdSizes: { key: HerdSize; label: string; desc: string }[] = [
+    { key: "small", label: t("orgSetupScreen.step4.herdSizes.small.label"), desc: t("orgSetupScreen.step4.herdSizes.small.desc") },
+    { key: "medium", label: t("orgSetupScreen.step4.herdSizes.medium.label"), desc: t("orgSetupScreen.step4.herdSizes.medium.desc") },
+    { key: "large", label: t("orgSetupScreen.step4.herdSizes.large.label"), desc: t("orgSetupScreen.step4.herdSizes.large.desc") },
+    { key: "xlarge", label: t("orgSetupScreen.step4.herdSizes.xlarge.label"), desc: t("orgSetupScreen.step4.herdSizes.xlarge.desc") },
+  ]
+
+  const purposeOptions: { key: Purpose; label: string; icon: string }[] = [
+    { key: "breeding", label: t("orgSetupScreen.step4.purposes.breeding"), icon: "cow" },
+    { key: "fattening", label: t("orgSetupScreen.step4.purposes.fattening"), icon: "food-steak" },
+    { key: "dairy", label: t("orgSetupScreen.step4.purposes.dairy"), icon: "cup" },
+    { key: "mixed", label: t("orgSetupScreen.step4.purposes.mixed"), icon: "grass" },
+    { key: "game", label: t("orgSetupScreen.step4.purposes.game"), icon: "elephant" },
+  ]
+
   return (
     <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top", "bottom"]}>
       {/* Header */}
       <View style={themed($hero)}>
         <Image source={herdLogo} style={[themed($logoImage), { tintColor: colors.tint }]} resizeMode="contain" />
-        <Text text="HerdTrackr" preset="heading" style={themed($appName)} />
+        <Text text={t("orgSetupScreen.title")} preset="heading" style={themed($appName)} />
         <Text
-          text={step <= 4 ? "Set up your operation" : "You're all set!"}
+          text={step <= 4 ? t("orgSetupScreen.subtitle") : t("orgSetupScreen.allSet")}
           size="sm"
           style={themed($subtitle)}
         />
@@ -175,37 +210,47 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
       {/* ─── STEP 1: Farm Details ─── */}
       {step === 1 && (
         <View style={themed($card)}>
-          <Text text="Your Farm" preset="bold" size="lg" />
+          <Text text={t("orgSetupScreen.step1.title")} preset="bold" size="lg" />
           <Text
-            text="Tell us about your operation. This creates your workspace."
+            text={t("orgSetupScreen.step1.description")}
             size="sm"
             style={themed($cardDesc)}
           />
 
+          {showNamePrompt && (
+            <TextField
+              label={t("orgSetupScreen.step1.yourNameLabel")}
+              value={userName}
+              onChangeText={setUserName}
+              placeholder={t("orgSetupScreen.step1.yourNamePlaceholder")}
+              autoFocus
+            />
+          )}
+
           <TextField
-            label="Farm / Ranch Name *"
+            label={t("orgSetupScreen.step1.farmNameLabel")}
             value={orgName}
             onChangeText={setOrgName}
-            placeholder="e.g. Sunrise Livestock, Bosveld Game Farm"
-            autoFocus
+            placeholder={t("orgSetupScreen.step1.farmNamePlaceholder")}
+            autoFocus={!showNamePrompt}
           />
 
           <TextField
-            label="Location (optional)"
+            label={t("orgSetupScreen.step1.locationLabel")}
             value={location}
             onChangeText={setLocation}
-            placeholder="e.g. Limpopo, Free State, KZN"
+            placeholder={t("orgSetupScreen.step1.locationPlaceholder")}
           />
 
           {user?.email ? (
             <View style={themed($ownerBadge)}>
-              <Text text="Owner" size="xxs" preset="bold" style={themed($ownerBadgeText)} />
+              <Text text={t("orgSetupScreen.step1.ownerBadge")} size="xxs" preset="bold" style={themed($ownerBadgeText)} />
               <Text text={user.email} size="xs" style={themed($dimText)} numberOfLines={1} />
             </View>
           ) : null}
 
           <Button
-            text="Next"
+            text={t("common.next")}
             preset="reversed"
             style={themed($nextButton)}
             onPress={handleNextFromStep1}
@@ -216,15 +261,15 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
       {/* ─── STEP 2: Livestock Types ─── */}
       {step === 2 && (
         <View style={themed($card)}>
-          <Text text="What do you farm?" preset="bold" size="lg" />
+          <Text text={t("orgSetupScreen.step2.title")} preset="bold" size="lg" />
           <Text
-            text="Select all the types of animals you manage."
+            text={t("orgSetupScreen.step2.description")}
             size="sm"
             style={themed($cardDesc)}
           />
 
           <View style={themed($typesGrid)}>
-            {LIVESTOCK_OPTIONS.map((opt) => {
+            {livestockOptions.map((opt) => {
               const isSelected = selectedTypes.includes(opt.type)
               return (
                 <Pressable
@@ -235,7 +280,7 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
                     isSelected && themed($typeCardSelected),
                   ]}
                 >
-                  <MaterialCommunityIcons name={opt.icon as any} size={32} color={isSelected ? "#FFF" : "#4A8C3F"} />
+                  <Text text={opt.emoji} style={themed($typeEmoji)} />
                   <Text
                     text={opt.label}
                     preset="bold"
@@ -254,9 +299,9 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
           </View>
 
           <View style={themed($buttonRow)}>
-            <Button text="Back" preset="default" onPress={() => setStep(1)} style={themed($backButton)} />
+            <Button text={t("common.back")} preset="default" onPress={() => setStep(1)} style={themed($backButton)} />
             <Button
-              text={`Next (${selectedTypes.length} selected)`}
+              text={t("orgSetupScreen.step2.nextButton", { count: selectedTypes.length })}
               preset="reversed"
               style={themed($flexButton)}
               onPress={handleNextFromStep2}
@@ -268,9 +313,9 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
       {/* ─── STEP 3: Default Breeds (Optional) ─── */}
       {step === 3 && (
         <View style={themed($card)}>
-          <Text text="Set default breeds" preset="bold" size="lg" />
+          <Text text={t("orgSetupScreen.step3.title")} preset="bold" size="lg" />
           <Text
-            text="Choose your most common breeds. You can always change these later."
+            text={t("orgSetupScreen.step3.description")}
             size="sm"
             style={themed($cardDesc)}
           />
@@ -279,12 +324,12 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
             const breeds = BREED_OPTIONS[livestockType]
             if (!breeds || breeds.length <= 1) return null
 
-            const livestockLabel = LIVESTOCK_OPTIONS.find((opt) => opt.type === livestockType)?.label || livestockType
+            const livestockLabel = livestockOptions.find((opt) => opt.type === livestockType)?.label || livestockType
             const selectedBreed = defaultBreeds[livestockType]
 
             return (
               <View key={livestockType} style={{ gap: 4 }}>
-                <Text text={`${livestockLabel} breed`} preset="formLabel" />
+                <Text text={t("orgSetupScreen.step3.breedLabel", { livestock: livestockLabel })} preset="formLabel" />
                 <View style={themed($breedGrid)}>
                   {breeds.map((breed) => (
                     <Pressable
@@ -312,9 +357,9 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
           })}
 
           <View style={themed($buttonRow)}>
-            <Button text="Back" preset="default" onPress={() => setStep(2)} style={themed($backButton)} />
+            <Button text={t("common.back")} preset="default" onPress={() => setStep(2)} style={themed($backButton)} />
             <Button
-              text="Next"
+              text={t("common.next")}
               preset="reversed"
               style={themed($flexButton)}
               onPress={handleSkipBreedSelection}
@@ -326,16 +371,16 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
       {/* ─── STEP 4: Herd Profile ─── */}
       {step === 4 && (
         <View style={themed($card)}>
-          <Text text="Tell us about your herd" preset="bold" size="lg" />
+          <Text text={t("orgSetupScreen.step4.title")} preset="bold" size="lg" />
           <Text
-            text="This helps us tailor the experience for your operation."
+            text={t("orgSetupScreen.step4.description")}
             size="sm"
             style={themed($cardDesc)}
           />
 
-          <Text text="Approximate herd size" preset="formLabel" />
+          <Text text={t("orgSetupScreen.step4.herdSizeLabel")} preset="formLabel" />
           <View style={themed($sizeGrid)}>
-            {HERD_SIZES.map((s) => (
+            {herdSizes.map((s) => (
               <Pressable
                 key={s.key}
                 onPress={() => setHerdSize(s.key)}
@@ -354,9 +399,9 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
             ))}
           </View>
 
-          <Text text="Primary purpose (optional)" preset="formLabel" />
+          <Text text={t("orgSetupScreen.step4.purposeLabel")} preset="formLabel" />
           <View style={themed($purposeGrid)}>
-            {PURPOSE_OPTIONS.map((p) => (
+            {purposeOptions.map((p) => (
               <Pressable
                 key={p.key}
                 onPress={() => setPurpose(purpose === p.key ? null : p.key)}
@@ -381,9 +426,9 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
           </View>
 
           <View style={themed($buttonRow)}>
-            <Button text="Back" preset="default" onPress={() => setStep(3)} style={themed($backButton)} />
+            <Button text={t("common.back")} preset="default" onPress={() => setStep(3)} style={themed($backButton)} />
             <Button
-              text={isSubmitting ? "Creating & Syncing..." : "Create Farm"}
+              text={isSubmitting ? t("orgSetupScreen.step4.creating") : t("orgSetupScreen.step4.createButton")}
               preset="reversed"
               style={themed($flexButton)}
               onPress={handleNextFromStep4}
@@ -396,12 +441,12 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
       {/* ─── STEP 5: Get Started ─── */}
       {step === 5 && (
         <View style={themed($card)}>
-          <View style={themed($successIcon)}>
-            <MaterialCommunityIcons name="check-circle" size={60} color="#10B981" />
+          <View style={{ alignSelf: "center", marginBottom: 16 }}>
+            <MaterialCommunityIcons name="check-circle" size={64} color="#10B981" />
           </View>
-          <Text text={`${orgName.trim()} is ready!`} preset="bold" size="lg" style={{ textAlign: "center" }} />
+          <Text text={t("orgSetupScreen.step5.title", { farmName: orgName.trim() })} preset="bold" size="lg" style={{ textAlign: "center" }} />
           <Text
-            text="What would you like to do first?"
+            text={t("orgSetupScreen.step5.subtitle")}
             size="sm"
             style={[themed($cardDesc), { textAlign: "center" }]}
           />
@@ -411,8 +456,8 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
               <MaterialCommunityIcons name="cow" size={28} color="#4A8C3F" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text text="Add my first animals" preset="bold" />
-              <Text text="Register your herd one by one or import from a list" size="xs" style={themed($dimText)} />
+              <Text text={t("orgSetupScreen.step5.options.addAnimals.title")} preset="bold" />
+              <Text text={t("orgSetupScreen.step5.options.addAnimals.description")} size="xs" style={themed($dimText)} />
             </View>
           </Pressable>
 
@@ -421,8 +466,8 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
               <Text text="🏠" style={{ fontSize: 28 }} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text text="Explore the app" preset="bold" />
-              <Text text="Take a look around and see what HerdTrackr can do" size="xs" style={themed($dimText)} />
+              <Text text={t("orgSetupScreen.step5.options.explore.title")} preset="bold" />
+              <Text text={t("orgSetupScreen.step5.options.explore.description")} size="xs" style={themed($dimText)} />
             </View>
           </Pressable>
         </View>

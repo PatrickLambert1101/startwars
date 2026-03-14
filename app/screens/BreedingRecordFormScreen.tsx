@@ -13,12 +13,14 @@ import { useAuth } from "@/context/AuthContext"
 import { uploadPhoto } from "@/services/photoStorage"
 import type { PhotoWithMetadata } from "@/types/Photo"
 import { serializePhotos } from "@/types/Photo"
+import { useTranslation } from "react-i18next"
 
 const METHODS: BreedingMethod[] = ["natural", "ai", "embryo_transfer"]
 const OUTCOMES: BreedingOutcome[] = ["pending", "live_calf", "stillborn", "aborted", "open"]
 
 export const BreedingRecordFormScreen: FC<AppStackScreenProps<"BreedingRecordForm">> = ({ route, navigation }) => {
   const { themed } = useAppTheme()
+  const { t } = useTranslation()
   const { animalId } = route.params
   const { createBreedingRecord } = useBreedingRecordActions()
   const { currentOrg } = useDatabase()
@@ -32,7 +34,10 @@ export const BreedingRecordFormScreen: FC<AppStackScreenProps<"BreedingRecordFor
 
   const handleSave = useCallback(async () => {
     if (!currentOrg) {
-      Alert.alert("Error", "No organization selected")
+      Alert.alert(
+        t("breedingRecordFormScreen.alerts.noOrganization.title"),
+        t("breedingRecordFormScreen.alerts.noOrganization.message"),
+      )
       return
     }
 
@@ -53,10 +58,13 @@ export const BreedingRecordFormScreen: FC<AppStackScreenProps<"BreedingRecordFor
       navigation.goBack()
     } catch (error) {
       console.error("Failed to save breeding record:", error)
-      Alert.alert("Error", "Failed to save breeding record")
+      Alert.alert(
+        t("breedingRecordFormScreen.alerts.saveError.title"),
+        t("breedingRecordFormScreen.alerts.saveError.message"),
+      )
     }
     setIsSubmitting(false)
-  }, [animalId, method, outcome, notes, photos, currentOrg, createBreedingRecord, navigation])
+  }, [animalId, method, outcome, notes, photos, currentOrg, createBreedingRecord, navigation, t])
 
   const uploadPhotosInBackground = async (recordId: string, photosToUpload: PhotoWithMetadata[]) => {
     try {
@@ -98,13 +106,13 @@ export const BreedingRecordFormScreen: FC<AppStackScreenProps<"BreedingRecordFor
   return (
     <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
       <View style={themed($headerRow)}>
-        <Button text="Cancel" preset="default" onPress={() => navigation.goBack()} />
-        <Text preset="heading" text="Breeding Record" />
+        <Button text={t("breedingRecordFormScreen.cancelButton")} preset="default" onPress={() => navigation.goBack()} />
+        <Text preset="heading" text={t("breedingRecordFormScreen.title")} />
         <View style={{ width: 60 }} />
       </View>
 
       <View style={themed($form)}>
-        <Text preset="formLabel" text="Method" />
+        <Text preset="formLabel" text={t("breedingRecordFormScreen.methodLabel")} />
         <View style={themed($chipRow)}>
           {METHODS.map((m) => (
             <Pressable
@@ -113,7 +121,7 @@ export const BreedingRecordFormScreen: FC<AppStackScreenProps<"BreedingRecordFor
               style={themed(method === m ? $chipActive : $chip)}
             >
               <Text
-                text={m.replace("_", " ")}
+                text={t(`breedingRecordFormScreen.methods.${m}` as const)}
                 size="xs"
                 style={themed(method === m ? $chipTextActive : $chipText)}
               />
@@ -121,7 +129,7 @@ export const BreedingRecordFormScreen: FC<AppStackScreenProps<"BreedingRecordFor
           ))}
         </View>
 
-        <Text preset="formLabel" text="Outcome" style={themed($outcomeLabel)} />
+        <Text preset="formLabel" text={t("breedingRecordFormScreen.outcomeLabel")} style={themed($outcomeLabel)} />
         <View style={themed($chipRow)}>
           {OUTCOMES.map((o) => (
             <Pressable
@@ -130,7 +138,7 @@ export const BreedingRecordFormScreen: FC<AppStackScreenProps<"BreedingRecordFor
               style={themed(outcome === o ? $chipActive : $chip)}
             >
               <Text
-                text={o.replace("_", " ")}
+                text={t(`breedingRecordFormScreen.outcomes.${o}` as const)}
                 size="xs"
                 style={themed(outcome === o ? $chipTextActive : $chipText)}
               />
@@ -139,10 +147,10 @@ export const BreedingRecordFormScreen: FC<AppStackScreenProps<"BreedingRecordFor
         </View>
 
         <TextField
-          label="Notes"
+          label={t("breedingRecordFormScreen.fields.notes.label")}
           value={notes}
           onChangeText={setNotes}
-          placeholder="Additional notes..."
+          placeholder={t("breedingRecordFormScreen.fields.notes.placeholder")}
           multiline
         />
 
@@ -150,11 +158,11 @@ export const BreedingRecordFormScreen: FC<AppStackScreenProps<"BreedingRecordFor
           photos={photos}
           onPhotosChange={setPhotos}
           maxPhotos={3}
-          label="Photos (Optional)"
+          label={t("breedingRecordFormScreen.fields.photos.label")}
         />
 
         <Button
-          text={isSubmitting ? "Saving..." : "Save Record"}
+          text={isSubmitting ? t("breedingRecordFormScreen.buttons.saving") : t("breedingRecordFormScreen.buttons.save")}
           preset="reversed"
           style={themed($saveButton)}
           onPress={handleSave}

@@ -27,6 +27,33 @@ const zu = {
       button: "Vuselela",
     },
   },
+  authScreen: {
+    title: "HerdTrackr",
+    subtitle: "Phatha izilwane zakho kalula",
+    formTitle: "Ngena nge-imeyili yakho",
+    formSubtitle: "Sizokuthumela ikhodi yezinombolo ezi-7 - akudingeki phasiwedi!",
+    emailLabel: "Ikheli Le-imeyili",
+    emailPlaceholder: "umlimi@isibonelo.com",
+    sendCode: "Thumela Ikhodi",
+    sending: "Iyathumela...",
+    enterCode: "Faka Ikhodi",
+    checkEmail: "Bheka i-imeyili yakho ukuthola ikhodi yezinombolo ezi-7",
+    sentTo: "Ithunyelwe ku",
+    codeLabel: "Ikhodi Yezinombolo Ezi-7",
+    codePlaceholder: "0000000",
+    verifyCode: "Qinisekisa Ikhodi",
+    verifying: "Iyaqinisekisa...",
+    didntReceive: "Awuyitholanga ikhodi?",
+    resend: "Thumela futhi",
+    termsNotice: "Ngokuqhubeka, uyavuma Imigomo Yethu Yesevisi",
+    benefits: {
+      title: "Ongakwenza:",
+      animals: "Landelela izilwane, impilo nokuzala",
+      pastures: "Phatha amadlelo nokujikeleza",
+      team: "Mema abasebenzi bakho basepulazini",
+      sync: "Vumela wonke amadivaysi",
+    },
+  },
 }
 
 export default zu

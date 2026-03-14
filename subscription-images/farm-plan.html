@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farm Plan - 1024x1024</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #f0f0f0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        .container {
+            width: 1024px;
+            height: 1024px;
+            background: linear-gradient(135deg, #4A8C3F 0%, #36712D 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 80px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Background pattern */
+        .container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background-image:
+                repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 35px,
+                    rgba(255, 255, 255, 0.03) 35px,
+                    rgba(255, 255, 255, 0.03) 70px
+                );
+            animation: slide 60s linear infinite;
+        }
+
+        @keyframes slide {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(50px, 50px); }
+        }
+
+        .icon {
+            width: 280px;
+            height: 280px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 60px;
+            position: relative;
+            z-index: 1;
+            backdrop-filter: blur(10px);
+            border: 3px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .icon-inner {
+            font-size: 140px;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+        }
+
+        .title {
+            font-size: 96px;
+            font-weight: 800;
+            color: #FFFFFF;
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            letter-spacing: -2px;
+            text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .subtitle {
+            font-size: 42px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.9);
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .price {
+            font-size: 72px;
+            font-weight: 800;
+            color: #F5AD1C;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .features {
+            position: relative;
+            z-index: 1;
+            margin-top: 50px;
+            text-align: center;
+        }
+
+        .feature {
+            font-size: 32px;
+            color: rgba(255, 255, 255, 0.85);
+            margin: 12px 0;
+            font-weight: 500;
+        }
+
+        .badge {
+            position: absolute;
+            top: 60px;
+            right: 60px;
+            background: #F5AD1C;
+            color: #1E1A16;
+            padding: 20px 40px;
+            border-radius: 50px;
+            font-size: 28px;
+            font-weight: 800;
+            z-index: 2;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="badge">MOST POPULAR</div>
+        <div class="icon">
+            <div class="icon-inner">🐄</div>
+        </div>
+        <div class="title">Farm Plan</div>
+        <div class="subtitle">Professional Herd Management</div>
+        <div class="price">R249,99/mo</div>
+        <div class="features">
+            <div class="feature">✓ Up to 1,000 animals</div>
+            <div class="feature">✓ Full health tracking</div>
+            <div class="feature">✓ Team collaboration</div>
+        </div>
+    </div>
+</body>
+</html>

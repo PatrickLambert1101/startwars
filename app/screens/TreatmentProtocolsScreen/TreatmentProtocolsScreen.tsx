@@ -7,25 +7,27 @@ import { colors } from "@/theme/colors"
 import { AppStackScreenProps } from "@/navigators"
 import { useProtocols, useProtocolActions } from "@/hooks/useProtocols"
 import { TreatmentProtocol, ProtocolType } from "@/db/models"
+import { useTranslation } from "react-i18next"
 
 interface TreatmentProtocolsScreenProps extends AppStackScreenProps<"TreatmentProtocols"> {}
 
 type FilterOption = "all" | ProtocolType
 
-const FILTER_OPTIONS: { value: FilterOption; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "vaccination", label: "Vaccination" },
-  { value: "treatment", label: "Treatment" },
-  { value: "deworming", label: "Deworming" },
-  { value: "other", label: "Other" },
-]
-
 export function TreatmentProtocolsScreen({ navigation }: TreatmentProtocolsScreenProps) {
   const { protocols, isLoading } = useProtocols()
   const { toggleProtocolActive, deleteProtocol, seedDefaultProtocols } = useProtocolActions()
   const { themed } = useAppTheme()
+  const { t } = useTranslation()
   const [activeFilter, setActiveFilter] = useState<FilterOption>("all")
   const [seeding, setSeeding] = useState(false)
+
+  const FILTER_OPTIONS: { value: FilterOption; label: string }[] = [
+    { value: "all", label: t("treatmentProtocolsScreen.filters.all") },
+    { value: "vaccination", label: t("treatmentProtocolsScreen.filters.vaccination") },
+    { value: "treatment", label: t("treatmentProtocolsScreen.filters.treatment") },
+    { value: "deworming", label: t("treatmentProtocolsScreen.filters.deworming") },
+    { value: "other", label: t("treatmentProtocolsScreen.filters.other") },
+  ]
 
   useEffect(() => {
     if (!isLoading && protocols.length === 0) {
@@ -73,7 +75,10 @@ export function TreatmentProtocolsScreen({ navigation }: TreatmentProtocolsScree
       console.log("[TreatmentProtocols] Protocol toggled successfully")
     } catch (error) {
       console.error("[TreatmentProtocols] Failed to toggle protocol:", error)
-      Alert.alert("Error", "Failed to toggle protocol status. Please try again.")
+      Alert.alert(
+        t("treatmentProtocolsScreen.alerts.toggleError.title"),
+        t("treatmentProtocolsScreen.alerts.toggleError.message"),
+      )
     }
   }
 
@@ -90,7 +95,10 @@ export function TreatmentProtocolsScreen({ navigation }: TreatmentProtocolsScree
     try {
       const count = await seedDefaultProtocols()
       if (count > 0) {
-        Alert.alert("Protocols Added", `${count} standard SA cattle protocols have been loaded.`)
+        Alert.alert(
+          t("treatmentProtocolsScreen.alerts.protocolsAdded.title"),
+          t("treatmentProtocolsScreen.alerts.protocolsAdded.message", { count }),
+        )
       }
     } catch (error) {
       console.error("Failed to seed protocols:", error)
@@ -138,7 +146,9 @@ export function TreatmentProtocolsScreen({ navigation }: TreatmentProtocolsScree
             <Text style={themed($protocolName)}>{item.name}</Text>
             {!item.isActive && (
               <View style={themed($inactiveBadge)}>
-                <Text style={themed($inactiveBadgeText)}>Inactive</Text>
+                <Text style={themed($inactiveBadgeText)}>
+                  {t("treatmentProtocolsScreen.badges.inactive")}
+                </Text>
               </View>
             )}
           </View>
@@ -176,7 +186,9 @@ export function TreatmentProtocolsScreen({ navigation }: TreatmentProtocolsScree
         {item.withdrawalDays != null && item.withdrawalDays > 0 && (
           <View style={themed($detailRow)}>
             <Icon icon="bell" size={16} color={colors.palette.accent500} />
-            <Text style={themed($detailText)}>Withdrawal: {item.withdrawalDays} days</Text>
+            <Text style={themed($detailText)}>
+              {t("treatmentProtocolsScreen.details.withdrawal", { days: item.withdrawalDays })}
+            </Text>
           </View>
         )}
         <View style={themed($detailRow)}>
@@ -192,22 +204,31 @@ export function TreatmentProtocolsScreen({ navigation }: TreatmentProtocolsScree
   const renderEmpty = () => (
     <View style={themed($emptyState)}>
       <Icon icon="medical" size={64} color={colors.palette.neutral300} />
-      <Text style={themed($emptyTitle)}>No Treatment Protocols</Text>
+      <Text style={themed($emptyTitle)}>{t("treatmentProtocolsScreen.empty.title")}</Text>
       <Text style={themed($emptyText)}>
         {activeFilter !== "all"
-          ? `No ${activeFilter} protocols found. Try a different filter or create one.`
-          : "Create your first protocol to get started"}
+          ? t("treatmentProtocolsScreen.empty.withFilter", { filter: activeFilter })
+          : t("treatmentProtocolsScreen.empty.noFilter")}
       </Text>
       {activeFilter !== "all" ? (
         <Button
-          text="Show All"
+          text={t("treatmentProtocolsScreen.empty.showAllButton")}
           onPress={() => setActiveFilter("all")}
           style={themed($emptyButton)}
         />
       ) : (
         <View style={themed($emptyActions)}>
-          <Button text="Load SA Defaults" onPress={handleSeedDefaults} disabled={seeding} style={themed($emptyButton)} />
-          <Button text="Create Protocol" onPress={handleCreateProtocol} style={themed($emptyButton)} />
+          <Button
+            text={t("treatmentProtocolsScreen.empty.loadDefaultsButton")}
+            onPress={handleSeedDefaults}
+            disabled={seeding}
+            style={themed($emptyButton)}
+          />
+          <Button
+            text={t("treatmentProtocolsScreen.empty.createButton")}
+            onPress={handleCreateProtocol}
+            style={themed($emptyButton)}
+          />
         </View>
       )}
     </View>
@@ -219,8 +240,8 @@ export function TreatmentProtocolsScreen({ navigation }: TreatmentProtocolsScree
         <Pressable onPress={() => navigation.goBack()} style={themed($backButton)}>
           <Icon icon="back" size={24} />
         </Pressable>
-        <Text preset="heading" text="Treatment Protocols" style={themed($headerTitle)} />
-        <Button text="+ New" onPress={handleCreateProtocol} style={themed($createButton)} />
+        <Text preset="heading" text={t("treatmentProtocolsScreen.title")} style={themed($headerTitle)} />
+        <Button text={t("treatmentProtocolsScreen.createButton")} onPress={handleCreateProtocol} style={themed($createButton)} />
       </View>
 
       {protocols.length > 0 && renderFilterChips()}
@@ -228,7 +249,14 @@ export function TreatmentProtocolsScreen({ navigation }: TreatmentProtocolsScree
       {filteredProtocols.length > 0 ? (
         <>
           <Text
-            text={`${filteredProtocols.length} protocol${filteredProtocols.length !== 1 ? "s" : ""}${activeFilter !== "all" ? ` (${activeFilter})` : ""}`}
+            text={
+              activeFilter !== "all"
+                ? t("treatmentProtocolsScreen.countWithFilter", {
+                    count: filteredProtocols.length,
+                    filter: activeFilter,
+                  })
+                : t("treatmentProtocolsScreen.count", { count: filteredProtocols.length })
+            }
             size="xs"
             style={themed($countText)}
           />

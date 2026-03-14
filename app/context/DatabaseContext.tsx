@@ -12,6 +12,7 @@ export type CreateOrgParams = {
   defaultBreeds?: Partial<Record<LivestockType, string>>
   userIdForAdmin?: string  // Pass user.id to auto-create admin membership
   userEmailForAdmin?: string
+  userDisplayName?: string // User's display name for membership
 }
 
 export type DatabaseContextType = {
@@ -105,14 +106,14 @@ export const DatabaseProvider: FC<PropsWithChildren> = ({ children }) => {
           m.organizationId = newOrg.id
           m.userId = params.userIdForAdmin!
           m.userEmail = params.userEmailForAdmin!
-          m.userDisplayName = null
+          m.userDisplayName = params.userDisplayName ?? null
           m.role = "admin"
           m.invitedBy = null
           m.invitedAt = null
           m.joinedAt = new Date()
           m.isActive = true
         })
-        console.log("[DatabaseContext] Created admin membership for", params.userEmailForAdmin)
+        console.log("[DatabaseContext] Created admin membership for", params.userEmailForAdmin, "with display name:", params.userDisplayName)
       }
 
       return newOrg

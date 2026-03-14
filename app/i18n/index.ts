@@ -20,7 +20,19 @@ const fallbackLocale = "en-US"
 
 const systemLocales = Localization.getLocales()
 
-const resources = { af, ar, en, es, fr, hi, ja, ko, xh, zu }
+// Wrap each language in a translation namespace
+const resources = {
+  af: { translation: af },
+  ar: { translation: ar },
+  en: { translation: en },
+  es: { translation: es },
+  fr: { translation: fr },
+  hi: { translation: hi },
+  ja: { translation: ja },
+  ko: { translation: ko },
+  xh: { translation: xh },
+  zu: { translation: zu },
+}
 const supportedTags = Object.keys(resources)
 
 // Checks to see if the device locale matches any of the supported locales
@@ -53,6 +65,8 @@ export const initI18n = async () => {
     resources,
     lng: locale?.languageTag ?? fallbackLocale,
     fallbackLng: fallbackLocale,
+    ns: ["translation"],
+    defaultNS: "translation",
     interpolation: {
       escapeValue: false,
     },

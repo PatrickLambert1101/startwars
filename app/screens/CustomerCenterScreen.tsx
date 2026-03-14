@@ -5,17 +5,17 @@ import { Screen, Text, Button } from "@/components"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { useSubscription } from "@/context/SubscriptionContext"
-import { RevenueCatUI } from "react-native-purchases-ui"
+import RevenueCatUI from "react-native-purchases-ui"
 
 interface CustomerCenterScreenProps extends AppStackScreenProps<"CustomerCenter"> {}
 
 export function CustomerCenterScreen(props: CustomerCenterScreenProps) {
   const { navigation } = props
   const { themed } = useAppTheme()
-  const { isPro } = useSubscription()
+  const { isPremium } = useSubscription()
 
-  // If not Pro, redirect to paywall
-  if (!isPro) {
+  // If not subscribed, redirect to paywall
+  if (!isPremium) {
     return (
       <Screen preset="fixed" safeAreaEdges={["top", "bottom"]} contentContainerStyle={themed($container)}>
         <View style={themed($messageContainer)}>
@@ -23,7 +23,7 @@ export function CustomerCenterScreen(props: CustomerCenterScreenProps) {
             No Active Subscription
           </Text>
           <Text style={themed($messageText)}>
-            You don't have an active subscription. Upgrade to Pro to access premium features and manage your subscription.
+            You don't have an active subscription. Upgrade to access premium features and manage your subscription.
           </Text>
           <Button
             text="View Plans"
@@ -45,7 +45,7 @@ export function CustomerCenterScreen(props: CustomerCenterScreenProps) {
   // Show RevenueCat Customer Center UI for Pro users
   return (
     <Screen preset="fixed" safeAreaEdges={["top", "bottom"]} contentContainerStyle={themed($fullscreen)}>
-      <RevenueCatUI.CustomerCenter
+      <RevenueCatUI.CustomerCenterView
         onDismiss={() => {
           console.log("[CustomerCenter] Dismissed")
           navigation.goBack()
@@ -57,7 +57,7 @@ export function CustomerCenterScreen(props: CustomerCenterScreenProps) {
             "Your purchases have been restored successfully.",
           )
         }}
-        onRestoreError={({ error }) => {
+        onRestoreFailed={({ error }) => {
           console.error("[CustomerCenter] Restore error:", error)
           Alert.alert(
             "Restore Failed",

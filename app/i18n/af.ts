@@ -27,6 +27,33 @@ const af = {
       button: "Verfris",
     },
   },
+  authScreen: {
+    title: "HerdTrackr",
+    subtitle: "Bestuur jou vee met gemak",
+    formTitle: "Teken in met jou e-pos",
+    formSubtitle: "Ons sal jou 'n 7-syfer kode stuur - geen wagwoord nodig nie!",
+    emailLabel: "E-posadres",
+    emailPlaceholder: "boer@voorbeeld.com",
+    sendCode: "Stuur Kode",
+    sending: "Stuur...",
+    enterCode: "Voer Kode In",
+    checkEmail: "Kyk jou e-pos vir die 7-syfer kode",
+    sentTo: "Gestuur na",
+    codeLabel: "7-Syfer Kode",
+    codePlaceholder: "0000000",
+    verifyCode: "Verifieer Kode",
+    verifying: "Verifieer...",
+    didntReceive: "Het jy nie die kode ontvang nie?",
+    resend: "Stuur weer",
+    termsNotice: "Deur voort te gaan, stem jy in tot ons Diensbepalings",
+    benefits: {
+      title: "Wat jy kan doen:",
+      animals: "Volg diere, gesondheid & teling",
+      pastures: "Bestuur kampe & rotasies",
+      team: "Nooi jou plaaswerkers",
+      sync: "Sinkroniseer oor alle toestelle",
+    },
+  },
 }
 
 export default af

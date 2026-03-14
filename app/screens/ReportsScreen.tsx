@@ -1,15 +1,18 @@
 import { FC, useEffect, useState } from "react"
 import { Share, View, ViewStyle, TextStyle, Pressable, Alert, ScrollView, TouchableOpacity } from "react-native"
+import { useTranslation } from "react-i18next"
 
 import { Screen, Text, Button, Icon } from "@/components"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { useDatabase } from "@/context/DatabaseContext"
+import { useAuth } from "@/context/AuthContext"
 import { database } from "@/db"
 import { Animal } from "@/db/models/Animal"
 import { HealthRecord } from "@/db/models/HealthRecord"
 import { WeightRecord } from "@/db/models/WeightRecord"
 import { BreedingRecord } from "@/db/models/BreedingRecord"
+import { OrganizationMember } from "@/db/models/OrganizationMember"
 import { Q } from "@nozbe/watermelondb"
 import { differenceInMonths, differenceInDays } from "date-fns"
 import { generateTraceabilityReport, formatFullTraceabilityReport } from "@/services/traceabilityReport"
@@ -38,13 +41,16 @@ type ReportData = {
 }
 
 export const ReportsScreen: FC = () => {
+  const { t } = useTranslation()
   const { themed } = useAppTheme()
   const { currentOrg } = useDatabase()
+  const { user } = useAuth()
   const [report, setReport] = useState<ReportData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [allAnimals, setAllAnimals] = useState<Animal[]>([])
   const [selectedAnimalIds, setSelectedAnimalIds] = useState<Set<string>>(new Set())
   const [isGeneratingReport, setIsGeneratingReport] = useState(false)
+  const [userDisplayName, setUserDisplayName] = useState<string | null>(null)
 
   useEffect(() => {
     if (!currentOrg) {
@@ -58,6 +64,21 @@ export const ReportsScreen: FC = () => {
         .fetch()
 
       setAllAnimals(animals)
+
+      // Fetch user's display name from membership
+      if (user) {
+        const membership = await database.get<OrganizationMember>("organization_members")
+          .query(
+            Q.where("user_id", user.id),
+            Q.where("organization_id", currentOrg.id),
+            Q.where("is_active", true)
+          )
+          .fetch()
+
+        if (membership.length > 0 && membership[0].userDisplayName) {
+          setUserDisplayName(membership[0].userDisplayName)
+        }
+      }
 
       const healthRecords = await database.get<HealthRecord>("health_records")
         .query(Q.where("organization_id", currentOrg.id), Q.where("is_deleted", false))
@@ -124,14 +145,14 @@ export const ReportsScreen: FC = () => {
             id: animal.id,
             name: animal.name || animal.visualTag,
             ageMonths,
-            reason: "No vaccinations recorded - calves should be vaccinated by 2 months",
+            reason: t("reportsScreen.animalsNeedingAttention.reasons.noVaccinations"),
           })
         } else if (ageMonths >= 6 && vaccinationRecords.length < 2) {
           animalsNeedingAttention.push({
             id: animal.id,
             name: animal.name || animal.visualTag,
             ageMonths,
-            reason: "May need booster shots - typically required by 6 months",
+            reason: t("reportsScreen.animalsNeedingAttention.reasons.needsBooster"),
           })
         }
       }
@@ -153,7 +174,7 @@ export const ReportsScreen: FC = () => {
     }
 
     loadReport()
-  }, [currentOrg])
+  }, [currentOrg, user])
 
   const handleExportCSV = async () => {
     if (!currentOrg) return
@@ -198,7 +219,7 @@ export const ReportsScreen: FC = () => {
 
   const handleGenerateTraceabilityReport = async () => {
     if (!currentOrg || selectedAnimalIds.size === 0) {
-      Alert.alert("No Selection", "Please select at least one animal to generate a traceability report.")
+      Alert.alert(t("common.required"), t("reportsScreen.traceability.noSelection"))
       return
     }
 
@@ -209,6 +230,7 @@ export const ReportsScreen: FC = () => {
         Array.from(selectedAnimalIds),
         currentOrg.name,
         currentOrg.location,
+        userDisplayName,
       )
 
       const formattedReport = formatFullTraceabilityReport(reportData)
@@ -226,7 +248,7 @@ export const ReportsScreen: FC = () => {
       })
     } catch (error) {
       console.error("Error generating traceability report:", error)
-      Alert.alert("Error", "Failed to generate traceability report. Please try again.")
+      Alert.alert(t("errors.somethingWentWrong"), t("errors.tryAgain"))
     } finally {
       setIsGeneratingReport(false)
     }
@@ -236,7 +258,7 @@ export const ReportsScreen: FC = () => {
     return (
       <Screen preset="fixed" safeAreaEdges={["top"]}>
         <View style={themed($centered)}>
-          <Text text="Loading reports..." />
+          <Text text={t("common.loading")} />
         </View>
       </Screen>
     )
@@ -245,58 +267,58 @@ export const ReportsScreen: FC = () => {
   if (!report || report.totalHead === 0) {
     return (
       <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
-        <Text preset="heading" text="Reports" style={themed($heading)} />
-        <Text text="Add animals to see reports and analytics." style={themed($dimText)} />
+        <Text preset="heading" text={t("reportsScreen.title")} style={themed($heading)} />
+        <Text text={t("reportsScreen.noAnimals")} style={themed($dimText)} />
       </Screen>
     )
   }
 
   return (
     <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
-      <Text preset="heading" text="Reports" style={themed($heading)} />
+      <Text preset="heading" text={t("reportsScreen.title")} style={themed($heading)} />
 
       <View style={themed($card)}>
-        <Text preset="subheading" text="Herd Summary" style={themed($cardTitle)} />
-        <SummaryRow label="Total Head" value={String(report.totalHead)} themed={themed} />
+        <Text preset="subheading" text={t("reportsScreen.herdSummary.title")} style={themed($cardTitle)} />
+        <SummaryRow label={t("reportsScreen.herdSummary.totalHead")} value={String(report.totalHead)} themed={themed} />
         {Object.entries(report.byStatus).map(([k, v]) => (
           <SummaryRow key={k} label={`  ${k}`} value={String(v)} themed={themed} />
         ))}
       </View>
 
       <View style={themed($card)}>
-        <Text preset="subheading" text="By Sex" style={themed($cardTitle)} />
+        <Text preset="subheading" text={t("reportsScreen.bySex.title")} style={themed($cardTitle)} />
         {Object.entries(report.bySex).map(([k, v]) => (
           <SummaryRow key={k} label={k} value={String(v)} themed={themed} />
         ))}
       </View>
 
       <View style={themed($card)}>
-        <Text preset="subheading" text="By Breed" style={themed($cardTitle)} />
+        <Text preset="subheading" text={t("reportsScreen.byBreed.title")} style={themed($cardTitle)} />
         {Object.entries(report.byBreed).map(([k, v]) => (
           <SummaryRow key={k} label={k} value={String(v)} themed={themed} />
         ))}
       </View>
 
       <View style={themed($card)}>
-        <Text preset="subheading" text="Records" style={themed($cardTitle)} />
-        <SummaryRow label="Health records" value={String(report.healthRecordCount)} themed={themed} />
-        <SummaryRow label="Weight records" value={String(report.weightRecordCount)} themed={themed} />
-        <SummaryRow label="Breeding records" value={String(report.breedingRecordCount)} themed={themed} />
+        <Text preset="subheading" text={t("reportsScreen.records.title")} style={themed($cardTitle)} />
+        <SummaryRow label={t("reportsScreen.records.healthRecords")} value={String(report.healthRecordCount)} themed={themed} />
+        <SummaryRow label={t("reportsScreen.records.weightRecords")} value={String(report.weightRecordCount)} themed={themed} />
+        <SummaryRow label={t("reportsScreen.records.breedingRecords")} value={String(report.breedingRecordCount)} themed={themed} />
         {report.avgWeight !== null && (
-          <SummaryRow label="Avg weight" value={`${report.avgWeight.toFixed(1)} kg`} themed={themed} />
+          <SummaryRow label={t("reportsScreen.records.avgWeight")} value={`${report.avgWeight.toFixed(1)} kg`} themed={themed} />
         )}
         {report.pregnancyRate !== null && (
-          <SummaryRow label="Calving success" value={`${report.pregnancyRate.toFixed(0)}%`} themed={themed} />
+          <SummaryRow label={t("reportsScreen.records.calvingSuccess")} value={`${report.pregnancyRate.toFixed(0)}%`} themed={themed} />
         )}
       </View>
 
       <View style={themed($card)}>
-        <Text preset="subheading" text="Treatment Statistics" style={themed($cardTitle)} />
-        <SummaryRow label="Vaccinations" value={String(report.treatmentStats.vaccinations)} themed={themed} />
-        <SummaryRow label="Treatments" value={String(report.treatmentStats.treatments)} themed={themed} />
-        <SummaryRow label="Deworming" value={String(report.treatmentStats.deworming)} themed={themed} />
+        <Text preset="subheading" text={t("reportsScreen.treatmentStats.title")} style={themed($cardTitle)} />
+        <SummaryRow label={t("reportsScreen.treatmentStats.vaccinations")} value={String(report.treatmentStats.vaccinations)} themed={themed} />
+        <SummaryRow label={t("reportsScreen.treatmentStats.treatments")} value={String(report.treatmentStats.treatments)} themed={themed} />
+        <SummaryRow label={t("reportsScreen.treatmentStats.deworming")} value={String(report.treatmentStats.deworming)} themed={themed} />
         <SummaryRow
-          label="Total health events"
+          label={t("reportsScreen.treatmentStats.totalHealthEvents")}
           value={String(report.treatmentStats.vaccinations + report.treatmentStats.treatments + report.treatmentStats.deworming)}
           themed={themed}
         />
@@ -306,10 +328,15 @@ export const ReportsScreen: FC = () => {
         <View style={themed($alertCard)}>
           <View style={themed($alertHeader)}>
             <Icon icon="caretRight" size={20} color="#E53E3E" />
-            <Text preset="subheading" text="Animals Needing Attention" style={themed($alertTitle)} />
+            <Text preset="subheading" text={t("reportsScreen.animalsNeedingAttention.title")} style={themed($alertTitle)} />
           </View>
           <Text style={themed($alertSubtext)}>
-            {report.animalsNeedingAttention.length} {report.animalsNeedingAttention.length === 1 ? 'animal needs' : 'animals need'} attention
+            {t(
+              report.animalsNeedingAttention.length === 1
+                ? "reportsScreen.animalsNeedingAttention.count_one"
+                : "reportsScreen.animalsNeedingAttention.count_other",
+              { count: report.animalsNeedingAttention.length }
+            )}
           </Text>
           {report.animalsNeedingAttention.map((animal) => (
             <View key={animal.id} style={themed($alertItem)}>
@@ -318,7 +345,7 @@ export const ReportsScreen: FC = () => {
                   {animal.name}
                 </Text>
                 <Text size="xs" style={themed($alertItemAge)}>
-                  {animal.ageMonths} months old
+                  {t("reportsScreen.animalsNeedingAttention.monthsOld", { months: animal.ageMonths })}
                 </Text>
               </View>
               <Text size="sm" style={themed($alertItemReason)}>
@@ -330,31 +357,30 @@ export const ReportsScreen: FC = () => {
       )}
 
       <Button
-        text="Export Herd as CSV"
+        text={t("reportsScreen.exportButton")}
         preset="reversed"
         onPress={handleExportCSV}
         style={themed($exportButton)}
       />
 
       <View style={themed($traceabilitySection)}>
-        <Text preset="subheading" text="Animal Traceability Reports" style={themed($sectionTitle)} />
+        <Text preset="subheading" text={t("reportsScreen.traceability.title")} style={themed($sectionTitle)} />
         <Text style={themed($sectionDescription)}>
-          Generate comprehensive traceability reports for individual animals or groups. Reports include complete
-          history: health records, weights, breeding, movements, and photos.
+          {t("reportsScreen.traceability.description")}
         </Text>
 
         <View style={themed($selectionControls)}>
-          <Text text={`${selectedAnimalIds.size} selected`} preset="bold" size="sm" />
+          <Text text={t("reportsScreen.traceability.selected", { count: selectedAnimalIds.size })} preset="bold" size="sm" />
           <View style={themed($selectionButtons)}>
             <Button
-              text="Select All"
+              text={t("reportsScreen.traceability.selectAll")}
               preset="default"
               onPress={selectAllAnimals}
               style={themed($smallButton)}
               textStyle={themed($smallButtonText)}
             />
             <Button
-              text="Clear"
+              text={t("reportsScreen.traceability.clear")}
               preset="default"
               onPress={clearSelection}
               style={themed($smallButton)}
@@ -388,7 +414,7 @@ export const ReportsScreen: FC = () => {
         </View>
 
         <Button
-          text={isGeneratingReport ? "Generating Report..." : "Generate & Share Report"}
+          text={isGeneratingReport ? t("reportsScreen.traceability.generating") : t("reportsScreen.traceability.generateButton")}
           preset="filled"
           onPress={handleGenerateTraceabilityReport}
           disabled={selectedAnimalIds.size === 0 || isGeneratingReport}

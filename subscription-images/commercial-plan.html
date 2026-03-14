@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Commercial Plan - 1024x1024</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #f0f0f0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        .container {
+            width: 1024px;
+            height: 1024px;
+            background: linear-gradient(135deg, #1E1A16 0%, #3D3832 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 80px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Premium gold accents */
+        .container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background-image:
+                repeating-linear-gradient(
+                    -45deg,
+                    transparent,
+                    transparent 35px,
+                    rgba(245, 173, 28, 0.05) 35px,
+                    rgba(245, 173, 28, 0.05) 70px
+                );
+            animation: slide 60s linear infinite;
+        }
+
+        @keyframes slide {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(-50px, 50px); }
+        }
+
+        .icon {
+            width: 280px;
+            height: 280px;
+            background: linear-gradient(135deg, #F5AD1C 0%, #FFC94D 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 60px;
+            position: relative;
+            z-index: 1;
+            box-shadow: 0 20px 60px rgba(245, 173, 28, 0.4);
+            border: 4px solid rgba(245, 173, 28, 0.3);
+        }
+
+        .icon-inner {
+            font-size: 140px;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+        }
+
+        .title {
+            font-size: 86px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #F5AD1C 0%, #FFD780 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            letter-spacing: -2px;
+            filter: drop-shadow(0 4px 12px rgba(245, 173, 28, 0.4));
+        }
+
+        .subtitle {
+            font-size: 42px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.8);
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .price {
+            font-size: 72px;
+            font-weight: 800;
+            color: #F5AD1C;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 4px 16px rgba(245, 173, 28, 0.5);
+        }
+
+        .features {
+            position: relative;
+            z-index: 1;
+            margin-top: 50px;
+            text-align: center;
+        }
+
+        .feature {
+            font-size: 32px;
+            color: rgba(255, 255, 255, 0.75);
+            margin: 12px 0;
+            font-weight: 500;
+        }
+
+        .badge {
+            position: absolute;
+            top: 60px;
+            right: 60px;
+            background: linear-gradient(135deg, #F5AD1C 0%, #FFC94D 100%);
+            color: #1E1A16;
+            padding: 20px 40px;
+            border-radius: 50px;
+            font-size: 28px;
+            font-weight: 800;
+            z-index: 2;
+            box-shadow: 0 12px 32px rgba(245, 173, 28, 0.4);
+        }
+
+        /* Decorative elements */
+        .corner-accent {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            border: 3px solid rgba(245, 173, 28, 0.2);
+            border-radius: 50%;
+        }
+
+        .corner-accent.top-left {
+            top: -150px;
+            left: -150px;
+        }
+
+        .corner-accent.bottom-right {
+            bottom: -150px;
+            right: -150px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="corner-accent top-left"></div>
+        <div class="corner-accent bottom-right"></div>
+        <div class="badge">ENTERPRISE</div>
+        <div class="icon">
+            <div class="icon-inner">🏢</div>
+        </div>
+        <div class="title">Commercial</div>
+        <div class="subtitle">Enterprise-Grade Solution</div>
+        <div class="price">R999/mo</div>
+        <div class="features">
+            <div class="feature">✓ Unlimited everything</div>
+            <div class="feature">✓ Advanced analytics</div>
+            <div class="feature">✓ Dedicated support</div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,6 +1,7 @@
 import React, { useMemo } from "react"
 import { View, ViewStyle, TextStyle, FlatList, Pressable } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
+import { useTranslation } from "react-i18next"
 import { Screen, Text, Button } from "@/components"
 import { PastureIcon } from "@/components/icons"
 import { useAppTheme } from "@/theme/context"
@@ -11,6 +12,7 @@ import { Pasture } from "@/db/models"
 import type { MainTabScreenProps } from "@/navigators"
 
 export const PasturesScreen: React.FC<MainTabScreenProps<"Pastures">> = ({ navigation }) => {
+  const { t } = useTranslation()
   const { themed, theme: { colors } } = useAppTheme()
   const { hasFeature } = useSubscription()
   const { pastures, isLoading } = usePastures()
@@ -27,16 +29,16 @@ export const PasturesScreen: React.FC<MainTabScreenProps<"Pastures">> = ({ navig
     return (
       <Screen preset="fixed" contentContainerStyle={themed($lockedContainer)} safeAreaEdges={["top", "bottom"]}>
         <PastureIcon size={64} color={colors.palette.accent500} />
-        <Text text="Pasture Rotation" preset="heading" style={themed($lockedTitle)} />
+        <Text text={t("pasturesScreen.locked.title")} preset="heading" style={themed($lockedTitle)} />
         <Text
-          text="Map paddocks, assign herds, and track grazing days to optimise forage and soil health."
+          text={t("pasturesScreen.locked.description")}
           style={themed($lockedDesc)}
         />
         <View style={themed($proBadge)}>
-          <Text text="PRO" size="xs" style={themed($proBadgeText)} />
+          <Text text={t("pasturesScreen.locked.proBadge")} size="xs" style={themed($proBadgeText)} />
         </View>
         <Button
-          text="Upgrade to Pro"
+          text={t("pasturesScreen.locked.upgradeButton")}
           preset="reversed"
           style={themed($upgradeBtn)}
           onPress={() => navigation.navigate("Upgrade")}
@@ -83,12 +85,12 @@ export const PasturesScreen: React.FC<MainTabScreenProps<"Pastures">> = ({ navig
               {pasture.currentAnimalCount}
               {pasture.maxCapacity && ` / ${pasture.maxCapacity}`}
             </Text>
-            <Text style={themed($statLabel)}>Animals</Text>
+            <Text style={themed($statLabel)}>{t("pasturesScreen.card.animals")}</Text>
           </View>
           {pasture.isOccupied && (
             <View style={themed($cardStat)}>
               <Text style={themed($statValue)}>{pasture.daysGrazed}</Text>
-              <Text style={themed($statLabel)}>Days Grazed</Text>
+              <Text style={themed($statLabel)}>{t("pasturesScreen.card.daysGrazed")}</Text>
             </View>
           )}
         </View>
@@ -107,7 +109,7 @@ export const PasturesScreen: React.FC<MainTabScreenProps<"Pastures">> = ({ navig
               />
             </View>
             <Text style={themed($progressText)}>
-              {pasture.targetGrazingDays - pasture.daysGrazed} days until rotation
+              {t("pasturesScreen.card.daysUntilRotation", { days: pasture.targetGrazingDays - pasture.daysGrazed })}
             </Text>
           </View>
         )}
@@ -139,38 +141,38 @@ export const PasturesScreen: React.FC<MainTabScreenProps<"Pastures">> = ({ navig
   return (
     <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={themed($container)}>
       <View style={themed($header)}>
-        <Text preset="heading" text="Pasture Rotation" style={themed($headerTitle)} />
-        <Button text="+ New" onPress={handleCreatePasture} style={themed($createButton)} />
+        <Text preset="heading" text={t("pasturesScreen.title")} style={themed($headerTitle)} />
+        <Button text={t("pasturesScreen.createButton")} onPress={handleCreatePasture} style={themed($createButton)} />
       </View>
 
       {/* Stats Summary */}
       <View style={themed($statsRow)}>
         <View style={themed($statCard)}>
           <Text style={themed($statCardValue)}>{pastures.length}</Text>
-          <Text style={themed($statCardLabel)}>Pastures</Text>
+          <Text style={themed($statCardLabel)}>{t("pasturesScreen.stats.pastures")}</Text>
         </View>
         <View style={themed($statCard)}>
           <Text style={themed($statCardValue)}>{stats.totalAnimals}</Text>
-          <Text style={themed($statCardLabel)}>Animals</Text>
+          <Text style={themed($statCardLabel)}>{t("pasturesScreen.stats.animals")}</Text>
         </View>
         <View style={themed($statCard)}>
           <Text style={themed($statCardValue)}>{stats.occupied}</Text>
-          <Text style={themed($statCardLabel)}>Occupied</Text>
+          <Text style={themed($statCardLabel)}>{t("pasturesScreen.stats.occupied")}</Text>
         </View>
       </View>
 
       {isLoading ? (
         <View style={themed($emptyContainer)}>
-          <Text>Loading...</Text>
+          <Text>{t("common.loading")}</Text>
         </View>
       ) : pastures.length === 0 ? (
         <View style={themed($emptyContainer)}>
           <PastureIcon size={48} color={colors.palette.neutral400} />
-          <Text style={themed($emptyTitle)}>No Pastures Yet</Text>
+          <Text style={themed($emptyTitle)}>{t("pasturesScreen.empty.title")}</Text>
           <Text style={themed($emptyDescription)}>
-            We'll guide you through creating your first pasture in just 3 easy steps
+            {t("pasturesScreen.empty.description")}
           </Text>
-          <Button text="Get Started →" preset="filled" onPress={handleCreatePasture} style={themed($emptyButton)} />
+          <Button text={t("pasturesScreen.empty.button")} preset="filled" onPress={handleCreatePasture} style={themed($emptyButton)} />
         </View>
       ) : (
         <FlatList
