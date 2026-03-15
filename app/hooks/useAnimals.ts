@@ -3,6 +3,7 @@ import { Q } from "@nozbe/watermelondb"
 import { database } from "@/db"
 import { Animal, AnimalSex, AnimalStatus } from "@/db/models/Animal"
 import { useDatabase } from "@/context/DatabaseContext"
+import { calculateScheduledVaccinations } from "@/services/vaccinationScheduler"
 
 export type AnimalFormData = {
   rfidTag: string
@@ -86,9 +87,11 @@ export function useAnimalActions() {
   const createAnimal = async (data: AnimalFormData): Promise<Animal> => {
     if (!currentOrg) throw new Error("No organization selected")
 
-    return database.write(async () => {
+    const animal = await database.write(async () => {
       return database.get<Animal>("animals").create((animal) => {
         animal.organizationId = currentOrg.id
+        // Default to first livestock type (usually cattle for most farms)
+        animal.species = currentOrg.livestockTypes?.[0] ?? "cattle"
         animal.rfidTag = data.rfidTag
         animal.visualTag = data.visualTag
         animal.name = data.name ?? null
@@ -104,9 +107,28 @@ export function useAnimalActions() {
         animal.isDeleted = false
       })
     })
+
+    // Auto-calculate vaccinations for the new animal
+    if (__DEV__) {
+      console.log("[useAnimals] Auto-calculating vaccinations for new animal:", animal.displayName, {
+        species: animal.species,
+        dateOfBirth: animal.dateOfBirth?.toISOString(),
+        sex: animal.sex,
+        status: animal.status
+      })
+    }
+    calculateScheduledVaccinations(currentOrg.id).catch((error) => {
+      console.error("[useAnimals] Failed to auto-calculate vaccinations:", error)
+    })
+
+    return animal
   }
 
   const updateAnimal = async (animalId: string, data: Partial<AnimalFormData>): Promise<void> => {
+    if (!currentOrg) throw new Error("No organization selected")
+
+    const shouldRecalculate = data.dateOfBirth !== undefined || data.sex !== undefined || data.status !== undefined
+
     await database.write(async () => {
       const animal = await database.get<Animal>("animals").find(animalId)
       await animal.update((a) => {
@@ -124,6 +146,16 @@ export function useAnimalActions() {
         if (data.notes !== undefined) a.notes = data.notes ?? null
       })
     })
+
+    // Auto-recalculate vaccinations if age, sex, or status changed (affects eligibility)
+    if (shouldRecalculate) {
+      if (__DEV__) {
+        console.log("[useAnimals] Auto-recalculating vaccinations after animal update")
+      }
+      calculateScheduledVaccinations(currentOrg.id).catch((error) => {
+        console.error("[useAnimals] Failed to auto-calculate vaccinations:", error)
+      })
+    }
   }
 
   const deleteAnimal = async (animalId: string): Promise<void> => {

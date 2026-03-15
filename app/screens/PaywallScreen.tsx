@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import { useState } from "react"
 import { View, ViewStyle, Alert, ScrollView, Pressable, TextStyle } from "react-native"
 import { AppStackScreenProps } from "@/navigators"
 import { Screen, Button, Text } from "@/components"

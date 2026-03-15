@@ -301,7 +301,9 @@ async function ensureOrganizationMemberships(userId?: string, userEmail?: string
           console.log(`[Sync] Marking existing membership as updated for ${org.name}`)
           await database.write(async () => {
             await existingMemberships[0].update((m: any) => {
-              // Just touching updatedAt will mark it as changed
+              // Update fields to ensure they're set correctly and marked as changed
+              m.userEmail = userEmail
+              m.userDisplayName = userDisplayName || m.userDisplayName
               m.updatedAt = new Date()
             })
           })

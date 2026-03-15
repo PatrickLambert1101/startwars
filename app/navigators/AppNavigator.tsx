@@ -16,12 +16,17 @@ import { LoginScreen } from "@/screens/LoginScreen"
 import { TeamScreen } from "@/screens/TeamScreen"
 import { AnimalDetailScreen } from "@/screens/AnimalDetailScreen/AnimalDetailScreen"
 import { AnimalFormScreen } from "@/screens/AnimalFormScreen"
+import { BulkAnimalAddScreen } from "@/screens/BulkAnimalAddScreen"
 import { HealthRecordFormScreen } from "@/screens/HealthRecordFormScreen"
 import { WeightRecordFormScreen } from "@/screens/WeightRecordFormScreen"
 import { BreedingRecordFormScreen } from "@/screens/BreedingRecordFormScreen"
 import { TreatmentProtocolsScreen } from "@/screens/TreatmentProtocolsScreen"
 import { ProtocolFormScreen } from "@/screens/ProtocolFormScreen"
 import { ProtocolDetailScreen } from "@/screens/ProtocolDetailScreen"
+import { VaccinationScheduleScreen } from "@/screens/VaccinationScheduleScreen"
+import { VaccinationScheduleFormScreen } from "@/screens/VaccinationScheduleFormScreen"
+import { PendingVaccinationsScreen } from "@/screens/PendingVaccinationsScreen"
+import { ReportsScreen } from "@/screens/ReportsScreen"
 import { PastureDetailScreen } from "@/screens/PastureDetailScreen"
 import { PastureFormScreen } from "@/screens/PastureFormScreen"
 import { PastureWizardScreen } from "@/screens/PastureWizardScreen"
@@ -69,12 +74,17 @@ const AppStack = () => {
           <Stack.Screen name="Team" component={TeamScreen} />
           <Stack.Screen name="AnimalDetail" component={AnimalDetailScreen} />
           <Stack.Screen name="AnimalForm" component={AnimalFormScreen} />
+          <Stack.Screen name="BulkAnimalAdd" component={BulkAnimalAddScreen} />
           <Stack.Screen name="HealthRecordForm" component={HealthRecordFormScreen} />
           <Stack.Screen name="WeightRecordForm" component={WeightRecordFormScreen} />
           <Stack.Screen name="BreedingRecordForm" component={BreedingRecordFormScreen} />
           <Stack.Screen name="TreatmentProtocols" component={TreatmentProtocolsScreen} />
           <Stack.Screen name="ProtocolForm" component={ProtocolFormScreen} />
           <Stack.Screen name="ProtocolDetail" component={ProtocolDetailScreen} />
+          <Stack.Screen name="VaccinationSchedules" component={VaccinationScheduleScreen} />
+          <Stack.Screen name="VaccinationScheduleForm" component={VaccinationScheduleFormScreen} />
+          <Stack.Screen name="PendingVaccinations" component={PendingVaccinationsScreen} />
+          <Stack.Screen name="Reports" component={ReportsScreen} />
           <Stack.Screen name="PastureDetail" component={PastureDetailScreen} />
           <Stack.Screen name="PastureForm" component={PastureFormScreen} />
           <Stack.Screen name="PastureWizard" component={PastureWizardScreen} />

@@ -1,10 +1,10 @@
 import { FC, useCallback, useEffect, useState } from "react"
-import { Alert, Pressable, View, ViewStyle, TextStyle, ActivityIndicator, Modal, FlatList } from "react-native"
+import { Alert, Pressable, View, ViewStyle, TextStyle, ActivityIndicator, Modal, FlatList, Platform } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
 
 import { Screen, Text, TextField, Button, ScanTagButton } from "@/components"
-import { DateField } from "@/components/DateField"
+import { AgeDatePicker } from "@/components/AgeDatePicker"
 import { PhotoPicker } from "@/components/PhotoPicker"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -13,7 +13,6 @@ import { useAnimal, useAnimalActions, AnimalFormData } from "@/hooks/useAnimals"
 import { useAnimals } from "@/hooks/useAnimals"
 import { AnimalSex, AnimalStatus, Animal } from "@/db/models/Animal"
 import { useRfidReader } from "@/hooks/useRfidReader"
-import { Platform } from "react-native"
 import { useDatabase } from "@/context/DatabaseContext"
 import { useAuth } from "@/context/AuthContext"
 import { uploadPhoto } from "@/services/photoStorage"
@@ -174,6 +173,21 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
       return
     }
 
+    // Check for duplicate visual tag (only when creating new animal or changing visual tag)
+    if (visualTag.trim()) {
+      const duplicate = animals.find(a =>
+        a.visualTag.toLowerCase() === visualTag.trim().toLowerCase() &&
+        (!isEditing || a.id !== animalId)
+      )
+      if (duplicate) {
+        Alert.alert(
+          "Duplicate Visual Tag",
+          `Visual tag "${visualTag.trim()}" is already used by ${duplicate.displayName}. Please use a unique tag number.`
+        )
+        return
+      }
+    }
+
     setIsSubmitting(true)
     try {
       const data: AnimalFormData = {
@@ -304,6 +318,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
                 onChangeText={setRfidTag}
                 placeholder={t("animalFormScreen.fields.rfidTag.scanPlaceholder")}
                 autoCapitalize="characters"
+                autoCorrect={false}
                 containerStyle={{ marginTop: 0 }}
               />
             )}
@@ -326,6 +341,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
               value={visualTag}
               onChangeText={setVisualTag}
               placeholder={t("animalFormScreen.fields.visualTag.placeholder")}
+              autoCorrect={false}
               containerStyle={themed($tagInput)}
             />
             <ScanTagButton
@@ -366,7 +382,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
             </Pressable>
           </View>
           <View style={themed($halfField)}>
-            <DateField
+            <AgeDatePicker
               label={t("animalFormScreen.fields.dateOfBirth.label")}
               value={dateOfBirth}
               onChange={setDateOfBirth}
@@ -426,6 +442,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
           value={registrationNumber}
           onChangeText={setRegistrationNumber}
           placeholder={t("animalFormScreen.fields.registrationNumber.placeholder")}
+          autoCorrect={false}
         />
 
         <TextField
@@ -434,6 +451,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
           onChangeText={setHerdTag}
           placeholder={t("animalFormScreen.fields.herdTag.placeholder")}
           autoCapitalize="characters"
+          autoCorrect={false}
         />
 
         <TextField

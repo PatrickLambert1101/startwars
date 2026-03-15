@@ -3,7 +3,7 @@ import { FlatList, Pressable, View, ViewStyle, TextStyle, Image, ImageStyle } fr
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
 
-import { Screen, Text, Button, EmptyState, TextField } from "@/components"
+import { Screen, Text, Button, TextField } from "@/components"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import type { MainTabScreenProps } from "@/navigators/navigationTypes"
@@ -20,6 +20,10 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation 
 
   const handleAddAnimal = useCallback(() => {
     navigation.navigate("AnimalForm", { mode: "create" })
+  }, [navigation])
+
+  const handleBulkAdd = useCallback(() => {
+    navigation.navigate("BulkAnimalAdd")
   }, [navigation])
 
   const handleAnimalPress = useCallback((animal: Animal) => {
@@ -74,7 +78,12 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation 
     <Screen preset="fixed" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
       <View style={themed($header)}>
         <Text preset="heading" text={t("herdListScreen.title")} />
-        <Button text={t("herdListScreen.addButton")} preset="filled" onPress={handleAddAnimal} style={themed($addButton)} />
+        <View style={themed($headerButtons)}>
+          <Pressable onPress={handleBulkAdd} style={themed($bulkAddButton)}>
+            <MaterialCommunityIcons name="lightning-bolt" size={18} color={theme.colors.tint} />
+          </Pressable>
+          <Button text={t("herdListScreen.addButton")} preset="filled" onPress={handleAddAnimal} style={themed($addButton)} />
+        </View>
       </View>
 
       {animals.length > 0 && (
@@ -82,6 +91,8 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation 
           value={search}
           onChangeText={setSearch}
           placeholder={t("herdListScreen.searchPlaceholder")}
+          autoCapitalize="none"
+          autoCorrect={false}
           containerStyle={themed($searchField)}
         />
       )}
@@ -177,6 +188,23 @@ const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   alignItems: "center",
   marginTop: spacing.md,
   marginBottom: spacing.sm,
+})
+
+const $headerButtons: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.xs,
+})
+
+const $bulkAddButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.palette.neutral100,
+  borderWidth: 1,
+  borderColor: colors.tint,
+  borderRadius: 8,
+  width: 36,
+  height: 36,
+  justifyContent: "center",
+  alignItems: "center",
 })
 
 const $addButton: ThemedStyle<ViewStyle> = () => ({

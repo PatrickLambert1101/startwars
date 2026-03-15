@@ -1,6 +1,7 @@
 import { FC, useCallback, useState, useEffect } from "react"
-import { View, ViewStyle, TextStyle, Pressable, Platform, NativeModules, Switch } from "react-native"
+import { View, ViewStyle, TextStyle, Pressable, Switch, Alert } from "react-native"
 import { useTranslation } from "react-i18next"
+import { Q } from "@nozbe/watermelondb"
 
 import { Screen, Text, ListItem, Button, Icon } from "@/components"
 import { useAuth } from "@/context/AuthContext"
@@ -11,7 +12,8 @@ import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { loadString, saveString } from "@/utils/storage"
 import { database } from "@/db"
-import { Alert } from "react-native"
+import { seedDefaultSchedules } from "@/services/defaultSchedules"
+import { calculateScheduledVaccinations } from "@/services/vaccinationScheduler"
 
 const STORAGE_KEY_POWER = "rfid_reader_power"
 const POWER_MIN = 18
@@ -35,6 +37,7 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
 
   const [readerPower, setReaderPower] = useState(POWER_DEFAULT)
   const [powerSaved, setPowerSaved] = useState(false)
+  const [hasSchedules, setHasSchedules] = useState(false)
 
   useEffect(() => {
     const saved = loadString(STORAGE_KEY_POWER)
@@ -51,6 +54,35 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
       initialize()
     }
   }, [hasRfidHardware, isInitialized, initialize])
+
+  // Check if schedules exist
+  useEffect(() => {
+    if (!currentOrg) {
+      setHasSchedules(false)
+      return
+    }
+
+    const checkSchedules = async () => {
+      const schedules = await database
+        .get("vaccination_schedules")
+        .query(Q.where("organization_id", currentOrg.id), Q.where("is_deleted", false))
+        .fetch()
+      setHasSchedules(schedules.length > 0)
+    }
+
+    checkSchedules()
+
+    // Subscribe to changes
+    const subscription = database
+      .get("vaccination_schedules")
+      .query(Q.where("organization_id", currentOrg.id), Q.where("is_deleted", false))
+      .observe()
+      .subscribe((schedules) => {
+        setHasSchedules(schedules.length > 0)
+      })
+
+    return () => subscription.unsubscribe()
+  }, [currentOrg])
 
   const applyPower = useCallback(
     async (power: number) => {
@@ -69,6 +101,70 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
   const handleLogout = useCallback(() => {
     logout()
   }, [logout])
+
+  const handleSeedDefaultSchedules = useCallback(async () => {
+    if (!currentOrg) {
+      Alert.alert("No Organization", "Please create an organization first")
+      return
+    }
+
+    Alert.alert(
+      "Seed Default Schedules",
+      "This will create default South African cattle vaccination schedules and protocols for your farm. Continue?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Add Schedules",
+          onPress: async () => {
+            try {
+              const success = await seedDefaultSchedules(currentOrg.id)
+              if (success) {
+                // After seeding, calculate vaccinations for existing animals
+                console.log("[Settings] Calculating vaccinations for existing animals...")
+                await calculateScheduledVaccinations(currentOrg.id)
+                Alert.alert(
+                  "Success!",
+                  "Default vaccination schedules have been added! Vaccinations have been calculated for your existing animals. Check the Calendar tab to see upcoming vaccinations."
+                )
+              } else {
+                Alert.alert("Error", "Failed to seed default schedules. Check console for details.")
+              }
+            } catch (error) {
+              console.error("Error seeding schedules:", error)
+              Alert.alert("Error", "An error occurred while adding schedules")
+            }
+          },
+        },
+      ],
+    )
+  }, [currentOrg])
+
+  const handleRecalculateVaccinations = useCallback(async () => {
+    if (!currentOrg) {
+      Alert.alert("No Organization", "Please create an organization first")
+      return
+    }
+
+    Alert.alert(
+      "Recalculate Vaccinations",
+      "This will recalculate all pending vaccinations based on your active schedules and current animals. Continue?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Recalculate",
+          onPress: async () => {
+            try {
+              await calculateScheduledVaccinations(currentOrg.id)
+              Alert.alert("Success!", "Vaccinations have been recalculated. Check the Calendar tab to see upcoming vaccinations.")
+            } catch (error) {
+              console.error("Error calculating vaccinations:", error)
+              Alert.alert("Error", "An error occurred while calculating vaccinations")
+            }
+          },
+        },
+      ],
+    )
+  }, [currentOrg])
 
   const handleResetDatabase = useCallback(async () => {
     Alert.alert(
@@ -253,6 +349,42 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
           rightIcon="caretRight"
           onPress={() => navigation.navigate("TreatmentProtocols")}
         />
+        <ListItem
+          text={t("settingsScreen.management.vaccinationSchedules")}
+          bottomSeparator
+          rightIcon="caretRight"
+          onPress={() => navigation.navigate("VaccinationSchedules")}
+        />
+
+        {hasSchedules && (
+          <View style={themed($recalculateCard)}>
+            <Text style={themed($recalculateTitle)}>Recalculate Vaccinations</Text>
+            <Text style={themed($recalculateText)}>
+              Calculate upcoming vaccinations for all animals based on active schedules. Run this after adding new animals or modifying schedules.
+            </Text>
+            <Button
+              text="Recalculate Now"
+              preset="default"
+              onPress={handleRecalculateVaccinations}
+              style={themed($recalculateButton)}
+            />
+          </View>
+        )}
+
+        {currentOrg?.livestockTypes.includes("cattle") && !hasSchedules && (
+          <View style={themed($seedCard)}>
+            <Text style={themed($seedTitle)}>Add Default Vaccination Schedules</Text>
+            <Text style={themed($seedText)}>
+              Add standard South African cattle vaccination schedules (FMD, Multivax, Brucellosis, LSD, BVD, Botulism) to your farm
+            </Text>
+            <Button
+              text="Add Default Schedules"
+              preset="default"
+              onPress={handleSeedDefaultSchedules}
+              style={themed($seedButton)}
+            />
+          </View>
+        )}
       </View>
 
       {hasRfidHardware && (
@@ -520,24 +652,62 @@ const $rfidHint: ThemedStyle<TextStyle> = ({ colors }) => ({
   lineHeight: 18,
 })
 
-const $rfidDisabledCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  backgroundColor: colors.palette.neutral200,
+// --- RECALCULATE VACCINATIONS styles ---
+
+const $recalculateCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.palette.primary100,
   borderRadius: 12,
+  borderWidth: 2,
+  borderColor: colors.palette.primary300,
   padding: spacing.md,
-  opacity: 0.6,
+  marginTop: spacing.sm,
 })
 
-const $rfidDisabledTitle: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+const $recalculateTitle: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   fontSize: 16,
-  fontWeight: "600",
-  color: colors.textDim,
+  fontWeight: "700",
+  color: colors.text,
   marginBottom: spacing.xs,
 })
 
-const $rfidDisabledText: ThemedStyle<TextStyle> = ({ colors }) => ({
+const $recalculateText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   fontSize: 14,
   color: colors.textDim,
   lineHeight: 20,
+  marginBottom: spacing.sm,
+})
+
+const $recalculateButton: ThemedStyle<ViewStyle> = () => ({
+  marginTop: 8,
+})
+
+// --- SEED SCHEDULES styles ---
+
+const $seedCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.palette.accent100,
+  borderRadius: 12,
+  borderWidth: 2,
+  borderColor: colors.palette.accent300,
+  padding: spacing.md,
+  marginTop: spacing.sm,
+})
+
+const $seedTitle: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  fontSize: 16,
+  fontWeight: "700",
+  color: colors.text,
+  marginBottom: spacing.xs,
+})
+
+const $seedText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  fontSize: 14,
+  color: colors.textDim,
+  lineHeight: 20,
+  marginBottom: spacing.sm,
+})
+
+const $seedButton: ThemedStyle<ViewStyle> = () => ({
+  marginTop: 8,
 })
 
 // --- DANGER ZONE styles ---

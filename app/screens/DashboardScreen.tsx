@@ -10,6 +10,7 @@ import type { ThemedStyle } from "@/theme/types"
 import { useDashboardStats } from "@/hooks/useDashboardStats"
 import { useDatabase } from "@/context/DatabaseContext"
 import { useAuth } from "@/context/AuthContext"
+import { usePendingVaccinations } from "@/hooks/useVaccinationSchedules"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { database } from "@/db"
 import { Organization } from "@/db/models/Organization"
@@ -21,6 +22,7 @@ export const DashboardScreen: FC<MainTabScreenProps<"Dashboard">> = ({ navigatio
   const { stats } = useDashboardStats()
   const { currentOrg, switchOrganization } = useDatabase()
   const { user } = useAuth()
+  const { vaccinations: pendingVaccinations } = usePendingVaccinations()
   const [showFarmPicker, setShowFarmPicker] = useState(false)
   const [userOrgs, setUserOrgs] = useState<Organization[]>([])
   const [userDisplayName, setUserDisplayName] = useState<string | null>(null)
@@ -78,6 +80,23 @@ export const DashboardScreen: FC<MainTabScreenProps<"Dashboard">> = ({ navigatio
     navigation.navigate("OrgSetup")
   }, [navigation])
 
+  const handleViewVaccinations = useCallback(() => {
+    navigation.navigate("PendingVaccinations")
+  }, [navigation])
+
+  // Calculate vaccination urgency counts
+  const vaccinationCounts = {
+    dueToday: pendingVaccinations.filter(v => {
+      const days = v.daysUntilDue
+      return days >= 0 && days <= 0
+    }).length,
+    dueSoon: pendingVaccinations.filter(v => {
+      const days = v.daysUntilDue
+      return days > 0 && days <= 7
+    }).length,
+    overdue: pendingVaccinations.filter(v => v.isOverdue).length,
+  }
+
   return (
     <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
       <View style={themed($headerSection)}>
@@ -133,6 +152,47 @@ export const DashboardScreen: FC<MainTabScreenProps<"Dashboard">> = ({ navigatio
               <Text preset="formHelper" text={t("dashboardScreen.stats.pendingSync")} />
             </View>
           </View>
+
+          {/* Vaccination Alert Card */}
+          {pendingVaccinations.length > 0 && (
+            <Pressable onPress={handleViewVaccinations} style={themed($vaccinationCard)}>
+              <View style={themed($vaccinationHeader)}>
+                <MaterialCommunityIcons name="needle" size={24} color={colors.palette.accent500} />
+                <Text preset="subheading" text={t("dashboardScreen.vaccinations.title")} style={themed($vaccinationTitle)} />
+              </View>
+              <View style={themed($vaccinationCounts)}>
+                {vaccinationCounts.overdue > 0 && (
+                  <View style={themed($vaccinationBadge($vaccinationBadgeError))}>
+                    <Text style={themed($vaccinationBadgeText)}>{vaccinationCounts.overdue} {t("dashboardScreen.vaccinations.overdue")}</Text>
+                  </View>
+                )}
+                {vaccinationCounts.dueToday > 0 && (
+                  <View style={themed($vaccinationBadge($vaccinationBadgeWarning))}>
+                    <Text style={themed($vaccinationBadgeText)}>{vaccinationCounts.dueToday} {t("dashboardScreen.vaccinations.dueToday")}</Text>
+                  </View>
+                )}
+                {vaccinationCounts.dueSoon > 0 && (
+                  <View style={themed($vaccinationBadge($vaccinationBadgeInfo))}>
+                    <Text style={themed($vaccinationBadgeText)}>{vaccinationCounts.dueSoon} {t("dashboardScreen.vaccinations.dueSoon")}</Text>
+                  </View>
+                )}
+              </View>
+              <View style={themed($vaccinationFooter)}>
+                <Text text={t("dashboardScreen.vaccinations.viewAll")} style={themed($vaccinationLink)} />
+                <MaterialCommunityIcons name="chevron-right" size={16} color={colors.tint} />
+              </View>
+            </Pressable>
+          )}
+
+          {/* Reports Card */}
+          <Pressable onPress={() => navigation.navigate("Reports")} style={themed($reportsCard)}>
+            <View style={themed($reportsHeader)}>
+              <MaterialCommunityIcons name="chart-bar" size={24} color={colors.tint} />
+              <Text preset="bold" text={t("dashboardScreen.reports.title")} size="md" style={{ flex: 1, marginLeft: 12 }} />
+              <MaterialCommunityIcons name="chevron-right" size={20} color={colors.tint} />
+            </View>
+            <Text text={t("dashboardScreen.reports.description")} size="xs" style={themed($dimText)} />
+          </Pressable>
 
           <View style={themed($section)}>
             <Text preset="subheading" text={t("dashboardScreen.recentAnimals.title")} />
@@ -218,11 +278,6 @@ const $welcomeText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
 
 const $emailText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   color: colors.textDim,
-  marginBottom: spacing.md,
-})
-
-const $orgName: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
-  color: colors.tint,
   marginBottom: spacing.md,
 })
 
@@ -315,4 +370,84 @@ const $divider: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
 
 const $cancelButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   marginTop: spacing.md,
+})
+
+const $reportsCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.palette.primary100,
+  borderRadius: 12,
+  padding: spacing.md,
+  marginBottom: spacing.md,
+  borderLeftWidth: 4,
+  borderLeftColor: colors.tint,
+})
+
+const $reportsHeader: ThemedStyle<ViewStyle> = () => ({
+  flexDirection: "row",
+  alignItems: "center",
+  marginBottom: 8,
+})
+
+const $vaccinationCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.palette.accent100,
+  borderRadius: 12,
+  padding: spacing.md,
+  marginBottom: spacing.md,
+  borderLeftWidth: 4,
+  borderLeftColor: colors.palette.accent500,
+})
+
+const $vaccinationHeader: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.sm,
+  marginBottom: spacing.sm,
+})
+
+const $vaccinationTitle: ThemedStyle<TextStyle> = () => ({
+  flex: 1,
+})
+
+const $vaccinationCounts: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  flexWrap: "wrap",
+  gap: spacing.xs,
+  marginBottom: spacing.sm,
+})
+
+const $vaccinationBadge = (badgeStyle: ThemedStyle<ViewStyle>): ThemedStyle<ViewStyle> => ({ spacing, colors }) => ({
+  ...badgeStyle({ spacing, colors }),
+  paddingHorizontal: spacing.sm,
+  paddingVertical: spacing.xxs,
+  borderRadius: 12,
+})
+
+const $vaccinationBadgeError: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  backgroundColor: colors.errorBackground,
+})
+
+const $vaccinationBadgeWarning: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  backgroundColor: colors.palette.accent200,
+})
+
+const $vaccinationBadgeInfo: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  backgroundColor: colors.palette.primary100,
+})
+
+const $vaccinationBadgeText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 12,
+  fontWeight: "600",
+  color: colors.text,
+})
+
+const $vaccinationFooter: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.xs,
+  justifyContent: "flex-end",
+})
+
+const $vaccinationLink: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 14,
+  fontWeight: "600",
+  color: colors.tint,
 })

@@ -4,6 +4,7 @@ import { database } from "@/db"
 import { Organization, LivestockType } from "@/db/models/Organization"
 import { OrganizationMember } from "@/db/models/OrganizationMember"
 import { useAuth } from "./AuthContext"
+import { seedDefaultSchedules } from "@/services/defaultSchedules"
 
 export type CreateOrgParams = {
   name: string
@@ -118,6 +119,18 @@ export const DatabaseProvider: FC<PropsWithChildren> = ({ children }) => {
 
       return newOrg
     })
+
+    // Seed default vaccination schedules for cattle farms
+    if (params.livestockTypes.includes("cattle")) {
+      console.log("[DatabaseContext] Seeding default vaccination schedules for cattle farm")
+      const seeded = await seedDefaultSchedules(org.id)
+      if (seeded) {
+        console.log("[DatabaseContext] Successfully seeded default schedules")
+      } else {
+        console.warn("[DatabaseContext] Failed to seed default schedules")
+      }
+    }
+
     setCurrentOrg(org)
     return org
   }, [])
@@ -127,8 +140,15 @@ export const DatabaseProvider: FC<PropsWithChildren> = ({ children }) => {
     setCurrentOrg(org)
   }, [])
 
+  const resetDatabase = useCallback(async () => {
+    await database.write(async () => {
+      await database.unsafeResetDatabase()
+    })
+    setCurrentOrg(null)
+  }, [])
+
   return (
-    <DatabaseContext.Provider value={{ currentOrg, isOrgLoading, createOrganization, switchOrganization }}>
+    <DatabaseContext.Provider value={{ currentOrg, isOrgLoading, createOrganization, switchOrganization, resetDatabase }}>
       {children}
     </DatabaseContext.Provider>
   )

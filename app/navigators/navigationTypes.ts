@@ -13,7 +13,7 @@ export type MainTabParamList = {
   HerdList: undefined
   Chute: undefined
   Pastures: undefined
-  Reports: undefined
+  Calendar: undefined
   Settings: undefined
 }
 
@@ -27,12 +27,17 @@ export type AppStackParamList = {
   Team: undefined
   AnimalDetail: { animalId: string }
   AnimalForm: { mode: "create" | "edit"; animalId?: string }
-  HealthRecordForm: { animalId: string; recordId?: string }
+  BulkAnimalAdd: undefined
+  HealthRecordForm: { animalId: string; recordId?: string; protocolId?: string; vaccinationId?: string }
   WeightRecordForm: { animalId: string; recordId?: string }
   BreedingRecordForm: { animalId: string; recordId?: string }
   TreatmentProtocols: undefined
   ProtocolForm: { protocolId?: string }
   ProtocolDetail: { protocolId: string }
+  VaccinationSchedules: undefined
+  VaccinationScheduleForm: { mode: "create" | "edit"; scheduleId?: string }
+  PendingVaccinations: undefined
+  Reports: undefined
   PastureDetail: { pastureId: string }
   PastureForm: { pastureId?: string }
   PastureWizard: undefined

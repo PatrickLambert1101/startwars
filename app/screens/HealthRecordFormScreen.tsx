@@ -1,4 +1,4 @@
-import { FC, useCallback, useState, useMemo } from "react"
+import { FC, useCallback, useState, useMemo, useEffect } from "react"
 import { Alert, Pressable, View, ViewStyle, TextStyle, ScrollView } from "react-native"
 import { useTranslation } from "react-i18next"
 
@@ -7,7 +7,8 @@ import { PhotoPicker } from "@/components/PhotoPicker"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
-import { useHealthRecordActions } from "@/hooks/useRecords"
+import { useHealthRecordActions, useWeightRecords } from "@/hooks/useRecords"
+import { useAnimal } from "@/hooks/useAnimals"
 import { HealthRecordType } from "@/db/models/HealthRecord"
 import { useSubscription } from "@/context/SubscriptionContext"
 import { useDatabase } from "@/context/DatabaseContext"
@@ -22,15 +23,24 @@ const RECORD_TYPES: HealthRecordType[] = ["vaccination", "treatment", "vet_visit
 export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">> = ({ route, navigation }) => {
   const { t } = useTranslation()
   const { themed } = useAppTheme()
-  const { animalId } = route.params
+  const { animalId, protocolId, vaccinationId } = route.params
+  const { animal } = useAnimal(animalId)
+  const { records: weightRecords } = useWeightRecords(animalId)
   const { createHealthRecord } = useHealthRecordActions()
   const { hasFeature } = useSubscription()
   const { currentOrg } = useDatabase()
   const { user } = useAuth()
   const { protocols } = useProtocols()
 
-  const [recordType, setRecordType] = useState<HealthRecordType>("treatment")
-  const [selectedProtocolId, setSelectedProtocolId] = useState<string | null>(null)
+  // Get latest weight
+  const latestWeight = useMemo(() => {
+    if (weightRecords.length === 0) return null
+    const sorted = [...weightRecords].sort((a, b) => b.recordDate.getTime() - a.recordDate.getTime())
+    return sorted[0].weight
+  }, [weightRecords])
+
+  const [recordType, setRecordType] = useState<HealthRecordType>(protocolId ? "vaccination" : "treatment")
+  const [selectedProtocolId, setSelectedProtocolId] = useState<string | null>(protocolId || null)
   const [showProtocolPicker, setShowProtocolPicker] = useState(false)
   const [description, setDescription] = useState("")
   const [productName, setProductName] = useState("")
@@ -55,6 +65,21 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
     return protocols.find(p => p.id === selectedProtocolId) || null
   }, [selectedProtocolId, protocols])
 
+  // Calculate dosage based on weight and protocol dosage (e.g., "1ml/10kg")
+  const calculatedDosage = useMemo(() => {
+    if (!latestWeight || !selectedProtocol?.dosage) return null
+    const dosageMatch = selectedProtocol.dosage.match(/(\d+(?:\.\d+)?)\s*ml\s*\/\s*(\d+(?:\.\d+)?)\s*kg/i)
+    if (!dosageMatch) return null
+    const mlPerDose = parseFloat(dosageMatch[1])
+    const kgPerDose = parseFloat(dosageMatch[2])
+    const calculatedMl = (latestWeight / kgPerDose) * mlPerDose
+    return {
+      amount: calculatedMl.toFixed(1),
+      mlPerDose,
+      kgPerDose,
+    }
+  }, [latestWeight, selectedProtocol])
+
   // Auto-fill from protocol when selected
   const handleSelectProtocol = useCallback((protocolId: string) => {
     const protocol = protocols.find(p => p.id === protocolId)
@@ -78,6 +103,26 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
     setNotes("")
   }, [])
 
+  // Auto-fill protocol data when coming from scheduled vaccination
+  useEffect(() => {
+    if (protocolId && protocols.length > 0) {
+      const protocol = protocols.find(p => p.id === protocolId)
+      if (protocol) {
+        setDescription(protocol.name)
+        setProductName(protocol.productName)
+        // Use calculated dosage if available, otherwise use protocol dosage
+        if (calculatedDosage) {
+          setDosage(`${calculatedDosage.amount}ml`)
+        } else {
+          setDosage(protocol.dosage)
+        }
+        if (protocol.description) {
+          setNotes(protocol.description)
+        }
+      }
+    }
+  }, [protocolId, protocols, calculatedDosage])
+
   const handleSave = useCallback(async () => {
     if (!description.trim()) {
       Alert.alert(t("healthRecordFormScreen.alerts.required.title"), t("healthRecordFormScreen.alerts.required.message"))
@@ -100,6 +145,7 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
         dosage: dosage.trim() || undefined,
         administeredBy: administeredBy.trim() || undefined,
         notes: notes.trim() || undefined,
+        protocolId: selectedProtocolId || undefined,
       })
 
       if (photos.length > 0) {
@@ -237,6 +283,19 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
           </View>
         )}
 
+        {/* Calculated Dosage Banner */}
+        {calculatedDosage && latestWeight && selectedProtocol && (
+          <View style={themed($calculatedDosageBanner)}>
+            <Icon icon="check" size={20} color="#856404" />
+            <View style={{ flex: 1 }}>
+              <Text preset="bold" text="Calculated Dosage" size="sm" style={{ color: "#856404", marginBottom: 4 }} />
+              <Text text={`${calculatedDosage.mlPerDose}ml per ${calculatedDosage.kgPerDose}kg`} size="xs" style={{ color: "#856404" }} />
+              <Text text={`This cow weighs ${latestWeight}kg`} size="xs" style={{ color: "#856404", marginTop: 2 }} />
+              <Text preset="bold" text={`Give ${calculatedDosage.amount}ml`} size="lg" style={{ color: "#856404", marginTop: 4 }} />
+            </View>
+          </View>
+        )}
+
         {relevantProtocols.length === 0 && (recordType === "vaccination" || recordType === "treatment") && (
           <Pressable
             style={themed($noProtocolsButton)}
@@ -361,6 +420,18 @@ const $saveButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 
 const $protocolSection: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   marginBottom: spacing.sm,
+})
+
+const $calculatedDosageBanner: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  backgroundColor: "#FFF3CD",
+  borderRadius: 8,
+  padding: spacing.md,
+  marginBottom: spacing.sm,
+  borderWidth: 2,
+  borderColor: "#FFEB3B",
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.sm,
 })
 
 const $selectedProtocol: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
