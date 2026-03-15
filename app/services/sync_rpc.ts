@@ -160,7 +160,11 @@ function supabaseToWatermelon(row: any) {
  * (timestamps → ISO strings for date columns)
  */
 function watermelonToSupabase(record: any) {
-  const row: any = { ...record }
+  // Use _raw to get the actual data (spreading doesn't work on WatermelonDB models)
+  const raw = record._raw || record
+  const row: any = { ...raw }
+
+  // Convert timestamp fields (milliseconds) to ISO strings for Postgres
   for (const key of Object.keys(row)) {
     if (key.endsWith("_at") || key.endsWith("_date")) {
       if (row[key] && typeof row[key] === "number") {
@@ -168,6 +172,21 @@ function watermelonToSupabase(record: any) {
       }
     }
   }
+
+  // Convert JSONB string fields to actual JSON objects
+  // WatermelonDB stores JSONB as strings, but Postgres jsonb_populate_record
+  // expects actual JSON objects for JSONB columns
+  const jsonbFields = ['livestock_types', 'default_breeds']
+  for (const field of jsonbFields) {
+    if (row[field] && typeof row[field] === 'string') {
+      try {
+        row[field] = JSON.parse(row[field])
+      } catch (e) {
+        console.warn(`[Sync] Failed to parse ${field} as JSON:`, row[field])
+      }
+    }
+  }
+
   return row
 }
 
@@ -322,6 +341,7 @@ async function ensureOrganizationMemberships(userId?: string, userEmail?: string
               m.invitedAt = null
               m.joinedAt = new Date()
               m.isActive = true
+              m.isDeleted = false
             })
           })
           console.log(`[Sync] Admin membership created successfully`)
@@ -354,7 +374,7 @@ export async function syncDatabase(): Promise<{ success: boolean; error?: string
       database,
       pullChanges,
       pushChanges,
-      migrationsEnabledAtVersion: 11, // Updated to match current schema version
+      migrationsEnabledAtVersion: 13, // Updated to match current schema version
     })
 
     console.log("[Sync] Synchronization complete!")
@@ -385,7 +405,7 @@ export async function syncDatabase(): Promise<{ success: boolean; error?: string
         database,
         pullChanges,
         pushChanges,
-        migrationsEnabledAtVersion: 11,
+        migrationsEnabledAtVersion: 13,
       })
       console.log("[Sync] Second sync complete!")
     }

@@ -13,6 +13,16 @@ export function AutoSync() {
   const { queueSync } = useSyncContext()
   const { isAuthenticated } = useAuth()
   const lastCountsRef = useRef<Record<string, number>>({})
+  const hasRunInitialSync = useRef(false)
+
+  // Run initial sync when user logs in
+  useEffect(() => {
+    if (isAuthenticated && !hasRunInitialSync.current) {
+      console.log("[AutoSync] Running initial sync on app load")
+      queueSync()
+      hasRunInitialSync.current = true
+    }
+  }, [isAuthenticated, queueSync])
 
   useEffect(() => {
     if (!isAuthenticated) return

@@ -743,8 +743,11 @@ const af = {
       sendButton: "Send Invite",
       sending: "Sending...",
       cancelButton: "Cancel",
-      emailRequired: "Email address is required",
-      invalidEmail: "Please enter a valid email address",
+      errors: {
+        emailRequired: "Email address is required",
+        invalidEmail: "Please enter a valid email address",
+        failedToSend: "Failed to send invitation. Please try again.",
+      },
     },
     alerts: {
       inviteSent: {
@@ -773,9 +776,9 @@ const af = {
       error: {
         title: "Error",
         sendFailed: "Failed to send invitation. Please try again.",
-        cancelFailed: "Failed to cancel invitation.",
-        changeFailed: "Failed to change role.",
-        removeFailed: "Failed to remove team member.",
+        cancelInviteFailed: "Failed to cancel invitation.",
+        updateRoleFailed: "Failed to change role.",
+        removeMemberFailed: "Failed to remove team member.",
       },
     },
     sections: {
@@ -783,10 +786,10 @@ const af = {
       invites: "Pending Invites ({{count}})",
     },
     member: {
-      you: "(you)",
+      you: " (you)",
       joined: "Joined {{date}}",
-      admin: "Admin",
-      worker: "Worker",
+      roleAdmin: "Admin",
+      roleWorker: "Worker",
     },
     invite: {
       code: "Code: {{code}}",

@@ -59,14 +59,16 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation 
           )}
           <View style={themed($animalCardContent)}>
             <View style={themed($animalCardHeader)}>
-              <Text preset="bold" text={item.displayName} />
+              <Text preset="bold" text={item.name || item.visualTag} />
               <View style={[$statusBadge, { backgroundColor: statusColor + "22" }]}>
                 <Text text={item.status} size="xxs" style={{ color: statusColor }} />
               </View>
             </View>
             <View style={themed($animalCardBody)}>
-              <Text size="xs" text={t("herdListScreen.tag", { tag: item.visualTag })} style={themed($dimText)} />
               <Text size="xs" text={t("herdListScreen.breedAndSex", { breed: item.breed, sex: item.sex })} style={themed($dimText)} />
+              {item.visualTag && (
+                <Text size="xxs" text={item.visualTag} style={themed($tagBadge)} />
+              )}
             </View>
           </View>
         </View>
@@ -262,11 +264,22 @@ const $statusBadge: ViewStyle = {
 
 const $animalCardBody: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   marginTop: spacing.xs,
-  gap: 2,
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "flex-end",
 })
 
 const $dimText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.textDim,
+})
+
+const $tagBadge: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.palette.neutral600,
+  backgroundColor: colors.palette.neutral200,
+  paddingHorizontal: 8,
+  paddingVertical: 2,
+  borderRadius: 4,
+  overflow: "hidden",
 })
 
 const $emptyContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({

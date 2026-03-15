@@ -733,23 +733,36 @@ const en = {
     inviteButton: "+ Invite",
     inviteForm: {
       title: "Invite Team Member",
+      methodLabel: "Send via",
+      methodEmail: "Email",
+      methodSMS: "SMS",
+      methodWhatsApp: "WhatsApp",
       emailLabel: "Email Address",
       emailPlaceholder: "worker@example.com",
+      phoneLabel: "Phone Number",
+      phonePlaceholder: "+27 82 123 4567",
       roleLabel: "Role",
       roles: {
         admin: "Admin",
         worker: "Worker",
       },
+      roleAdmin: "Admin",
+      roleWorker: "Worker",
       sendButton: "Send Invite",
       sending: "Sending...",
       cancelButton: "Cancel",
-      emailRequired: "Email address is required",
-      invalidEmail: "Please enter a valid email address",
+      errors: {
+        contactRequired: "Contact information is required",
+        emailRequired: "Email address is required",
+        invalidEmail: "Please enter a valid email address",
+        invalidPhone: "Please enter a valid phone number",
+        failedToSend: "Failed to send invitation. Please try again.",
+      },
     },
     alerts: {
       inviteSent: {
         title: "Invite Sent",
-        message: "An invitation has been sent to {{email}}. They'll receive an email with instructions to join your team.",
+        message: "Invitation sent to {{contact}} via {{method}}. Invite code: {{code}}",
         ok: "OK",
       },
       cancelInvite: {
@@ -773,9 +786,9 @@ const en = {
       error: {
         title: "Error",
         sendFailed: "Failed to send invitation. Please try again.",
-        cancelFailed: "Failed to cancel invitation.",
-        changeFailed: "Failed to change role.",
-        removeFailed: "Failed to remove team member.",
+        cancelInviteFailed: "Failed to cancel invitation.",
+        updateRoleFailed: "Failed to change role.",
+        removeMemberFailed: "Failed to remove team member.",
       },
     },
     sections: {
@@ -783,10 +796,10 @@ const en = {
       invites: "Pending Invites ({{count}})",
     },
     member: {
-      you: "(you)",
+      you: " (you)",
       joined: "Joined {{date}}",
-      admin: "Admin",
-      worker: "Worker",
+      roleAdmin: "Admin",
+      roleWorker: "Worker",
     },
     invite: {
       code: "Code: {{code}}",

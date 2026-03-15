@@ -22,6 +22,7 @@ export class OrganizationMember extends Model {
   @field("is_active") isActive!: boolean
   @readonly @date("created_at") createdAt!: Date
   @date("updated_at") updatedAt!: Date
+  @field("is_deleted") isDeleted!: boolean
 
   @relation("organizations", "organization_id") organization: any
 
