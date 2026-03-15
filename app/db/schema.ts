@@ -299,11 +299,23 @@ export const migrations = schemaMigrations({
         },
       ],
     },
+    {
+      toVersion: 13,
+      steps: [
+        {
+          type: "add_columns",
+          table: "organization_members",
+          columns: [
+            { name: "is_deleted", type: "boolean" },
+          ],
+        },
+      ],
+    },
   ],
 })
 
 export const schema = appSchema({
-  version: 12,
+  version: 13,
   tables: [
     tableSchema({
       name: "organizations",
@@ -492,6 +504,7 @@ export const schema = appSchema({
         { name: "is_active", type: "boolean" },
         { name: "created_at", type: "number" },
         { name: "updated_at", type: "number" },
+        { name: "is_deleted", type: "boolean" },
       ],
     }),
     tableSchema({

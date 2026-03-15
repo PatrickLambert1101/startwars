@@ -27,6 +27,7 @@ export function AuthScreen() {
   const [isVerifying, setIsVerifying] = useState(false)
   const [error, setError] = useState("")
   const [showLanguageMenu, setShowLanguageMenu] = useState(false)
+  const [emailTouched, setEmailTouched] = useState(false)
 
   const currentLanguage = LANGUAGES.find((lang) => lang.code === i18n.language?.split("-")[0]) || LANGUAGES[0]
 
@@ -37,6 +38,8 @@ export function AuthScreen() {
   }
 
   const handleSendCode = async () => {
+    setEmailTouched(true)
+
     if (validationError) {
       setError(validationError)
       return
@@ -234,13 +237,14 @@ export function AuthScreen() {
               setAuthEmail(text)
               setError("")
             }}
+            onBlur={() => setEmailTouched(true)}
             placeholder={t("authScreen.emailPlaceholder")}
             keyboardType="email-address"
             autoCapitalize="none"
             autoComplete="email"
             autoCorrect={false}
-            helper={error || validationError}
-            status={error || validationError ? "error" : undefined}
+            helper={error || (emailTouched ? validationError : "")}
+            status={error || (emailTouched && validationError) ? "error" : undefined}
             containerStyle={themed($field)}
             onSubmitEditing={handleSendCode}
           />

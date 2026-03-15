@@ -20,7 +20,7 @@ import { AuthProvider } from "./context/AuthContext"
 import { DatabaseProvider } from "./context/DatabaseContext"
 import { SubscriptionProvider } from "./context/SubscriptionContext"
 import { SyncProvider } from "./context/SyncContext"
-// import { AutoSync } from "./components/AutoSync"
+import { AutoSync } from "./components/AutoSync"
 import { initI18n } from "./i18n"
 import { AppNavigator } from "./navigators/AppNavigator"
 import { useNavigationPersistence } from "./navigators/navigationUtilities"
@@ -92,7 +92,7 @@ export function App() {
             <SyncProvider>
               <SubscriptionProvider>
                 <ThemeProvider>
-                  {/* <AutoSync /> - Disabled: WatermelonDB uses short IDs but Supabase expects UUIDs */}
+                  <AutoSync />
                   <AppNavigator
                     linking={linking}
                     initialState={initialNavigationState}

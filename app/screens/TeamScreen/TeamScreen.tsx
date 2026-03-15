@@ -24,8 +24,9 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
   const { currentOrg } = useDatabase()
 
   const [showInviteForm, setShowInviteForm] = useState(false)
-  const [inviteEmail, setInviteEmail] = useState("")
+  const [inviteContact, setInviteContact] = useState("")
   const [inviteRole, setInviteRole] = useState<"admin" | "worker">("worker")
+  const [inviteMethod, setInviteMethod] = useState<"email" | "sms" | "whatsapp">("email")
   const [isInviting, setIsInviting] = useState(false)
   const [inviteError, setInviteError] = useState("")
 
@@ -34,28 +35,38 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
   const hasNoMembership = !currentMember && members.length === 0
 
   const handleInvite = async () => {
-    if (!inviteEmail.trim()) {
-      setInviteError(t("teamScreen.inviteForm.errors.emailRequired"))
+    if (!inviteContact.trim()) {
+      setInviteError(t("teamScreen.inviteForm.errors.contactRequired"))
       return
     }
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail)) {
-      setInviteError(t("teamScreen.inviteForm.errors.invalidEmail"))
-      return
+    // Validate based on method
+    if (inviteMethod === "email") {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteContact)) {
+        setInviteError(t("teamScreen.inviteForm.errors.invalidEmail"))
+        return
+      }
+    } else {
+      // Basic phone validation (allow +27, 27, 0, etc.)
+      if (!/^[\d+\s\-()]+$/.test(inviteContact)) {
+        setInviteError(t("teamScreen.inviteForm.errors.invalidPhone"))
+        return
+      }
     }
 
     setIsInviting(true)
     setInviteError("")
 
-    const result = await inviteMember(inviteEmail.trim(), inviteRole)
+    const result = await inviteMember(inviteContact.trim(), inviteRole, inviteMethod)
 
     if (result.success) {
+      const contactLabel = inviteMethod === "email" ? inviteContact : inviteContact
       Alert.alert(
         t("teamScreen.alerts.inviteSent.title"),
-        t("teamScreen.alerts.inviteSent.message", { email: inviteEmail, code: result.inviteCode }),
+        t("teamScreen.alerts.inviteSent.message", { contact: contactLabel, code: result.inviteCode, method: inviteMethod }),
         [{ text: t("teamScreen.alerts.inviteSent.ok") }]
       )
-      setInviteEmail("")
+      setInviteContact("")
       setShowInviteForm(false)
       refetch()
     } else {
@@ -347,7 +358,7 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
             <>
               <View style={themed($section)}>
                 <Text style={themed($sectionTitle)}>
-                  {t("teamScreen.sections.teamMembers", { count: members.length })}
+                  {t("teamScreen.sections.members", { count: members.length })}
                 </Text>
                 <FlatList
                   data={members}
@@ -375,17 +386,62 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
           <View style={themed($inviteForm)}>
             <Text style={themed($formTitle)}>{t("teamScreen.inviteForm.title")}</Text>
 
+            {/* Method Selector */}
+            <View style={themed($roleSelector)}>
+              <Text style={themed($roleSelectorLabel)}>{t("teamScreen.inviteForm.methodLabel")}</Text>
+              <View style={themed($roleOptions)}>
+                <Pressable
+                  onPress={() => setInviteMethod("email")}
+                  style={[themed($roleOption), inviteMethod === "email" && themed($roleOptionSelected)]}
+                >
+                  <Icon icon="email" size={16} style={{ marginRight: 6 }} />
+                  <Text style={[themed($roleOptionText), inviteMethod === "email" && themed($roleOptionTextSelected)]}>
+                    {t("teamScreen.inviteForm.methodEmail")}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setInviteMethod("sms")}
+                  style={[themed($roleOption), inviteMethod === "sms" && themed($roleOptionSelected)]}
+                >
+                  <Icon icon="message" size={16} style={{ marginRight: 6 }} />
+                  <Text style={[themed($roleOptionText), inviteMethod === "sms" && themed($roleOptionTextSelected)]}>
+                    {t("teamScreen.inviteForm.methodSMS")}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setInviteMethod("whatsapp")}
+                  style={[themed($roleOption), inviteMethod === "whatsapp" && themed($roleOptionSelected)]}
+                >
+                  <MaterialCommunityIcons
+                    name="whatsapp"
+                    size={16}
+                    color={inviteMethod === "whatsapp" ? colors.tint : colors.text}
+                    style={{ marginRight: 6 }}
+                  />
+                  <Text style={[themed($roleOptionText), inviteMethod === "whatsapp" && themed($roleOptionTextSelected)]}>
+                    {t("teamScreen.inviteForm.methodWhatsApp")}
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+
             <TextField
-              label={t("teamScreen.inviteForm.emailLabel")}
-              value={inviteEmail}
+              label={inviteMethod === "email"
+                ? t("teamScreen.inviteForm.emailLabel")
+                : t("teamScreen.inviteForm.phoneLabel")
+              }
+              value={inviteContact}
               onChangeText={(text) => {
-                setInviteEmail(text)
+                setInviteContact(text)
                 setInviteError("")
               }}
-              placeholder={t("teamScreen.inviteForm.emailPlaceholder")}
-              keyboardType="email-address"
+              placeholder={inviteMethod === "email"
+                ? t("teamScreen.inviteForm.emailPlaceholder")
+                : t("teamScreen.inviteForm.phonePlaceholder")
+              }
+              keyboardType={inviteMethod === "email" ? "email-address" : "phone-pad"}
               autoCapitalize="none"
-              autoComplete="email"
+              autoComplete={inviteMethod === "email" ? "email" : "tel"}
               autoCorrect={false}
               helper={inviteError}
               status={inviteError ? "error" : undefined}
@@ -420,7 +476,7 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
                 preset="default"
                 onPress={() => {
                   setShowInviteForm(false)
-                  setInviteEmail("")
+                  setInviteContact("")
                   setInviteError("")
                 }}
                 style={themed($formActionButton)}

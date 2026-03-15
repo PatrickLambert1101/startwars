@@ -4,7 +4,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
 
 import { Screen, Text, TextField, Button, ScanTagButton } from "@/components"
-import { DateField } from "@/components/DateField"
+import { AgeDatePicker } from "@/components/AgeDatePicker"
 import { PhotoPicker } from "@/components/PhotoPicker"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -275,7 +275,7 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
           </View>
 
           {/* Date of Birth */}
-          <DateField
+          <AgeDatePicker
             label={t("animalFormScreen.fields.dateOfBirth.label")}
             value={dateOfBirth}
             onChange={setDateOfBirth}
