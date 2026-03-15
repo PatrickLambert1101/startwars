@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react"
+import { Q } from "@nozbe/watermelondb"
+import { database } from "@/db"
 import { supabase } from "@/services/supabase"
 import { useAuth } from "@/context/AuthContext"
 import { useDatabase } from "@/context/DatabaseContext"
@@ -41,89 +43,69 @@ export function useTeam() {
   }, [currentOrg, user])
 
   const loadTeamData = async () => {
-    if (!currentOrg || !currentOrg.remoteId || currentOrg.remoteId === "null") {
-      console.log("[Team] Organization hasn't synced yet. Remote ID will be available after first sync.")
+    if (!currentOrg) {
       setIsLoading(false)
       setMembers([])
       setInvites([])
-      setNeedsSync(true) // Flag that org needs to sync to Supabase first
       return
     }
 
     setNeedsSync(false)
-
-    console.log("[Team] Loading team data for org:", currentOrg.remoteId)
     setIsLoading(true)
 
     try {
-      // Debug: Check current user
-      const { data: { user: currentUser } } = await supabase.auth.getUser()
-      console.log("[Team] Current user ID:", currentUser?.id)
-      console.log("[Team] Expected user ID:", user?.id)
-
-      // Debug: Try to see ANY memberships for this user
-      const { data: allMyMemberships, error: allError } = await supabase
-        .from("memberships")
-        .select("*")
-        .eq("user_id", currentUser?.id || user?.id)
-      console.log("[Team] All my memberships (should bypass org filter):", allMyMemberships?.length || 0)
-      if (allError) {
-        console.error("[Team] Error fetching all memberships:", allError)
-      } else if (allMyMemberships && allMyMemberships.length > 0) {
-        console.log("[Team] First membership:", JSON.stringify(allMyMemberships[0], null, 2))
-      }
-
-      // Load members
-      console.log("[Team] Querying memberships for org:", currentOrg.remoteId)
-      const { data: membersData, error: membersError } = await supabase
-        .from("memberships")
-        .select("*")
-        .eq("organization_id", currentOrg.remoteId)
-
-      if (membersError) {
-        console.error("[Team] Failed to load members:", membersError)
-        console.error("[Team] Error details:", JSON.stringify(membersError, null, 2))
-      } else {
-        console.log("[Team] Loaded members:", membersData?.length || 0)
-        setMembers(
-          (membersData || []).map((m) => ({
-            id: m.id,
-            userId: m.user_id,
-            userEmail: m.user_email || "",
-            userDisplayName: m.user_display_name,
-            role: m.role,
-            joinedAt: m.joined_at || m.created_at || new Date().toISOString(),
-            isActive: true, // All fetched members are active
-          }))
+      // Load members from local database first
+      const localMembers = await database
+        .get<any>("organization_members")
+        .query(
+          Q.where("organization_id", currentOrg.id),
+          Q.where("is_deleted", false)
         )
-      }
+        .fetch()
 
-      // Load pending invites (not yet accepted and not expired)
-      const { data: invitesData, error: invitesError } = await supabase
-        .from("invites")
-        .select("*")
-        .eq("organization_id", currentOrg.remoteId)
-        .gt("expires_at", new Date().toISOString())
+      console.log("[Team] Loaded local members:", localMembers.length)
 
-      if (invitesError) {
-        console.error("Failed to load invites:", invitesError)
-        // Don't fail the whole load if invites fail
+      setMembers(
+        localMembers.map((m) => ({
+          id: m.id,
+          userId: m.userId,
+          userEmail: m.userEmail || "",
+          userDisplayName: m.userDisplayName,
+          role: m.role,
+          joinedAt: m.joinedAt?.toISOString() || m.createdAt?.toISOString() || new Date().toISOString(),
+          isActive: m.isActive,
+        }))
+      )
+
+      // Load pending invites from Supabase (only if org has been synced)
+      if (currentOrg.remoteId && currentOrg.remoteId !== "null") {
+        const { data: invitesData, error: invitesError } = await supabase
+          .from("invites")
+          .select("*")
+          .eq("organization_id", currentOrg.remoteId)
+          .gt("expires_at", new Date().toISOString())
+
+        if (invitesError) {
+          console.error("[Team] Failed to load invites:", invitesError)
+          setInvites([])
+        } else {
+          console.log("[Team] Loaded invites:", invitesData?.length || 0)
+          setInvites(
+            (invitesData || []).map((i) => ({
+              id: i.id,
+              email: i.email,
+              role: i.role,
+              inviteCode: i.invite_code,
+              expiresAt: i.expires_at,
+              createdAt: i.created_at,
+            }))
+          )
+        }
+      } else {
         setInvites([])
-      } else {
-        console.log("[Team] Loaded invites:", invitesData?.length || 0)
-        setInvites(
-          (invitesData || []).map((i) => ({
-            id: i.id,
-            email: i.email,
-            role: i.role,
-            inviteCode: i.invite_code,
-            expiresAt: i.expires_at,
-            createdAt: i.created_at,
-          }))
-        )
       }
     } catch (error) {
-      console.error("Failed to load team data:", error)
+      console.error("[Team] Failed to load team data:", error)
     }
 
     setIsLoading(false)

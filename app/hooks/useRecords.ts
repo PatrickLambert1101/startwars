@@ -4,6 +4,7 @@ import { database } from "@/db"
 import { HealthRecord, HealthRecordType } from "@/db/models/HealthRecord"
 import { WeightRecord } from "@/db/models/WeightRecord"
 import { BreedingRecord, BreedingMethod, BreedingOutcome } from "@/db/models/BreedingRecord"
+import { ScheduledVaccination } from "@/db/models"
 import { useDatabase } from "@/context/DatabaseContext"
 import { useAuth } from "@/context/AuthContext"
 
@@ -46,7 +47,8 @@ export function useHealthRecordActions() {
 
   const createHealthRecord = async (data: HealthRecordFormData) => {
     if (!currentOrg) throw new Error("No organization selected")
-    return database.write(async () => {
+
+    const healthRecord = await database.write(async () => {
       return database.get<HealthRecord>("health_records").create((r) => {
         r.organizationId = currentOrg.id
         r.animalId = data.animalId
@@ -64,6 +66,65 @@ export function useHealthRecordActions() {
         r.isDeleted = false
       })
     })
+
+    // If this is a vaccination and there's a protocol, mark matching scheduled vaccinations as administered
+    if (data.recordType === "vaccination" && data.protocolId) {
+      try {
+        const pendingVaccinations = await database
+          .get<ScheduledVaccination>("scheduled_vaccinations")
+          .query(
+            Q.where("animal_id", data.animalId),
+            Q.where("status", "pending"),
+            Q.where("is_deleted", false)
+          )
+          .fetch()
+
+        // Find vaccination matching this protocol
+        for (const vaccination of pendingVaccinations) {
+          const schedule = await vaccination.schedule.fetch()
+          if (schedule.protocolId === data.protocolId) {
+            await database.write(async () => {
+              await vaccination.update((v) => {
+                v.status = "administered"
+                v.administeredDate = data.recordDate
+                v.healthRecordId = healthRecord.id
+              })
+
+              // Create booster if needed
+              if (schedule.requiresBooster && vaccination.doseNumber < schedule.boosterCount) {
+                const boosterDueDate = new Date(data.recordDate)
+                boosterDueDate.setDate(boosterDueDate.getDate() + (schedule.boosterIntervalDays || 21))
+
+                await database.get<ScheduledVaccination>("scheduled_vaccinations").create((v) => {
+                  v.organizationId = currentOrg.id
+                  v.animalId = data.animalId
+                  v.scheduleId = vaccination.scheduleId
+                  v.status = "pending"
+                  v.dueDate = boosterDueDate
+                  v.doseNumber = vaccination.doseNumber + 1
+                  v.parentVaccinationId = vaccination.id
+                  v.isDeleted = false
+                })
+
+                if (__DEV__) {
+                  console.log("[HealthRecord] Created booster dose", vaccination.doseNumber + 1, "due", boosterDueDate.toLocaleDateString())
+                }
+              }
+            })
+
+            if (__DEV__) {
+              console.log("[HealthRecord] Marked scheduled vaccination as administered:", schedule.name)
+            }
+            break // Only mark the first matching vaccination
+          }
+        }
+      } catch (error) {
+        console.error("[HealthRecord] Failed to link to scheduled vaccination:", error)
+        // Don't throw - health record was created successfully, this is just a bonus feature
+      }
+    }
+
+    return healthRecord
   }
 
   return { createHealthRecord }

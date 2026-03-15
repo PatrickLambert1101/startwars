@@ -11,8 +11,10 @@ import type { ThemedStyle } from "@/theme/types"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { useAnimal, useAnimalActions } from "@/hooks/useAnimals"
 import { useHealthRecords, useWeightRecords, useBreedingRecords } from "@/hooks/useRecords"
+import { useScheduledVaccinations } from "@/hooks/useVaccinationSchedules"
+import { MaterialCommunityIcons } from "@expo/vector-icons"
 
-type Tab = "overview" | "health" | "weight" | "breeding"
+type Tab = "overview" | "health" | "vaccinations" | "weight" | "breeding"
 
 export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ route, navigation }) => {
   const { t } = useTranslation()
@@ -23,6 +25,17 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
   const { records: healthRecords } = useHealthRecords(animalId)
   const { records: weightRecords } = useWeightRecords(animalId)
   const { records: breedingRecords } = useBreedingRecords(animalId)
+  const { vaccinations } = useScheduledVaccinations(animalId)
+
+  // Debug logging
+  if (__DEV__ && vaccinations.length > 0) {
+    console.log("[AnimalDetail] Vaccinations:", vaccinations.map(v => ({
+      id: v.id,
+      hasSchedule: !!v.schedule,
+      scheduleName: v.schedule?.name,
+      hasAnimal: !!v.animal,
+    })))
+  }
   const [activeTab, setActiveTab] = useState<Tab>("overview")
 
   const handleEdit = useCallback(() => {
@@ -63,19 +76,37 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
 
       {/* Tabs */}
       <View style={themed($tabRow)}>
-        {(["overview", "health", "weight", "breeding"] as Tab[]).map((tab) => (
-          <Pressable
-            key={tab}
-            onPress={() => setActiveTab(tab)}
-            style={themed(activeTab === tab ? $tabActive : $tab)}
-          >
-            <Text
-              preset="formLabel"
-              text={t(`animalDetailScreen.tabs.${tab}`)}
-              style={activeTab === tab ? themed($tabTextActive) : themed($tabText)}
-            />
-          </Pressable>
-        ))}
+        {(["overview", "health", "vaccinations", "weight", "breeding"] as Tab[]).map((tab) => {
+          const getTabIcon = () => {
+            switch (tab) {
+              case "overview": return "information-outline"
+              case "health": return "medical-bag"
+              case "vaccinations": return "needle"
+              case "weight": return "scale"
+              case "breeding": return "heart"
+              default: return "circle"
+            }
+          }
+          return (
+            <Pressable
+              key={tab}
+              onPress={() => setActiveTab(tab)}
+              style={themed(activeTab === tab ? $tabActive : $tab)}
+            >
+              <MaterialCommunityIcons
+                name={getTabIcon()}
+                size={18}
+                color={activeTab === tab ? "#FFFFFF" : theme.colors.text}
+              />
+              <Text
+                preset="formLabel"
+                text={t(`animalDetailScreen.tabs.${tab}`)}
+                style={activeTab === tab ? themed($tabTextActive) : themed($tabText)}
+                numberOfLines={1}
+              />
+            </Pressable>
+          )
+        })}
       </View>
 
       {/* Tab Content */}
@@ -127,6 +158,101 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
                 ) : null}
               </View>
             ))
+          )}
+        </View>
+      )}
+
+      {activeTab === "vaccinations" && (
+        <View style={themed($section)}>
+          <Text preset="subheading" text="Vaccination Schedule" style={themed($sectionTitle)} />
+          {vaccinations.length === 0 ? (
+            <View style={themed($emptyState)}>
+              <MaterialCommunityIcons name="needle" size={48} color={theme.colors.palette.neutral300} />
+              <Text text="No vaccinations scheduled" style={themed($emptyText)} />
+              <Text text="Vaccinations are automatically scheduled based on age and active schedules" size="xs" style={themed($dimText)} />
+            </View>
+          ) : (
+            <>
+            {vaccinations.map((v) => {
+              const getUrgencyColor = () => {
+                if (v.urgencyLevel === "critical" || v.urgencyLevel === "overdue") return theme.colors.error
+                if (v.urgencyLevel === "soon") return theme.colors.palette.accent500
+                return theme.colors.textDim
+              }
+
+              const getStatusBadgeColor = () => {
+                if (v.status === "administered") return theme.colors.palette.primary100
+                if (v.status === "skipped") return theme.colors.palette.neutral200
+                return theme.colors.palette.accent100
+              }
+
+              return (
+                <View key={v.id} style={[themed($vaccinationCard), { borderLeftColor: getUrgencyColor() }]}>
+                  <View style={themed($recordHeader)}>
+                    <View style={themed($vaccinationHeaderLeft)}>
+                      <MaterialCommunityIcons name="needle" size={20} color={getUrgencyColor()} />
+                      <Text
+                        preset="bold"
+                        text={v.schedule?.name || "Unknown Vaccination"}
+                        style={{ marginLeft: 8, flex: 1 }}
+                        numberOfLines={2}
+                      />
+                    </View>
+                    <View style={[themed($vaccinationBadge), { backgroundColor: getStatusBadgeColor() }]}>
+                      <Text text={v.status} size="xxs" style={themed($vaccinationBadgeText)} />
+                    </View>
+                  </View>
+
+                  {v.schedule?.protocol && (
+                    <Text text={v.schedule.protocol.productName} size="sm" style={themed($dimText)} />
+                  )}
+
+                  <View style={themed($vaccinationDetails)}>
+                    <View style={themed($vaccinationDetailRow)}>
+                      <MaterialCommunityIcons name="calendar" size={14} color={theme.colors.textDim} />
+                      <Text text={`Due: ${formatDate(v.dueDate)}`} size="xs" style={themed($vaccinationDetailText)} />
+                    </View>
+
+                    {v.status === "pending" && v.daysUntilDue !== undefined && (
+                      <View style={themed($vaccinationDetailRow)}>
+                        <MaterialCommunityIcons name="clock-outline" size={14} color={getUrgencyColor()} />
+                        <Text
+                          text={v.daysUntilDue < 0 ? `${Math.abs(v.daysUntilDue)} days overdue` : `${v.daysUntilDue} days until due`}
+                          size="xs"
+                          style={[themed($vaccinationDetailText), { color: getUrgencyColor() }]}
+                        />
+                      </View>
+                    )}
+
+                    {v.administeredDate && (
+                      <View style={themed($vaccinationDetailRow)}>
+                        <MaterialCommunityIcons name="check-circle" size={14} color={theme.colors.palette.primary500} />
+                        <Text text={`Administered: ${formatDate(v.administeredDate)}`} size="xs" style={themed($vaccinationDetailText)} />
+                      </View>
+                    )}
+
+                    <View style={themed($vaccinationDetailRow)}>
+                      <MaterialCommunityIcons name="needle" size={14} color={theme.colors.textDim} />
+                      <Text text={`Dose ${v.doseNumber}${v.schedule?.boosterCount ? ` of ${v.schedule.boosterCount}` : ""}`} size="xs" style={themed($vaccinationDetailText)} />
+                    </View>
+                  </View>
+
+                  {v.status === "pending" && (
+                    <Button
+                      text="Administer Vaccination"
+                      preset="filled"
+                      style={themed($administerButton)}
+                      onPress={() => navigation.navigate("HealthRecordForm", {
+                        animalId,
+                        protocolId: v.schedule?.protocol?.id,
+                        vaccinationId: v.id,
+                      })}
+                    />
+                  )}
+                </View>
+              )
+            })}
+            </>
           )}
         </View>
       )}
@@ -249,39 +375,46 @@ const $statusBadge: ViewStyle = {
 
 const $tabRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
-  gap: spacing.xs,
+  gap: spacing.xxs,
   marginBottom: spacing.lg,
-  flexWrap: "wrap",
+  flexWrap: "nowrap",
 })
 
 const $tab: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flex: 1,
+  minWidth: 60,
   backgroundColor: colors.palette.neutral100,
   borderRadius: 8,
-  paddingVertical: spacing.sm,
-  paddingHorizontal: spacing.xs,
+  paddingVertical: spacing.xs,
+  paddingHorizontal: spacing.xxs,
   alignItems: "center",
   justifyContent: "center",
+  gap: 2,
 })
 
 const $tabActive: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flex: 1,
+  minWidth: 60,
   backgroundColor: colors.tint,
   borderRadius: 8,
-  paddingVertical: spacing.sm,
-  paddingHorizontal: spacing.xs,
+  paddingVertical: spacing.xs,
+  paddingHorizontal: spacing.xxs,
   alignItems: "center",
   justifyContent: "center",
+  gap: 2,
 })
 
 const $tabText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.text,
-  fontSize: 12,
+  fontSize: 10,
+  textAlign: "center",
 })
 
 const $tabTextActive: ThemedStyle<TextStyle> = () => ({
   color: "#FFFFFF",
-  fontSize: 12,
+  fontSize: 10,
+  fontWeight: "600",
+  textAlign: "center",
 })
 
 const $section: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -332,5 +465,63 @@ const $createdByText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   color: colors.textDim,
   marginTop: spacing.xxs,
   fontStyle: "italic",
+})
+
+const $sectionTitle: ThemedStyle<TextStyle> = ({ spacing }) => ({
+  marginBottom: spacing.md,
+})
+
+const $emptyState: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  alignItems: "center",
+  paddingVertical: spacing.xxl,
+})
+
+const $emptyText: ThemedStyle<TextStyle> = ({ spacing }) => ({
+  marginTop: spacing.sm,
+  marginBottom: spacing.xs,
+})
+
+const $vaccinationCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.palette.neutral100,
+  borderRadius: 12,
+  padding: spacing.md,
+  marginBottom: spacing.md,
+  borderLeftWidth: 4,
+})
+
+const $vaccinationHeaderLeft: ThemedStyle<ViewStyle> = () => ({
+  flexDirection: "row",
+  alignItems: "center",
+  flex: 1,
+})
+
+const $vaccinationBadge: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  paddingHorizontal: spacing.sm,
+  paddingVertical: spacing.xxs,
+  borderRadius: 10,
+})
+
+const $vaccinationBadgeText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.text,
+  fontWeight: "600",
+})
+
+const $vaccinationDetails: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  marginTop: spacing.sm,
+  gap: spacing.xs,
+})
+
+const $vaccinationDetailRow: ThemedStyle<ViewStyle> = () => ({
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 6,
+})
+
+const $vaccinationDetailText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.textDim,
+})
+
+const $administerButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  marginTop: spacing.sm,
 })
 

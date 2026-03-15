@@ -17,6 +17,8 @@ import { useDatabase } from "@/context/DatabaseContext"
 import { useSubscription } from "@/context/SubscriptionContext"
 import { useWeightRecordActions, useHealthRecordActions } from "@/hooks/useRecords"
 import { useActiveProtocols } from "@/hooks/useProtocols"
+import { useScheduledVaccinations } from "@/hooks/useVaccinationSchedules"
+import { ScheduledVaccination } from "@/db/models"
 import { TreatmentProtocol } from "@/db/models"
 import { Q } from "@nozbe/watermelondb"
 
@@ -32,7 +34,7 @@ type ProcessedEntry = {
 
 export const ChuteScreen: FC<any> = ({ navigation }: any) => {
   const { t } = useTranslation()
-  const { themed, theme } = useAppTheme()
+  const { themed, theme: { colors } } = useAppTheme()
   const { currentOrg } = useDatabase()
   const { hasFeature } = useSubscription()
   const { createWeightRecord } = useWeightRecordActions()
@@ -56,6 +58,7 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
   // Animal history (loaded after scan)
   const [weightHistory, setWeightHistory] = useState<WeightRecord[]>([])
   const [healthHistory, setHealthHistory] = useState<HealthRecord[]>([])
+  const [animalVaccinations, setAnimalVaccinations] = useState<ScheduledVaccination[]>([])
 
   // Weight form
   const [weightValue, setWeightValue] = useState("")
@@ -78,6 +81,7 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
     if (!scannedAnimal) {
       setWeightHistory([])
       setHealthHistory([])
+      setAnimalVaccinations([])
       return
     }
 
@@ -101,6 +105,17 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
           )
           .fetch()
         setHealthHistory(health)
+
+        // Load pending vaccinations for this animal
+        const vaccinations = await database.get<ScheduledVaccination>("scheduled_vaccinations")
+          .query(
+            Q.where("animal_id", scannedAnimal.id),
+            Q.where("is_deleted", false),
+            Q.where("status", "pending"),
+            Q.sortBy("due_date", Q.asc),
+          )
+          .fetch()
+        setAnimalVaccinations(vaccinations)
       } catch {
         // Silently fail — history is supplementary
       }
@@ -396,6 +411,39 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
               )}
             </View>
           </View>
+
+          {/* ─── VACCINATION ALERTS ─── */}
+          {animalVaccinations.length > 0 && (
+            <View style={themed($vaccinationAlerts)}>
+              {animalVaccinations.map((vacc) => {
+                const urgency = vacc.urgencyLevel
+                const bgColor = urgency === "critical" || urgency === "overdue"
+                  ? colors.errorBackground
+                  : urgency === "soon"
+                  ? colors.palette.accent100
+                  : colors.palette.primary100
+                const iconColor = urgency === "critical" || urgency === "overdue"
+                  ? colors.error
+                  : urgency === "soon"
+                  ? colors.palette.accent500
+                  : colors.tint
+
+                return (
+                  <View key={vacc.id} style={[themed($vaccinationAlert), { backgroundColor: bgColor }]}>
+                    <MaterialCommunityIcons name="needle" size={20} color={iconColor} />
+                    <View style={themed($vaccinationAlertContent)}>
+                      <Text preset="bold" text={`Vaccination ${vacc.displayStatus}`} size="sm" />
+                      <Text
+                        text={`Dose ${vacc.doseNumber} due ${format(vacc.dueDate, "dd MMM yyyy")}`}
+                        size="xs"
+                        style={themed($dimText)}
+                      />
+                    </View>
+                  </View>
+                )
+              })}
+            </View>
+          )}
 
           {/* ─── WEIGHT MODE ─── */}
           {activeMode === "weight" && (
@@ -991,4 +1039,23 @@ const $protocolOption: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   borderColor: colors.palette.neutral300,
   flexDirection: "row",
   alignItems: "center",
+})
+
+const $vaccinationAlerts: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  marginBottom: spacing.md,
+  gap: spacing.xs,
+})
+
+const $vaccinationAlert: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  borderRadius: 8,
+  padding: spacing.sm,
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.sm,
+  borderLeftWidth: 3,
+  borderLeftColor: "rgba(0,0,0,0.1)",
+})
+
+const $vaccinationAlertContent: ThemedStyle<ViewStyle> = () => ({
+  flex: 1,
 })

@@ -12,7 +12,17 @@ import { Q } from "@nozbe/watermelondb"
 import { database } from "@/db"
 import { supabase } from "@/services/supabase"
 
-const SYNC_TABLES = ["organizations", "organization_members", "animals", "health_records", "weight_records", "breeding_records", "treatment_protocols"] as const
+const SYNC_TABLES = [
+  "organizations",
+  "organization_members",
+  "animals",
+  "health_records",
+  "weight_records",
+  "breeding_records",
+  "treatment_protocols",
+  "vaccination_schedules",
+  "scheduled_vaccinations",
+] as const
 
 type SyncTable = (typeof SYNC_TABLES)[number]
 

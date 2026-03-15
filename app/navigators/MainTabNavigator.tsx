@@ -6,7 +6,7 @@ import { DashboardScreen } from "@/screens/DashboardScreen"
 import { HerdListScreen } from "@/screens/HerdListScreen"
 import { ChuteScreen } from "@/screens/ChuteScreen"
 import { PasturesScreen } from "@/screens/PasturesScreen"
-import { ReportsScreen } from "@/screens/ReportsScreen"
+import { CalendarScreen } from "@/screens/CalendarScreen"
 import { SettingsScreen } from "@/screens/SettingsScreen"
 import { useAppTheme } from "@/theme/context"
 
@@ -87,11 +87,11 @@ export const MainTabNavigator = () => {
         }}
       />
       <Tab.Screen
-        name="Reports"
-        component={ReportsScreen}
+        name="Calendar"
+        component={CalendarScreen}
         options={{
-          tabBarLabel: "Reports",
-          tabBarIcon: ({ color, focused }) => renderTabIcon("chart-bar", focused, color),
+          tabBarLabel: "Calendar",
+          tabBarIcon: ({ color, focused }) => renderTabIcon("calendar", focused, color),
         }}
       />
       <Tab.Screen
