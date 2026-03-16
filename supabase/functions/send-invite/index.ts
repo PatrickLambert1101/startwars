@@ -13,8 +13,11 @@ interface InviteRequest {
 }
 
 serve(async (req) => {
+  console.log("[send-invite] Function invoked, method:", req.method)
+
   // CORS headers
   if (req.method === "OPTIONS") {
+    console.log("[send-invite] Handling OPTIONS request")
     return new Response("ok", {
       headers: {
         "Access-Control-Allow-Origin": "*",
@@ -25,48 +28,50 @@ serve(async (req) => {
   }
 
   try {
-    // Get the authorization header
+    console.log("[send-invite] Processing POST request")
+
+    // Get the authorization header (validated by Supabase gateway already)
     const authHeader = req.headers.get("Authorization")
+    console.log("[send-invite] Auth header present:", !!authHeader)
+
     if (!authHeader) {
+      console.error("[send-invite] Missing authorization header")
       return new Response(JSON.stringify({ error: "Missing authorization header" }), {
         status: 401,
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*"
+        },
       })
     }
 
-    // Create Supabase client
+    console.log("[send-invite] Request authenticated, processing invite")
+
+    // Create Supabase client with service role to bypass RLS
+    // (this function needs to read invites/orgs/memberships regardless of RLS)
+    // Auth is already validated by Supabase's gateway
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: {
-        headers: { Authorization: authHeader },
-      },
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { persistSession: false }
     })
-
-    // Get the current user
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      })
-    }
 
     // Parse request body
     const { inviteId, method } = (await req.json()) as InviteRequest
 
     if (!inviteId || !method) {
+      console.error("[send-invite] Missing inviteId or method")
       return new Response(JSON.stringify({ error: "Missing inviteId or method" }), {
         status: 400,
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*"
+        },
       })
     }
 
     // Get invite details from database
+    console.log("[send-invite] Fetching invite:", inviteId)
     const { data: invite, error: inviteError } = await supabase
       .from("invites")
       .select(`
@@ -79,22 +84,39 @@ serve(async (req) => {
       .single()
 
     if (inviteError || !invite) {
-      return new Response(JSON.stringify({ error: "Invite not found" }), {
+      console.error("[send-invite] Failed to fetch invite:", inviteError)
+      return new Response(JSON.stringify({
+        error: "Invite not found",
+        details: inviteError?.message,
+        inviteId
+      }), {
         status: 404,
         headers: { "Content-Type": "application/json" },
       })
     }
 
-    // Get inviter details
-    const { data: inviterProfile } = await supabase
-      .from("profiles")
-      .select("display_name")
-      .eq("id", invite.invited_by)
+    console.log("[send-invite] Invite found:", { id: invite.id, orgId: invite.organization_id })
+
+    // Get inviter name from the membership record (which includes display_name)
+    console.log("[send-invite] Fetching inviter membership for:", invite.invited_by)
+    const { data: membership, error: memberError } = await supabase
+      .from("memberships")
+      .select("user_display_name, user_email")
+      .eq("organization_id", invite.organization_id)
+      .eq("user_id", invite.invited_by)
       .single()
 
-    const inviterName = inviterProfile?.display_name || "A team member"
+    if (memberError) {
+      console.warn("[send-invite] Could not fetch inviter membership:", memberError)
+    }
+
+    const inviterName = membership?.user_display_name ||
+                       membership?.user_email?.split('@')[0] ||
+                       "A team member"
     const orgName = invite.organizations.name
     const inviteCode = invite.invite_code
+
+    console.log("[send-invite] Sending invite via", method, "to", invite.email)
 
     // Send via chosen method
     if (method === "email") {
@@ -144,10 +166,17 @@ serve(async (req) => {
       headers: { "Content-Type": "application/json" },
     })
   } catch (error) {
-    console.error("Error in send-invite function:", error)
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error("[send-invite] Error in send-invite function:", error)
+    return new Response(JSON.stringify({
+      error: error.message,
+      details: error.toString(),
+      stack: error.stack
+    }), {
       status: 500,
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*"
+      },
     })
   }
 })

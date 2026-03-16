@@ -72,6 +72,7 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
   const [currentRfidTag, setCurrentRfidTag] = useState("")
   const [currentWeight, setCurrentWeight] = useState("")
   const [currentPhotos, setCurrentPhotos] = useState<PhotoWithMetadata[]>([])
+  const [photoPickerKey, setPhotoPickerKey] = useState(0) // Key to force PhotoPicker reset
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
   const [addedAnimals, setAddedAnimals] = useState<AddedAnimal[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -136,12 +137,19 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
     let rfidTag = ""
 
     const prefix = labelPrefix.trim()
-    const tagValue = enteredTag || scannedRfid
 
     if (tagType === "visual") {
+      // For visual tags, use the manually entered tag with optional prefix
+      const tagValue = enteredTag
       visualTag = prefix ? `${prefix}${tagValue}` : tagValue
+      // RFID can still be set if available, without prefix
+      rfidTag = scannedRfid
     } else {
+      // For RFID tags, use the scanned RFID with optional prefix
+      const tagValue = scannedRfid
       rfidTag = prefix ? `${prefix}${tagValue}` : tagValue
+      // Visual can still be set if manually entered, without prefix
+      visualTag = enteredTag
     }
 
     if (!visualTag && !rfidTag) {
@@ -191,6 +199,7 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
       setCurrentRfidTag("")
       setCurrentWeight("")
       setCurrentPhotos([])
+      setPhotoPickerKey(prev => prev + 1) // Force PhotoPicker to reset
 
       // Refocus input
       tagInputRef.current?.focus()
@@ -202,7 +211,7 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
       )
     }
     setIsSubmitting(false)
-  }, [currentTag, currentRfidTag, tagType, breed, sex, dateOfBirth, notesTemplate, currentOrg, createAnimal, t])
+  }, [currentTag, currentRfidTag, tagType, labelPrefix, breed, sex, dateOfBirth, notesTemplate, currentOrg, createAnimal, t])
 
   const handleFinish = useCallback(() => {
     if (addedAnimals.length === 0) {
@@ -533,6 +542,7 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
         {/* Optional Photo */}
         <View style={themed($photoSection)}>
           <PhotoPicker
+            key={photoPickerKey}
             photos={currentPhotos}
             onPhotosChange={handlePhotoChange}
             maxPhotos={3}

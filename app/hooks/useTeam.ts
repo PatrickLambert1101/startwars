@@ -229,20 +229,45 @@ export function useTeamActions() {
       }
 
       try {
+        console.log("[Team] Calling send-invite Edge Function with:", { inviteId: data.id, method })
+
+        // Explicitly pass the authorization header (React Native fix)
         const sendResult = await supabase.functions.invoke('send-invite', {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
           body: {
             inviteId: data.id,
             method,
           },
         })
 
+        console.log("[Team] Edge Function response:", {
+          error: sendResult.error,
+          data: sendResult.data,
+          hasError: !!sendResult.error
+        })
+
         if (sendResult.error) {
           console.error("[Team] Failed to send invite:", sendResult.error)
+
+          // Try to get the actual error message from the response
+          let errorMessage = sendResult.error.message
+          if (sendResult.error.context?.body) {
+            try {
+              const errorBody = await sendResult.error.context.body
+              console.error("[Team] Error body:", errorBody)
+              errorMessage = errorBody.error || errorMessage
+            } catch (e) {
+              console.warn("[Team] Could not parse error body")
+            }
+          }
+
           // Don't fail the whole operation - invite is created, just not sent
           return {
             success: true,
             inviteCode,
-            error: `Invite created but failed to send: ${sendResult.error.message}`
+            error: `Invite created but failed to send: ${errorMessage}`
           }
         }
 

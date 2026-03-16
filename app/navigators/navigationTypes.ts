@@ -11,7 +11,12 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack"
 export type MainTabParamList = {
   Dashboard: undefined
   HerdList: undefined
-  Chute: undefined
+  Chute: {
+    mode?: "single"
+    animalId?: string
+    protocolId?: string
+    vaccinationId?: string
+  } | undefined
   Pastures: undefined
   Calendar: undefined
   Settings: undefined

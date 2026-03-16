@@ -26,9 +26,8 @@ export const PhotoPicker: FC<PhotoPickerProps> = ({
   style,
 }) => {
   const { themed, theme } = useAppTheme()
-  const [showOptions, setShowOptions] = useState(false)
 
-  const { pickFromCamera, pickFromGallery, isLoading } = usePhotoPicker({
+  const { pickFromCamera, isLoading } = usePhotoPicker({
     maxPhotos,
     onPhotosSelected: onPhotosChange,
   })
@@ -38,13 +37,8 @@ export const PhotoPicker: FC<PhotoPickerProps> = ({
     onPhotosChange(updatedPhotos)
   }
 
-  const handleAddPhoto = async (source: "camera" | "gallery") => {
-    setShowOptions(false)
-    if (source === "camera") {
-      await pickFromCamera()
-    } else {
-      await pickFromGallery()
-    }
+  const handleAddPhoto = async () => {
+    await pickFromCamera()
   }
 
   const canAddMore = externalPhotos.length < maxPhotos
@@ -78,42 +72,15 @@ export const PhotoPicker: FC<PhotoPickerProps> = ({
           </View>
         ))}
 
-        {canAddMore && !showOptions && (
+        {canAddMore && (
           <Pressable
             style={themed($addButton)}
-            onPress={() => setShowOptions(true)}
+            onPress={handleAddPhoto}
             disabled={isLoading}
           >
-            <Icon icon="plus" size={32} color={theme.colors.tint} />
-            <Text text="Add Photo" size="xs" style={themed($addText)} />
+            <Icon icon="camera" size={32} color={theme.colors.tint} />
+            <Text text="Take Photo" size="xs" style={themed($addText)} />
           </Pressable>
-        )}
-
-        {canAddMore && showOptions && (
-          <View style={themed($optionsCard)}>
-            <Text text="Add photo from:" size="xs" style={themed($optionsTitle)} />
-            <Button
-              text="Camera"
-              preset="default"
-              LeftAccessory={(props) => <Icon icon="camera" {...props} />}
-              onPress={() => handleAddPhoto("camera")}
-              style={themed($optionButton)}
-            />
-            <Button
-              text="Gallery"
-              preset="default"
-              LeftAccessory={(props) => <Icon icon="image" {...props} />}
-              onPress={() => handleAddPhoto("gallery")}
-              style={themed($optionButton)}
-            />
-            <Button
-              text="Cancel"
-              preset="default"
-              onPress={() => setShowOptions(false)}
-              style={themed($optionButton)}
-              textStyle={themed($cancelText)}
-            />
-          </View>
         )}
       </ScrollView>
 
