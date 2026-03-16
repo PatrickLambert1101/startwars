@@ -3,7 +3,7 @@ import { Alert, FlatList, Pressable, TextInput, View, ViewStyle, TextStyle, Moda
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
 
-import { Screen, Text, TextField, Button, ScanTagButton } from "@/components"
+import { Screen, Text, TextField, Button, ScanTagButton, TagInput } from "@/components"
 import { AgeDatePicker } from "@/components/AgeDatePicker"
 import { PhotoPicker } from "@/components/PhotoPicker"
 import { useAppTheme } from "@/theme/context"
@@ -63,19 +63,21 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
   const [sex, setSex] = useState<AnimalSex>("female")
   const [dateOfBirth, setDateOfBirth] = useState<Date | null>(null)
   const [selectedPastureId, setSelectedPastureId] = useState<string | null>(null)
-  const [labelPrefix, setLabelPrefix] = useState("")
+  const [tags, setTags] = useState<string[]>([])
   const [notesTemplate, setNotesTemplate] = useState("")
   const [tagType, setTagType] = useState<"visual" | "rfid">("visual")
 
   // Entry phase
   const [currentTag, setCurrentTag] = useState("")
   const [currentRfidTag, setCurrentRfidTag] = useState("")
+  const [currentSex, setCurrentSex] = useState<AnimalSex | null>(null) // Override sex for this specific animal
   const [currentWeight, setCurrentWeight] = useState("")
   const [currentPhotos, setCurrentPhotos] = useState<PhotoWithMetadata[]>([])
   const [photoPickerKey, setPhotoPickerKey] = useState(0) // Key to force PhotoPicker reset
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
   const [addedAnimals, setAddedAnimals] = useState<AddedAnimal[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showCurrentSexPicker, setShowCurrentSexPicker] = useState(false)
 
   // Modals
   const [showBreedPicker, setShowBreedPicker] = useState(false)
@@ -136,18 +138,14 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
     let visualTag = ""
     let rfidTag = ""
 
-    const prefix = labelPrefix.trim()
-
     if (tagType === "visual") {
-      // For visual tags, use the manually entered tag with optional prefix
-      const tagValue = enteredTag
-      visualTag = prefix ? `${prefix}${tagValue}` : tagValue
-      // RFID can still be set if available, without prefix
+      // For visual tags, use the manually entered tag
+      visualTag = enteredTag
+      // RFID can still be set if available
       rfidTag = scannedRfid
     } else {
-      // For RFID tags, use the scanned RFID with optional prefix
-      const tagValue = scannedRfid
-      rfidTag = prefix ? `${prefix}${tagValue}` : tagValue
+      // For RFID tags, use the scanned RFID
+      rfidTag = scannedRfid
       // Visual can still be set if manually entered, without prefix
       visualTag = enteredTag
     }
@@ -174,10 +172,11 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
         rfidTag: rfidTag || "",
         visualTag: visualTag || "",
         breed: breed.trim(),
-        sex,
+        sex: currentSex || sex, // Use current sex override if set, otherwise use default
         dateOfBirth: dateOfBirth || undefined,
         status: "active" as AnimalStatus,
         notes: notesTemplate.trim() || undefined,
+        tags: tags.length > 0 ? JSON.stringify(tags) : null,
       }
 
       await createAnimal(data)
@@ -197,6 +196,7 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
       // Clear inputs for next entry
       setCurrentTag("")
       setCurrentRfidTag("")
+      setCurrentSex(null) // Reset sex override
       setCurrentWeight("")
       setCurrentPhotos([])
       setPhotoPickerKey(prev => prev + 1) // Force PhotoPicker to reset
@@ -211,7 +211,7 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
       )
     }
     setIsSubmitting(false)
-  }, [currentTag, currentRfidTag, tagType, labelPrefix, breed, sex, dateOfBirth, notesTemplate, currentOrg, createAnimal, t])
+  }, [currentTag, currentRfidTag, tagType, tags, breed, sex, dateOfBirth, notesTemplate, currentOrg, createAnimal, t])
 
   const handleFinish = useCallback(() => {
     if (addedAnimals.length === 0) {
@@ -301,14 +301,15 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
             </View>
           )}
 
-          {/* Label/Tag Prefix */}
-          <TextField
-            label={t("bulkAnimalAddScreen.setup.labelPrefixLabel")}
-            value={labelPrefix}
-            onChangeText={setLabelPrefix}
-            placeholder={t("bulkAnimalAddScreen.setup.labelPrefixPlaceholder")}
-            helper={t("bulkAnimalAddScreen.setup.labelPrefixHelper")}
-          />
+          {/* Tags */}
+          <View>
+            <Text preset="formLabel" text={t("animalFormScreen.fields.tags.label")} style={themed($tagsLabel)} />
+            <TagInput
+              tags={tags}
+              onTagsChange={setTags}
+              placeholder={t("animalFormScreen.fields.tags.placeholder")}
+            />
+          </View>
 
           {/* Pasture/Group Picker */}
           {pastures.length > 0 && (
@@ -530,6 +531,25 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
           </View>
         </View>
 
+        {/* Optional Sex Override */}
+        <View>
+          <Text preset="formLabel" text={t("animalFormScreen.fields.sex.label")} style={themed($pickerLabel)} />
+          <Pressable onPress={() => setShowCurrentSexPicker(true)} style={themed($pickerButton)}>
+            <Text
+              text={t(`animalFormScreen.fields.sex.options.${currentSex || sex}`)}
+              style={!currentSex && themed($dimText)}
+            />
+            {currentSex && (
+              <Text text=" (override)" size="xs" style={themed($dimText)} />
+            )}
+          </Pressable>
+          {currentSex && (
+            <Pressable onPress={() => setCurrentSex(null)} style={themed($clearOverrideButton)}>
+              <Text text="Use default" size="xs" style={{ color: colors.tint }} />
+            </Pressable>
+          )}
+        </View>
+
         {/* Optional Weight */}
         <TextField
           label={t("bulkAnimalAddScreen.entry.weightLabel")}
@@ -572,6 +592,28 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
           </View>
         )}
       </View>
+
+      {/* Sex Override Picker Modal */}
+      <Modal visible={showCurrentSexPicker} transparent animationType="slide">
+        <View style={themed($modalOverlay)}>
+          <View style={themed($modalContent)}>
+            <Text preset="heading" text={t("animalFormScreen.modals.sex.title")} size="md" />
+            {SEX_OPTIONS.map((s) => (
+              <Pressable
+                key={s}
+                style={themed($modalItem)}
+                onPress={() => {
+                  setCurrentSex(s)
+                  setShowCurrentSexPicker(false)
+                }}
+              >
+                <Text text={t(`animalFormScreen.fields.sex.options.${s}`)} />
+              </Pressable>
+            ))}
+            <Button text={t("common.cancel")} onPress={() => setShowCurrentSexPicker(false)} />
+          </View>
+        </View>
+      </Modal>
     </Screen>
   )
 }
@@ -754,4 +796,13 @@ const $emptyText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   color: colors.textDim,
   textAlign: "center",
   paddingVertical: spacing.lg,
+})
+
+const $tagsLabel: ThemedStyle<TextStyle> = ({ spacing }) => ({
+  marginBottom: spacing.xs,
+})
+
+const $clearOverrideButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  marginTop: spacing.xxs,
+  alignSelf: "flex-start",
 })

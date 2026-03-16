@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react"
-import { View, ViewStyle, TextStyle, ScrollView, Pressable, Keyboard, TouchableWithoutFeedback } from "react-native"
+import { View, ViewStyle, TextStyle, Pressable } from "react-native"
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { Screen, Text, TextField, Button, Icon } from "@/components"
 import { useAppTheme } from "@/theme/context"
@@ -143,11 +144,10 @@ export function PastureFormScreen({ navigation, route }: PastureFormScreenProps)
         <Text preset="heading" text={isEdit ? "Edit Pasture" : "New Pasture"} style={themed($headerTitle)} />
       </View>
 
-      <ScrollView
+      <KeyboardAwareScrollView
         style={themed($form)}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
       >
         <TextField
           label="Pasture Name"
@@ -340,7 +340,7 @@ export function PastureFormScreen({ navigation, route }: PastureFormScreenProps)
             style={themed($saveButton)}
           />
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </Screen>
   )
 }

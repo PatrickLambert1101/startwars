@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react"
-import { View, ViewStyle, TextStyle, ScrollView, Pressable, FlatList, Alert } from "react-native"
+import { View, ViewStyle, TextStyle, ScrollView, Pressable, FlatList, Alert, Modal } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
-import { Screen, Text, TextField, Button, Icon } from "@/components"
+import { Screen, Text, TextField, Button, Icon, ScanTagButton } from "@/components"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { AppStackScreenProps } from "@/navigators"
@@ -10,6 +10,7 @@ import { database } from "@/db"
 import { Animal } from "@/db/models"
 import { Q } from "@nozbe/watermelondb"
 import { useDatabase } from "@/context/DatabaseContext"
+import { useRfidReader } from "@/hooks/useRfidReader"
 
 interface MovementFormScreenProps extends AppStackScreenProps<"MovementForm"> {}
 
@@ -23,6 +24,7 @@ export function MovementFormScreen({ navigation, route }: MovementFormScreenProp
   const { pastures } = usePastures()
   const { moveAnimalsIn, moveAnimalsOut } = usePastureActions()
   const { currentOrg } = useDatabase()
+  const { hasRfidHardware } = useRfidReader()
 
   const [movementType, setMovementType] = useState<MovementType>(initialType)
   const [selectedPastureId, setSelectedPastureId] = useState<string>(initialPastureId || "")
@@ -30,6 +32,7 @@ export function MovementFormScreen({ navigation, route }: MovementFormScreenProp
   const [selectedAnimals, setSelectedAnimals] = useState<Animal[]>([])
   const [availableAnimals, setAvailableAnimals] = useState<Animal[]>([])
   const [showAnimalPicker, setShowAnimalPicker] = useState(false)
+  const [showTagPicker, setShowTagPicker] = useState(false)
   const [notes, setNotes] = useState("")
   const [isSaving, setIsSaving] = useState(false)
 
@@ -38,30 +41,55 @@ export function MovementFormScreen({ navigation, route }: MovementFormScreenProp
     if (!currentOrg) return
 
     const loadAnimals = async () => {
-      if (movementType === "move_in") {
-        // For move in: show animals not currently in any pasture
-        const animals = await database
-          .get<Animal>("animals")
-          .query(
-            Q.where("organization_id", currentOrg.id),
-            Q.where("is_deleted", false),
-            Q.where("current_pasture_id", null),
-            Q.sortBy("visual_tag", Q.asc),
-          )
-          .fetch()
-        setAvailableAnimals(animals)
-      } else if (selectedPastureId) {
-        // For move out: show animals currently in the selected pasture
-        const animals = await database
-          .get<Animal>("animals")
-          .query(
-            Q.where("organization_id", currentOrg.id),
-            Q.where("is_deleted", false),
-            Q.where("current_pasture_id", selectedPastureId),
-            Q.sortBy("visual_tag", Q.asc),
-          )
-          .fetch()
-        setAvailableAnimals(animals)
+      try {
+        if (movementType === "move_in") {
+          // For move in: show animals not currently in any pasture
+          // Note: WatermelonDB stores null as empty string, so we check for both
+          const allAnimals = await database
+            .get<Animal>("animals")
+            .query(
+              Q.where("organization_id", currentOrg.id),
+              Q.where("is_deleted", false),
+              Q.sortBy("visual_tag", Q.asc),
+            )
+            .fetch()
+
+          // Filter animals that have no pasture (null or empty string)
+          const animals = allAnimals.filter(a => !a.currentPastureId || a.currentPastureId === "")
+          console.log(`[MovementForm] Loaded ${animals.length} animals available for move in (out of ${allAnimals.length} total)`)
+          if (__DEV__ && allAnimals.length > 0) {
+            console.log(`[MovementForm] Sample animal currentPastureId values:`,
+              allAnimals.slice(0, 3).map(a => ({
+                id: a.id.slice(0, 8),
+                visualTag: a.visualTag,
+                currentPastureId: a.currentPastureId,
+                currentPastureIdType: typeof a.currentPastureId,
+                isNull: a.currentPastureId === null,
+                isEmpty: a.currentPastureId === "",
+                isFalsy: !a.currentPastureId
+              }))
+            )
+          }
+          setAvailableAnimals(animals)
+        } else if (selectedPastureId) {
+          // For move out: show animals currently in the selected pasture
+          const animals = await database
+            .get<Animal>("animals")
+            .query(
+              Q.where("organization_id", currentOrg.id),
+              Q.where("is_deleted", false),
+              Q.where("current_pasture_id", selectedPastureId),
+              Q.sortBy("visual_tag", Q.asc),
+            )
+            .fetch()
+          console.log(`[MovementForm] Loaded ${animals.length} animals in pasture ${selectedPastureId}`)
+          setAvailableAnimals(animals)
+        } else {
+          setAvailableAnimals([])
+        }
+      } catch (error) {
+        console.error("[MovementForm] Error loading animals:", error)
+        setAvailableAnimals([])
       }
     }
 
@@ -106,9 +134,67 @@ export function MovementFormScreen({ navigation, route }: MovementFormScreenProp
     setSelectedAnimalIds([])
   }
 
-  const handleScanRFID = () => {
-    // TODO: Implement RFID scanning
-    Alert.alert("RFID Scanner", "RFID scanning will be implemented in a future update")
+  const handleScanTag = async (tagNumber: string) => {
+    // Find animal with this tag
+    const animal = await database
+      .get<Animal>("animals")
+      .query(
+        Q.where("organization_id", currentOrg?.id || ""),
+        Q.where("is_deleted", false),
+        Q.or(
+          Q.where("rfid_tag", tagNumber),
+          Q.where("visual_tag", tagNumber)
+        )
+      )
+      .fetch()
+
+    if (animal.length > 0) {
+      // Check if animal is in the right state for this movement type
+      const animalData = animal[0]
+      const canMove = movementType === "move_in"
+        ? !animalData.currentPastureId
+        : animalData.currentPastureId === selectedPastureId
+
+      if (canMove && !selectedAnimalIds.includes(animalData.id)) {
+        setSelectedAnimalIds(prev => [...prev, animalData.id])
+      } else if (!canMove) {
+        Alert.alert("Cannot Move",
+          movementType === "move_in"
+            ? "This animal is already in a pasture"
+            : "This animal is not in the selected pasture"
+        )
+      }
+    } else {
+      Alert.alert("Not Found", `No animal found with tag: ${tagNumber}`)
+    }
+  }
+
+  const handleSelectByTag = () => {
+    // Get all unique tags from available animals
+    const allTags = new Set<string>()
+    availableAnimals.forEach(animal => {
+      animal.tagsList.forEach(tag => allTags.add(tag))
+    })
+
+    if (allTags.size === 0) {
+      Alert.alert("No Tags", "No animals have tags. Add tags to animals to use this feature.")
+      return
+    }
+
+    setShowTagPicker(true)
+  }
+
+  const handleTagSelected = (tag: string) => {
+    const matchingAnimals = availableAnimals.filter(animal =>
+      animal.tagsList.includes(tag)
+    )
+
+    if (matchingAnimals.length > 0) {
+      const newIds = matchingAnimals.map(a => a.id)
+      setSelectedAnimalIds(prev => [...new Set([...prev, ...newIds])])
+      setShowTagPicker(false)
+      Alert.alert("Success", `Selected ${matchingAnimals.length} animals with tag "${tag}"`)
+    }
   }
 
   const handleSubmit = async () => {
@@ -241,19 +327,32 @@ export function MovementFormScreen({ navigation, route }: MovementFormScreenProp
           </Text>
 
           <View style={themed($actionButtons)}>
-            <Button
-              text="📷 Scan RFID"
-              preset="filled"
-              onPress={handleScanRFID}
-              style={themed($actionButton)}
-            />
+            {hasRfidHardware ? (
+              <ScanTagButton
+                onTagScanned={handleScanTag}
+                style={themed($actionButton)}
+              />
+            ) : (
+              <ScanTagButton
+                onTagScanned={handleScanTag}
+                style={themed($actionButton)}
+              />
+            )}
             <Button
               text="+ Select Manually"
               preset="default"
-              onPress={() => setShowAnimalPicker(true)}
+              onPress={() => {
+                console.log(`[MovementForm] Opening manual picker. Available animals: ${availableAnimals.length}`)
+                setShowAnimalPicker(true)
+              }}
               style={themed($actionButton)}
             />
           </View>
+
+          <Pressable onPress={handleSelectByTag} style={themed($selectByTagButton)}>
+            <MaterialCommunityIcons name="tag-multiple" size={18} color={colors.tint} />
+            <Text text="Select by Label" style={themed($selectByTagText)} />
+          </Pressable>
 
           {selectedAnimals.length > 0 && (
             <View style={themed($selectedAnimalsContainer)}>
@@ -317,16 +416,76 @@ export function MovementFormScreen({ navigation, route }: MovementFormScreenProp
                 <Text style={themed($modalCloseText)}>×</Text>
               </Pressable>
             </View>
-            <FlatList
-              data={availableAnimals}
-              renderItem={renderAvailableAnimal}
-              keyExtractor={(item) => item.id}
-              style={themed($animalPickerList)}
-            />
+            {__DEV__ && (
+              <Text size="xs" style={{ marginBottom: 8, color: "#666" }}>
+                Debug: {availableAnimals.length} available, movementType: {movementType}, pastureId: {selectedPastureId || 'none'}
+              </Text>
+            )}
+            {availableAnimals.length === 0 ? (
+              <View style={themed($emptySelection)}>
+                <Text style={themed($emptySelectionText)}>
+                  {movementType === "move_in"
+                    ? "No animals available to move in. All animals are already in pastures."
+                    : selectedPastureId
+                    ? "No animals in this pasture to move out."
+                    : "Please select a pasture first."}
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={availableAnimals}
+                renderItem={renderAvailableAnimal}
+                keyExtractor={(item) => item.id}
+                style={themed($animalPickerList)}
+              />
+            )}
             <Button
               text={`Done (${selectedAnimalIds.length} selected)`}
               preset="filled"
               onPress={() => setShowAnimalPicker(false)}
+              style={themed($modalDoneButton)}
+            />
+          </View>
+        </View>
+      )}
+
+      {/* Tag Picker Modal */}
+      {showTagPicker && (
+        <View style={themed($modalOverlay)}>
+          <View style={themed($tagModalContent)}>
+            <View style={themed($modalHeader)}>
+              <Text preset="heading" text="Select by Label" />
+              <Pressable onPress={() => setShowTagPicker(false)} style={themed($modalClose)}>
+                <Text style={themed($modalCloseText)}>×</Text>
+              </Pressable>
+            </View>
+            <Text size="sm" style={themed($tagModalSubtitle)}>
+              Select all animals with a specific label
+            </Text>
+            <ScrollView style={themed($tagList)} showsVerticalScrollIndicator={false}>
+              {Array.from(new Set(availableAnimals.flatMap(a => a.tagsList)))
+                .sort()
+                .map((tag) => {
+                  const count = availableAnimals.filter(a => a.tagsList.includes(tag)).length
+                  return (
+                    <Pressable
+                      key={tag}
+                      onPress={() => handleTagSelected(tag)}
+                      style={themed($tagOption)}
+                    >
+                      <View style={themed($tagChipLarge)}>
+                        <MaterialCommunityIcons name="tag" size={18} color={colors.palette.primary700} />
+                        <Text text={tag} style={themed($tagOptionText)} />
+                      </View>
+                      <Text text={`${count} animal${count !== 1 ? 's' : ''}`} size="xs" style={themed($tagCount)} />
+                    </Pressable>
+                  )
+                })}
+            </ScrollView>
+            <Button
+              text="Cancel"
+              preset="default"
+              onPress={() => setShowTagPicker(false)}
               style={themed($modalDoneButton)}
             />
           </View>
@@ -557,7 +716,7 @@ const $modalContent: ThemedStyle<ViewStyle> = ({ colors }) => ({
   backgroundColor: colors.background,
   borderRadius: 12,
   width: "100%",
-  maxHeight: "80%",
+  height: "80%",
   padding: 20,
 })
 
@@ -629,4 +788,74 @@ const $animalPickerCheck: ThemedStyle<TextStyle> = ({ colors }) => ({
 
 const $modalDoneButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   marginTop: spacing.md,
+})
+
+const $tagModalContent: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.background,
+  borderRadius: 12,
+  width: "100%",
+  maxHeight: "70%",
+  padding: spacing.lg,
+})
+
+const $tagModalSubtitle: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  color: colors.textDim,
+  marginBottom: spacing.md,
+})
+
+const $tagList: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  marginBottom: spacing.sm,
+})
+
+const $tagOption: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  padding: spacing.md,
+  backgroundColor: colors.palette.neutral100,
+  borderRadius: 10,
+  marginBottom: spacing.xs,
+  borderWidth: 1,
+  borderColor: colors.palette.neutral200,
+})
+
+const $tagChipLarge: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.xs,
+  backgroundColor: colors.palette.primary100,
+  paddingHorizontal: spacing.sm,
+  paddingVertical: spacing.xs,
+  borderRadius: 6,
+  borderWidth: 0.5,
+  borderColor: colors.palette.primary300,
+})
+
+const $tagOptionText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.palette.primary700,
+  fontWeight: "600",
+})
+
+const $tagCount: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.textDim,
+})
+
+// Select by tag button style
+const $selectByTagButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: spacing.xs,
+  backgroundColor: "transparent",
+  borderWidth: 1,
+  borderColor: colors.tint,
+  borderRadius: 8,
+  paddingVertical: spacing.sm,
+  paddingHorizontal: spacing.md,
+  marginBottom: spacing.sm,
+})
+
+const $selectByTagText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.tint,
+  fontWeight: "600",
 })

@@ -311,11 +311,23 @@ export const migrations = schemaMigrations({
         },
       ],
     },
+    {
+      toVersion: 14,
+      steps: [
+        {
+          type: "add_columns",
+          table: "animals",
+          columns: [
+            { name: "tags", type: "string", isOptional: true }, // JSON array of tag strings
+          ],
+        },
+      ],
+    },
   ],
 })
 
 export const schema = appSchema({
-  version: 13,
+  version: 14,
   tables: [
     tableSchema({
       name: "organizations",
@@ -354,6 +366,7 @@ export const schema = appSchema({
         { name: "herd_tag", type: "string", isOptional: true, isIndexed: true }, // Group/herd identifier like "23-C", "XYZ"
         { name: "notes", type: "string", isOptional: true },
         { name: "photos", type: "string", isOptional: true }, // JSON array of photo objects
+        { name: "tags", type: "string", isOptional: true }, // JSON array of tag strings like ["Breeding Stock", "For Sale"]
         { name: "created_at", type: "number" },
         { name: "updated_at", type: "number" },
         { name: "is_deleted", type: "boolean" },

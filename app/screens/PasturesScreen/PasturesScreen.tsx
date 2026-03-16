@@ -354,7 +354,7 @@ const $progressBarContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   marginBottom: spacing.sm,
 })
 
-const $progressBarBg: ThemedStyle<ViewStyle> = ({ colors }) => ({
+const $progressBarBg: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   height: 6,
   backgroundColor: colors.palette.neutral200,
   borderRadius: 3,
