@@ -59,15 +59,24 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation 
           )}
           <View style={themed($animalCardContent)}>
             <View style={themed($animalCardHeader)}>
-              <Text preset="bold" text={item.name || item.visualTag} />
+              <Text preset="bold" text={item.visualTag || item.rfidTag} />
               <View style={[$statusBadge, { backgroundColor: statusColor + "22" }]}>
                 <Text text={item.status} size="xxs" style={{ color: statusColor }} />
               </View>
             </View>
             <View style={themed($animalCardBody)}>
               <Text size="xs" text={t("herdListScreen.breedAndSex", { breed: item.breed, sex: item.sex })} style={themed($dimText)} />
-              {item.visualTag && (
-                <Text size="xxs" text={item.visualTag} style={themed($tagBadge)} />
+              {item.tagsList.length > 0 && (
+                <View style={themed($tagsContainer)}>
+                  {item.tagsList.slice(0, 2).map((tag) => (
+                    <View key={tag} style={themed($tag)}>
+                      <Text size="xxs" text={tag} style={themed($tagText)} />
+                    </View>
+                  ))}
+                  {item.tagsList.length > 2 && (
+                    <Text size="xxs" text={`+${item.tagsList.length - 2}`} style={themed($dimText)} />
+                  )}
+                </View>
               )}
             </View>
           </View>
@@ -372,4 +381,25 @@ const $hintIcon: ThemedStyle<any> = ({ spacing }) => ({
 const $hintText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.palette.primary700,
   flex: 1,
+})
+
+const $tagsContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  flexWrap: "wrap",
+  gap: spacing.xxs,
+  marginTop: spacing.xxs,
+})
+
+const $tag: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.palette.primary100,
+  paddingHorizontal: spacing.xs,
+  paddingVertical: 2,
+  borderRadius: 4,
+  borderWidth: 0.5,
+  borderColor: colors.palette.primary300,
+})
+
+const $tagText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.palette.primary700,
+  fontWeight: "600",
 })

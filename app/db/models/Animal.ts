@@ -64,6 +64,7 @@ export class Animal extends Model {
   @field("herd_tag") herdTag!: string | null
   @field("notes") notes!: string | null
   @field("photos") photos!: string | null // JSON array of photo objects
+  @field("tags") tags!: string | null // JSON array of tag strings
   @readonly @date("created_at") createdAt!: Date
   @date("updated_at") updatedAt!: Date
   @field("is_deleted") isDeleted!: boolean
@@ -84,5 +85,13 @@ export class Animal extends Model {
 
   get sexLabel(): string {
     return SEX_LABELS[this.species]?.[this.sex] ?? this.sex
+  }
+
+  get tagsList(): string[] {
+    try {
+      return this.tags ? JSON.parse(this.tags) : []
+    } catch {
+      return []
+    }
   }
 }

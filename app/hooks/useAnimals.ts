@@ -144,6 +144,7 @@ export function useAnimalActions() {
         if (data.status !== undefined) a.status = data.status
         if (data.herdTag !== undefined) a.herdTag = data.herdTag ?? null
         if (data.notes !== undefined) a.notes = data.notes ?? null
+        if (data.tags !== undefined) a.tags = data.tags ?? null
       })
     })
 

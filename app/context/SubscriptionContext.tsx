@@ -14,6 +14,7 @@ import Purchases, {
   LOG_LEVEL,
 } from "react-native-purchases"
 import { useDatabase } from "./DatabaseContext"
+import { useAuth } from "./AuthContext"
 
 export type PlanTier = "starter" | "farm" | "commercial"
 export type PremiumFeature = "vaccines" | "pastures" | "unlimited_animals" | "team_members" | "advanced_reports"
@@ -54,6 +55,7 @@ export const SubscriptionContext = createContext<SubscriptionContextType | null>
 
 export const SubscriptionProvider: FC<PropsWithChildren> = ({ children }) => {
   const { currentOrg } = useDatabase()
+  const { user } = useAuth()
 
   const [plan, setPlan] = useState<PlanTier>("starter")
   const [packages, setPackages] = useState<PurchasesPackage[]>([])
@@ -111,6 +113,34 @@ export const SubscriptionProvider: FC<PropsWithChildren> = ({ children }) => {
 
     initRevenueCat()
   }, [])
+
+  // ── Identify user with RevenueCat when they log in ──────────
+  useEffect(() => {
+    const identifyUser = async () => {
+      if (!user?.id) {
+        console.log("[Subscriptions] No user logged in, skipping identification")
+        return
+      }
+
+      try {
+        console.log("[Subscriptions] Identifying user with RevenueCat:", user.id)
+        await Purchases.logIn(user.id)
+        console.log("[Subscriptions] User identified successfully")
+
+        // Refresh customer info after login
+        const customerInfo = await Purchases.getCustomerInfo()
+        console.log("[Subscriptions] Refreshed customer info after login:", {
+          activeEntitlements: Object.keys(customerInfo.entitlements.active),
+          allPurchasedProducts: Object.keys(customerInfo.allPurchasedProductIdentifiers || {}),
+        })
+        updatePlanFromCustomerInfo(customerInfo)
+      } catch (error) {
+        console.error("[Subscriptions] Failed to identify user with RevenueCat:", error)
+      }
+    }
+
+    identifyUser()
+  }, [user?.id])
 
   // ── Helpers ───────────────────────────────────────────────
   const updatePlanFromCustomerInfo = (info: CustomerInfo) => {

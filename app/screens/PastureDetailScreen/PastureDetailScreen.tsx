@@ -1,5 +1,6 @@
 import React from "react"
 import { View, ViewStyle, TextStyle, ScrollView, Pressable, FlatList, Alert } from "react-native"
+import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { Screen, Text, Button, Icon } from "@/components"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -116,7 +117,9 @@ export function PastureDetailScreen({ navigation, route }: PastureDetailScreenPr
         <Text style={themed($movementText)}>
           Animal {movement.animalId.slice(0, 8)} {movement.movementType === "move_in" ? "moved in" : "moved out"}
         </Text>
-        <Text style={themed($movementDate)}>{formatDate(movement.movementDate, "PPp")}</Text>
+        <Text style={themed($movementDate)}>
+          {movement.movementDate ? formatDate(movement.movementDate.toISOString(), "PPp") : "N/A"}
+        </Text>
       </View>
     </View>
   )
@@ -285,18 +288,14 @@ export function PastureDetailScreen({ navigation, route }: PastureDetailScreenPr
 
         {/* Actions */}
         <View style={themed($actionsSection)}>
-          <Button
-            text="📷 Scan Animals In"
-            preset="filled"
-            onPress={handleScanIn}
-            style={themed($actionButton)}
-          />
-          <Button
-            text="📷 Scan Animals Out"
-            preset="default"
-            onPress={handleScanOut}
-            style={themed($actionButton)}
-          />
+          <Pressable onPress={handleScanIn} style={themed($scanButton)}>
+            <MaterialCommunityIcons name="camera-outline" size={20} color="#FFF" />
+            <Text text="Scan Animals In" style={themed($scanButtonText)} />
+          </Pressable>
+          <Pressable onPress={handleScanOut} style={themed($scanButtonOutline)}>
+            <MaterialCommunityIcons name="camera-outline" size={20} color={colors.tint} />
+            <Text text="Scan Animals Out" style={themed($scanButtonOutlineText)} />
+          </Pressable>
           <Button
             text={pasture.isActive ? "Deactivate Pasture" : "Activate Pasture"}
             preset="default"
@@ -559,4 +558,42 @@ const $actionsSection: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 
 const $actionButton: ThemedStyle<ViewStyle> = () => ({
   width: "100%",
+})
+
+const $scanButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.palette.primary500,
+  borderRadius: 12,
+  paddingHorizontal: spacing.md,
+  paddingVertical: spacing.md,
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: spacing.xs,
+  minHeight: 44,
+})
+
+const $scanButtonText: ThemedStyle<TextStyle> = () => ({
+  color: "#FFF",
+  fontWeight: "600",
+  fontSize: 16,
+})
+
+const $scanButtonOutline: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: "transparent",
+  borderWidth: 1,
+  borderColor: colors.tint,
+  borderRadius: 12,
+  paddingHorizontal: spacing.md,
+  paddingVertical: spacing.md,
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: spacing.xs,
+  minHeight: 44,
+})
+
+const $scanButtonOutlineText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.tint,
+  fontWeight: "600",
+  fontSize: 16,
 })

@@ -1,5 +1,6 @@
 import React, { useState } from "react"
 import { View, ViewStyle, TextStyle, Pressable } from "react-native"
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { Screen, Text, TextField, Button, Icon } from "@/components"
 import { useAppTheme } from "@/theme/context"
@@ -125,6 +126,12 @@ export function PastureWizardScreen({ navigation }: PastureWizardScreenProps) {
         </View>
       </View>
 
+      <KeyboardAwareScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ flexGrow: 1 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
       {/* Step 1: Basics */}
       {currentStep === 1 && (
         <View style={themed($stepContainer)}>
@@ -347,6 +354,7 @@ export function PastureWizardScreen({ navigation }: PastureWizardScreenProps) {
           </View>
         </View>
       )}
+      </KeyboardAwareScrollView>
     </Screen>
   )
 }

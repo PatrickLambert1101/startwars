@@ -3,7 +3,7 @@ import { Pressable, View, ViewStyle, TextStyle } from "react-native"
 import { format } from "date-fns"
 import { useTranslation } from "react-i18next"
 
-import { Screen, Text, Button } from "@/components"
+import { Screen, Text, Button, TagInput } from "@/components"
 import { WeightChart } from "@/components/WeightChart"
 import { PhotoGallery } from "@/components/PhotoGallery"
 import { useAppTheme } from "@/theme/context"
@@ -13,6 +13,7 @@ import { useAnimal, useAnimalActions } from "@/hooks/useAnimals"
 import { useHealthRecords, useWeightRecords, useBreedingRecords } from "@/hooks/useRecords"
 import { useScheduledVaccinations } from "@/hooks/useVaccinationSchedules"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
+import { database } from "@/db"
 
 type Tab = "overview" | "health" | "weight" | "breeding"
 
@@ -37,10 +38,27 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
     })))
   }
   const [activeTab, setActiveTab] = useState<Tab>("overview")
+  const [tags, setTags] = useState<string[]>(animal?.tagsList || [])
+  const [isEditingTags, setIsEditingTags] = useState(false)
 
   const handleEdit = useCallback(() => {
     navigation.navigate("AnimalForm", { mode: "edit", animalId })
   }, [navigation, animalId])
+
+  const handleTagsChange = useCallback(async (newTags: string[]) => {
+    setTags(newTags)
+    if (animal) {
+      await database.write(async () => {
+        await animal.update((a: any) => {
+          a.tags = newTags.length > 0 ? JSON.stringify(newTags) : null
+        })
+      })
+    }
+  }, [animal])
+
+  const handleSaveTags = useCallback(() => {
+    setIsEditingTags(false)
+  }, [])
 
   const handleDelete = useCallback(async () => {
     await deleteAnimal(animalId)
@@ -117,6 +135,45 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
           <DetailRow label={t("animalDetailScreen.overview.dateOfBirth")} value={formatDate(animal.dateOfBirth)} themed={themed} />
           <DetailRow label={t("animalDetailScreen.overview.registrationNumber")} value={animal.registrationNumber || t("animalDetailScreen.overview.noValue")} themed={themed} />
           {animal.notes ? <DetailRow label={t("animalDetailScreen.overview.notes")} value={animal.notes} themed={themed} /> : null}
+
+          <View style={themed($tagsSection)}>
+            <View style={themed($tagsSectionHeader)}>
+              <Text text="Tags" preset="formLabel" style={themed($tagsLabel)} />
+              {!isEditingTags && (
+                <Pressable onPress={() => setIsEditingTags(true)} style={themed($editTagsButton)}>
+                  <MaterialCommunityIcons name="pencil" size={16} color={theme.colors.tint} />
+                  <Text text="Edit" size="xs" style={{ color: theme.colors.tint, marginLeft: 4 }} />
+                </Pressable>
+              )}
+            </View>
+            {isEditingTags ? (
+              <>
+                <TagInput
+                  tags={tags}
+                  onTagsChange={handleTagsChange}
+                  placeholder="Add tags..."
+                />
+                <Button
+                  text="Done"
+                  preset="filled"
+                  onPress={handleSaveTags}
+                  style={themed($saveTagsButton)}
+                />
+              </>
+            ) : (
+              <View style={themed($tagsDisplay)}>
+                {tags.length > 0 ? (
+                  tags.map((tag) => (
+                    <View key={tag} style={themed($tagChip)}>
+                      <Text size="xs" text={tag} style={themed($tagChipText)} />
+                    </View>
+                  ))
+                ) : (
+                  <Text text="No tags" size="sm" style={themed($dimText)} />
+                )}
+              </View>
+            )}
+          </View>
 
           <Button
             text={t("animalDetailScreen.deleteButton")}
@@ -519,5 +576,52 @@ const $vaccinationDetailText: ThemedStyle<TextStyle> = ({ colors }) => ({
 
 const $administerButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   marginTop: spacing.sm,
+})
+
+const $tagsSection: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  marginTop: spacing.md,
+  marginBottom: spacing.md,
+})
+
+const $tagsSectionHeader: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: spacing.xs,
+})
+
+const $tagsLabel: ThemedStyle<TextStyle> = () => ({
+})
+
+const $editTagsButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  paddingHorizontal: spacing.xs,
+  paddingVertical: spacing.xxs,
+})
+
+const $tagsDisplay: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  flexWrap: "wrap",
+  gap: spacing.xs,
+})
+
+const $tagChip: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.palette.primary100,
+  paddingHorizontal: spacing.sm,
+  paddingVertical: spacing.xs,
+  borderRadius: 6,
+  borderWidth: 0.5,
+  borderColor: colors.palette.primary300,
+})
+
+const $tagChipText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.palette.primary700,
+  fontWeight: "600",
+})
+
+const $saveTagsButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  marginTop: spacing.sm,
+  alignSelf: "flex-start",
 })
 

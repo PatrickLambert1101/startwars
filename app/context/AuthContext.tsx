@@ -1,6 +1,7 @@
 import { createContext, FC, PropsWithChildren, useCallback, useContext, useEffect, useState } from "react"
 import { Session, User } from "@supabase/supabase-js"
 import * as Linking from "expo-linking"
+import Purchases from "react-native-purchases"
 import { supabase } from "@/services/supabase"
 
 const AUTH_REDIRECT_URL = Linking.createURL("auth-callback")
@@ -185,6 +186,16 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
   }, [])
 
   const logout = useCallback(async () => {
+    try {
+      // Reset RevenueCat to clear user-specific data
+      console.log("[Auth] Logging out RevenueCat user")
+      await Purchases.logOut()
+      console.log("[Auth] RevenueCat user logged out successfully")
+    } catch (error) {
+      console.error("[Auth] Error logging out RevenueCat:", error)
+    }
+
+    // Sign out from Supabase
     await supabase.auth.signOut()
     setSession(null)
   }, [])

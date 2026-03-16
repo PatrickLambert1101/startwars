@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next"
 import { Screen, Text, TextField, Button, ScanTagButton } from "@/components"
 import { AgeDatePicker } from "@/components/AgeDatePicker"
 import { PhotoPicker } from "@/components/PhotoPicker"
+import { TagInput } from "@/components/TagInput"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
@@ -61,6 +62,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
   const [sireId, setSireId] = useState<string | null>(null)
   const [dameId, setDameId] = useState<string | null>(null)
   const [photos, setPhotos] = useState<PhotoWithMetadata[]>([])
+  const [tags, setTags] = useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showBreedPicker, setShowBreedPicker] = useState(false)
   const [showSexPicker, setShowSexPicker] = useState(false)
@@ -105,6 +107,21 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
         } catch (e) {
           console.error("Failed to parse animal photos:", e)
         }
+      }
+      // Load existing tags if editing
+      if (animal.tags) {
+        try {
+          const parsed = JSON.parse(animal.tags)
+          if (Array.isArray(parsed)) {
+            console.log("[AnimalForm] Loading tags:", parsed)
+            setTags(parsed)
+          }
+        } catch (e) {
+          console.error("Failed to parse animal tags:", e)
+        }
+      } else {
+        console.log("[AnimalForm] No tags to load")
+        setTags([])
       }
     }
   }, [animal, isEditing])
@@ -190,6 +207,9 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
 
     setIsSubmitting(true)
     try {
+      const tagsJson = tags.length > 0 ? JSON.stringify(tags) : null
+      console.log("[AnimalForm] Saving tags:", tags, "as JSON:", tagsJson)
+
       const data: AnimalFormData = {
         rfidTag: rfidTag.trim(),
         visualTag: visualTag.trim(),
@@ -201,10 +221,12 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
         registrationNumber: registrationNumber.trim() || undefined,
         herdTag: herdTag.trim() || undefined,
         notes: notes.trim() || undefined,
+        tags: tagsJson,
       }
 
       let savedAnimalId: string
       if (isEditing && animalId) {
+        console.log("[AnimalForm] Updating animal with data:", data)
         await updateAnimal(animalId, data)
         savedAnimalId = animalId
       } else {
@@ -461,6 +483,15 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
           placeholder={t("animalFormScreen.fields.notes.placeholder")}
           multiline
         />
+
+        <View>
+          <Text text="Tags" size="sm" style={{ marginBottom: 8, fontWeight: "600", color: colors.text }} />
+          <TagInput
+            tags={tags}
+            onTagsChange={setTags}
+            placeholder="Add tags (e.g., Breeding Stock, For Sale...)"
+          />
+        </View>
 
         <Button
           text={isSubmitting ? t("animalFormScreen.buttons.saving") : isEditing ? t("animalFormScreen.buttons.save") : t("animalFormScreen.buttons.add")}

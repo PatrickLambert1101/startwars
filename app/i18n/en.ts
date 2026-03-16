@@ -599,6 +599,10 @@ const en = {
         label: "Notes",
         placeholder: "Any additional notes...",
       },
+      tags: {
+        label: "Tags",
+        placeholder: "Add tags (e.g., Breeding Stock, For Sale...)",
+      },
     },
     lineage: {
       title: "Lineage (optional)",
