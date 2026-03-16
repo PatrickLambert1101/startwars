@@ -672,3 +672,17 @@ const $saveButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   marginTop: spacing.lg,
   marginBottom: spacing.xxl,
 })
+
+const $protocolList: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  marginBottom: spacing.sm,
+})
+
+const $protocolChip: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  paddingHorizontal: spacing.sm,
+  paddingVertical: spacing.xs,
+  borderRadius: 16,
+  backgroundColor: colors.palette.neutral200,
+  marginRight: spacing.xs,
+  borderWidth: 1,
+  borderColor: colors.border,
+})

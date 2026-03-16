@@ -3,6 +3,7 @@ import { Alert, FlatList, Pressable, ScrollView, TextInput, View, ViewStyle, Tex
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { format } from "date-fns"
 import { useTranslation } from "react-i18next"
+import { useFocusEffect } from "@react-navigation/native"
 
 import { Screen, Text, TextField, Button, ScanTagButton } from "@/components"
 import { WeightChart } from "@/components/WeightChart"
@@ -32,10 +33,16 @@ type ProcessedEntry = {
   timestamp: Date
 }
 
-export const ChuteScreen: FC<any> = ({ navigation }: any) => {
+export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
   const { t } = useTranslation()
   const { themed, theme: { colors } } = useAppTheme()
   const { currentOrg } = useDatabase()
+
+  // Check if we're in single animal mode (from vaccination)
+  const isSingleMode = route?.params?.mode === "single"
+  const preSelectedAnimalId = route?.params?.animalId
+  const preSelectedProtocolId = route?.params?.protocolId
+  const vaccinationId = route?.params?.vaccinationId
   const { hasFeature } = useSubscription()
   const { createWeightRecord } = useWeightRecordActions()
   const { createHealthRecord } = useHealthRecordActions()
@@ -75,6 +82,56 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
 
   // Session log
   const [processedLog, setProcessedLog] = useState<ProcessedEntry[]>([])
+
+  // Reset screen when accessed normally (not in single mode)
+  useFocusEffect(
+    useCallback(() => {
+      if (!isSingleMode) {
+        // Reset all state when entering normal chute mode
+        setSessionMode(null)
+        setSelectedProtocol(null)
+        setScannedAnimal(null)
+        setRfidInput("")
+        setWeightValue("")
+        setConditionScore("")
+        setConditionValue("")
+        setTreatmentDesc("")
+        setProductName("")
+        setDosage("")
+        setProcessedLog([])
+      }
+    }, [isSingleMode])
+  )
+
+  // Auto-select animal and protocol in single mode
+  useEffect(() => {
+    if (isSingleMode && preSelectedAnimalId && preSelectedProtocolId) {
+      // Load the animal
+      const loadAnimal = async () => {
+        try {
+          const animal = await database.get<Animal>("animals").find(preSelectedAnimalId)
+          setScannedAnimal(animal)
+          setRfidInput(animal.rfidTag || animal.visualTag || "")
+        } catch (error) {
+          console.error("[Chute] Failed to load animal:", error)
+        }
+      }
+
+      // Load the protocol
+      const loadProtocol = async () => {
+        try {
+          const protocol = await database.get<TreatmentProtocol>("treatment_protocols").find(preSelectedProtocolId)
+          setSelectedProtocol(protocol)
+          setSessionMode("protocol")
+        } catch (error) {
+          console.error("[Chute] Failed to load protocol:", error)
+        }
+      }
+
+      loadAnimal()
+      loadProtocol()
+    }
+  }, [isSingleMode, preSelectedAnimalId, preSelectedProtocolId])
 
   // Load animal history when scanned
   useEffect(() => {
@@ -261,7 +318,23 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
         productName: selectedProtocol.productName,
         dosage: selectedProtocol.dosage,
         protocolId: selectedProtocol.id,
+        vaccinationId: vaccinationId,
       })
+
+      // If there's a vaccination ID, mark it as administered
+      if (vaccinationId) {
+        try {
+          const vaccination = await database.get<ScheduledVaccination>("scheduled_vaccinations").find(vaccinationId)
+          await database.write(async () => {
+            await vaccination.update((v: any) => {
+              v.status = "administered"
+              v.administeredDate = new Date()
+            })
+          })
+        } catch (error) {
+          console.error("[Chute] Failed to update vaccination status:", error)
+        }
+      }
 
       setProcessedLog((prev) => [{
         id: `${Date.now()}`,
@@ -271,11 +344,23 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
         timestamp: new Date(),
       }, ...prev])
 
-      resetForNextAnimal()
+      // In single mode, navigate back to animal detail
+      if (isSingleMode && preSelectedAnimalId) {
+        // Clear params before navigating back
+        navigation.setParams({
+          mode: undefined,
+          animalId: undefined,
+          protocolId: undefined,
+          vaccinationId: undefined
+        })
+        navigation.navigate("AnimalDetail", { animalId: preSelectedAnimalId })
+      } else {
+        resetForNextAnimal()
+      }
     } catch {
       Alert.alert(t("common.error"), t("common.failedToSave"))
     }
-  }, [scannedAnimal, selectedProtocol, createHealthRecord, resetForNextAnimal, t])
+  }, [scannedAnimal, selectedProtocol, vaccinationId, isSingleMode, preSelectedAnimalId, createHealthRecord, resetForNextAnimal, navigation, t])
 
   const activeMode = sessionMode
 
@@ -341,7 +426,25 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
           <Text preset="bold" text={modeLabel} style={{ color: modeColor }} size="lg" />
           <Text text={t("chuteScreen.session.processed", { count: processedLog.length })} size="xs" style={themed($dimText)} />
         </View>
-        <Button text={t("chuteScreen.session.endSession")} preset="default" onPress={() => { setSessionMode(null); resetForNextAnimal() }} />
+        <Button
+          text={isSingleMode ? t("common.cancel") : t("chuteScreen.session.endSession")}
+          preset="default"
+          onPress={() => {
+            if (isSingleMode && preSelectedAnimalId) {
+              // Clear params and navigate back
+              navigation.setParams({
+                mode: undefined,
+                animalId: undefined,
+                protocolId: undefined,
+                vaccinationId: undefined
+              })
+              navigation.navigate("AnimalDetail", { animalId: preSelectedAnimalId })
+            } else {
+              setSessionMode(null)
+              resetForNextAnimal()
+            }
+          }}
+        />
       </View>
 
       {!scannedAnimal ? (
@@ -722,11 +825,11 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
                 <View style={themed($formCard)}>
                   <View style={{ backgroundColor: "#10B98122", borderRadius: 8, padding: spacing.md, marginBottom: spacing.sm }}>
                     <Text preset="bold" text={selectedProtocol.name} size="md" style={{ color: "#10B981" }} />
-                    <View style={{ marginTop: spacing.xs, gap: spacing.xxs }}>
-                      <Text text={t("chuteScreen.protocol.product", { name: selectedProtocol.productName })} size="xs" />
-                      <Text text={t("chuteScreen.protocol.standardDosage", { dosage: selectedProtocol.dosage })} size="xs" />
+                    <View style={{ marginTop: spacing.xs }}>
+                      <Text text={t("chuteScreen.protocol.product", { name: selectedProtocol.productName })} size="xs" style={{ marginBottom: spacing.xxs }} />
+                      <Text text={t("chuteScreen.protocol.standardDosage", { dosage: selectedProtocol.dosage })} size="xs" style={{ marginBottom: spacing.xxs }} />
                       {selectedProtocol.administrationMethod && (
-                        <Text text={t("chuteScreen.protocol.method", { method: selectedProtocol.administrationMethod })} size="xs" />
+                        <Text text={t("chuteScreen.protocol.method", { method: selectedProtocol.administrationMethod })} size="xs" style={{ marginBottom: spacing.xxs }} />
                       )}
                       {selectedProtocol.withdrawalDays && (
                         <Text text={t("chuteScreen.protocol.withdrawal", { days: selectedProtocol.withdrawalDays })} size="xs" style={{ color: "#DC2626" }} />
@@ -771,7 +874,12 @@ export const ChuteScreen: FC<any> = ({ navigation }: any) => {
 
                   <View style={themed($formButtons)}>
                     <Button text={t("chuteScreen.protocol.changeProtocol")} preset="default" onPress={() => setSelectedProtocol(null)} />
-                    <Button text={t("chuteScreen.protocol.applyAndNext")} preset="reversed" onPress={handleApplyProtocol} style={themed($saveNextButton)} />
+                    <Button
+                      text={isSingleMode ? t("chuteScreen.protocol.apply") : t("chuteScreen.protocol.applyAndNext")}
+                      preset="reversed"
+                      onPress={handleApplyProtocol}
+                      style={themed($saveNextButton)}
+                    />
                   </View>
                 </View>
               )}

@@ -164,6 +164,12 @@ function watermelonToSupabase(record: any) {
   const raw = record._raw || record
   const row: any = { ...raw }
 
+  console.log(`[Sync] watermelonToSupabase BEFORE conversion:`, {
+    id: row.id,
+    created_at: row.created_at,
+    created_at_type: typeof row.created_at
+  })
+
   // Convert timestamp fields (milliseconds) to ISO strings for Postgres
   for (const key of Object.keys(row)) {
     if (key.endsWith("_at") || key.endsWith("_date")) {
@@ -186,6 +192,14 @@ function watermelonToSupabase(record: any) {
       }
     }
   }
+
+  console.log(`[Sync] watermelonToSupabase AFTER conversion:`, {
+    id: row.id,
+    created_at: row.created_at,
+    created_at_type: typeof row.created_at,
+    livestock_types: row.livestock_types,
+    livestock_types_type: typeof row.livestock_types
+  })
 
   return row
 }
@@ -257,10 +271,72 @@ async function fixOrganizationRemoteIds() {
       })
 
       console.log("[Sync] Organization remote_ids fixed successfully")
+      return true // Signal that we made changes
     }
+    return false
   } catch (error) {
     console.error("[Sync] Failed to fix organization remote_ids:", error)
     // Don't throw - this is a non-critical fix
+    return false
+  }
+}
+
+/**
+ * Check which organizations exist locally but not in Supabase, and mark them for sync
+ * This fixes the case where orgs were created but never successfully pushed
+ */
+async function ensureMissingOrganizationsArePushed(): Promise<boolean> {
+  try {
+    const { Q } = await import("@nozbe/watermelondb")
+
+    // Get all local organizations
+    const localOrgs = await database.get<any>("organizations")
+      .query(Q.where("is_deleted", false))
+      .fetch()
+
+    if (localOrgs.length === 0) {
+      return false
+    }
+
+    console.log(`[Sync] Checking ${localOrgs.length} local organizations against Supabase`)
+
+    // Get all organization IDs from Supabase
+    const orgIds = localOrgs.map(org => org.id)
+    const { data: supabaseOrgs, error } = await supabase
+      .from("organizations")
+      .select("id")
+      .in("id", orgIds)
+
+    if (error) {
+      console.error("[Sync] Failed to check organizations in Supabase:", error)
+      return false
+    }
+
+    const supabaseOrgIds = new Set(supabaseOrgs?.map(o => o.id) || [])
+    const missingOrgs = localOrgs.filter(org => !supabaseOrgIds.has(org.id))
+
+    if (missingOrgs.length > 0) {
+      console.log(`[Sync] Found ${missingOrgs.length} organizations missing from Supabase:`, missingOrgs.map(o => o.name))
+
+      await database.write(async () => {
+        for (const org of missingOrgs) {
+          // Marking as updated will trigger a push
+          await org.update((o: any) => {
+            // Just touch the record to mark it as needing sync
+            o.remoteId = org.id || org.remoteId
+          })
+        }
+      })
+
+      console.log("[Sync] Marked missing organizations for sync")
+      return true
+    }
+
+    console.log("[Sync] All local organizations exist in Supabase")
+    return false
+  } catch (error) {
+    console.error("[Sync] Failed to check missing organizations:", error)
+    return false
   }
 }
 
@@ -383,7 +459,10 @@ export async function syncDatabase(): Promise<{ success: boolean; error?: string
     const tierChanges = await fixOrganizationSubscriptionTiers()
 
     // After sync, ensure organizations have their remote_id set
-    await fixOrganizationRemoteIds()
+    const remoteIdChanges = await fixOrganizationRemoteIds()
+
+    // Check which organizations are missing from Supabase and mark them for sync
+    const missingOrgChanges = await ensureMissingOrganizationsArePushed()
 
     // Ensure user has admin membership in their organizations
     console.log("[Sync] Checking memberships for user:", user?.email)
@@ -398,8 +477,8 @@ export async function syncDatabase(): Promise<{ success: boolean; error?: string
       console.log("[Sync] No user found, skipping membership check")
     }
 
-    // If we made changes to memberships or tiers, run sync again to push them
-    if (membershipChanges || tierChanges) {
+    // If we made changes to memberships, tiers, or found missing orgs, run sync again to push them
+    if (membershipChanges || tierChanges || remoteIdChanges || missingOrgChanges) {
       console.log("[Sync] Local changes detected, running second sync to push them...")
       await synchronize({
         database,

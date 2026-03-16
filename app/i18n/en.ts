@@ -472,6 +472,7 @@ const en = {
         message: "Weigh this animal first for accurate dosage calculation",
       },
       changeProtocol: "Change Protocol",
+      apply: "Apply",
       applyAndNext: "Apply & Next",
     },
   },

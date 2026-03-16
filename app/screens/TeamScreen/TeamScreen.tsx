@@ -503,7 +503,7 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
         {invites.length > 0 && (
           <View style={themed($section)}>
             <Text style={themed($sectionTitle)}>
-              {t("teamScreen.sections.pendingInvites", { count: invites.length })}
+              {t("teamScreen.sections.invites", { count: invites.length })}
             </Text>
             <FlatList
               data={invites}
@@ -517,7 +517,7 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
         {/* Team Members */}
         <View style={themed($section)}>
           <Text style={themed($sectionTitle)}>
-            {t("teamScreen.sections.teamMembers", { count: members.length })}
+            {t("teamScreen.sections.members", { count: members.length })}
           </Text>
           <FlatList
             data={members}

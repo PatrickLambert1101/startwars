@@ -12,7 +12,7 @@ import { useAuth } from "@/context/AuthContext"
 import { uploadPhoto } from "@/services/photoStorage"
 import type { PhotoWithMetadata } from "@/types/Photo"
 import { serializePhotos } from "@/types/Photo"
-import { useTranslation } from "@/i18n"
+import { useTranslation } from "react-i18next"
 
 export const WeightRecordFormScreen: FC<AppStackScreenProps<"WeightRecordForm">> = ({ route, navigation }) => {
   const { themed } = useAppTheme()

@@ -14,7 +14,7 @@ import { useHealthRecords, useWeightRecords, useBreedingRecords } from "@/hooks/
 import { useScheduledVaccinations } from "@/hooks/useVaccinationSchedules"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 
-type Tab = "overview" | "health" | "vaccinations" | "weight" | "breeding"
+type Tab = "overview" | "health" | "weight" | "breeding"
 
 export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ route, navigation }) => {
   const { t } = useTranslation()
@@ -76,12 +76,11 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
 
       {/* Tabs */}
       <View style={themed($tabRow)}>
-        {(["overview", "health", "vaccinations", "weight", "breeding"] as Tab[]).map((tab) => {
+        {(["overview", "health", "weight", "breeding"] as Tab[]).map((tab) => {
           const getTabIcon = () => {
             switch (tab) {
               case "overview": return "information-outline"
               case "health": return "medical-bag"
-              case "vaccinations": return "needle"
               case "weight": return "scale"
               case "breeding": return "heart"
               default: return "circle"
@@ -131,39 +130,7 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
 
       {activeTab === "health" && (
         <View style={themed($section)}>
-          <Button
-            text={t("animalDetailScreen.health.addButton")}
-            preset="filled"
-            style={themed($addRecordButton)}
-            onPress={() => navigation.navigate("HealthRecordForm", { animalId })}
-          />
-          {healthRecords.length === 0 ? (
-            <Text text={t("animalDetailScreen.health.empty")} style={themed($dimText)} />
-          ) : (
-            healthRecords.map((r) => (
-              <View key={r.id} style={themed($recordCard)}>
-                <View style={themed($recordHeader)}>
-                  <Text preset="bold" text={r.recordType} />
-                  <Text size="xs" text={formatDate(r.recordDate)} style={themed($dimText)} />
-                </View>
-                <Text text={r.description} size="sm" />
-                {r.productName ? <Text text={t("animalDetailScreen.health.product", { product: r.productName })} size="xs" style={themed($dimText)} /> : null}
-                <PhotoGallery photosJson={r.photos} />
-                {r.createdByName ? (
-                  <Text
-                    text={t("animalDetailScreen.health.recordedBy", { name: r.createdByName.split('@')[0] })}
-                    size="xxs"
-                    style={themed($createdByText)}
-                  />
-                ) : null}
-              </View>
-            ))
-          )}
-        </View>
-      )}
-
-      {activeTab === "vaccinations" && (
-        <View style={themed($section)}>
+          {/* Vaccinations Section */}
           <Text preset="subheading" text="Vaccination Schedule" style={themed($sectionTitle)} />
           {vaccinations.length === 0 ? (
             <View style={themed($emptyState)}>
@@ -242,10 +209,14 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
                       text="Administer Vaccination"
                       preset="filled"
                       style={themed($administerButton)}
-                      onPress={() => navigation.navigate("HealthRecordForm", {
-                        animalId,
-                        protocolId: v.schedule?.protocol?.id,
-                        vaccinationId: v.id,
+                      onPress={() => navigation.navigate("Main", {
+                        screen: "Chute",
+                        params: {
+                          mode: "single",
+                          animalId,
+                          protocolId: v.schedule?.protocol?.id,
+                          vaccinationId: v.id,
+                        }
                       })}
                     />
                   )}
@@ -253,6 +224,31 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
               )
             })}
             </>
+          )}
+
+          {/* Health Records Section */}
+          <Text preset="subheading" text="Health Records" style={[themed($sectionTitle), { marginTop: 16 }]} />
+          {healthRecords.length === 0 ? (
+            <Text text={t("animalDetailScreen.health.empty")} style={themed($dimText)} />
+          ) : (
+            healthRecords.map((r) => (
+              <View key={r.id} style={themed($recordCard)}>
+                <View style={themed($recordHeader)}>
+                  <Text preset="bold" text={r.recordType} />
+                  <Text size="xs" text={formatDate(r.recordDate)} style={themed($dimText)} />
+                </View>
+                <Text text={r.description} size="sm" />
+                {r.productName ? <Text text={t("animalDetailScreen.health.product", { product: r.productName })} size="xs" style={themed($dimText)} /> : null}
+                <PhotoGallery photosJson={r.photos} />
+                {r.createdByName ? (
+                  <Text
+                    text={t("animalDetailScreen.health.recordedBy", { name: r.createdByName.split('@')[0] })}
+                    size="xxs"
+                    style={themed($createdByText)}
+                  />
+                ) : null}
+              </View>
+            ))
           )}
         </View>
       )}
