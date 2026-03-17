@@ -44,8 +44,19 @@ const TIER_FEATURES = {
   commercial: ["vaccines", "pastures", "unlimited_animals", "team_members", "advanced_reports"] as PremiumFeature[],
 }
 
-// RevenueCat API key - using test key (replace with production key later)
-const REVENUECAT_API_KEY = "test_HiAakRXKRndBIBZdYHlGVISoCmX"
+// RevenueCat API keys from environment variables
+const REVENUECAT_IOS_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY
+const REVENUECAT_ANDROID_KEY = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY
+
+// Get the appropriate API key for the current platform
+const getRevenueCatApiKey = (): string | null => {
+  if (Platform.OS === "ios") {
+    return REVENUECAT_IOS_KEY || null
+  } else if (Platform.OS === "android") {
+    return REVENUECAT_ANDROID_KEY || null
+  }
+  return null
+}
 
 // RevenueCat entitlement identifiers — must match what you set up in the RC dashboard
 const FARM_ENTITLEMENT_ID = "farm"
@@ -71,12 +82,32 @@ export const SubscriptionProvider: FC<PropsWithChildren> = ({ children }) => {
   useEffect(() => {
     const initRevenueCat = async () => {
       try {
+        const apiKey = getRevenueCatApiKey()
+
+        // Check if API key is configured
+        if (!apiKey) {
+          console.warn("[Subscriptions] RevenueCat API key not configured. Subscriptions will be disabled.")
+          console.warn("[Subscriptions] Please set EXPO_PUBLIC_REVENUECAT_IOS_KEY or EXPO_PUBLIC_REVENUECAT_ANDROID_KEY in your .env file")
+          setPlan("starter")
+          setIsLoading(false)
+          return
+        }
+
+        // Validate API key format
+        if (apiKey.includes("YOUR_") || apiKey.includes("your-")) {
+          console.warn("[Subscriptions] RevenueCat API key appears to be a placeholder. Subscriptions will be disabled.")
+          console.warn("[Subscriptions] Get your production key from: https://app.revenuecat.com/settings/api-keys")
+          setPlan("starter")
+          setIsLoading(false)
+          return
+        }
+
         // Configure RevenueCat with minimal logging
         Purchases.setLogLevel(LOG_LEVEL.INFO)
 
         // Initialize SDK
         await Purchases.configure({
-          apiKey: REVENUECAT_API_KEY,
+          apiKey,
           appUserID: undefined, // Let RevenueCat generate anonymous ID (will link on login)
         })
 
@@ -145,7 +176,8 @@ export const SubscriptionProvider: FC<PropsWithChildren> = ({ children }) => {
   // ── Helpers ───────────────────────────────────────────────
   const updatePlanFromCustomerInfo = (info: CustomerInfo) => {
     // DEVELOPMENT WORKAROUND: Check if using test store and grant farm by default if any purchase exists
-    const isTestStore = REVENUECAT_API_KEY.startsWith("test_")
+    const apiKey = getRevenueCatApiKey()
+    const isTestStore = apiKey?.startsWith("test_") || false
     const hasAnyPurchase = Object.keys(info.allPurchasedProductIdentifiers || {}).length > 0
 
     if (isTestStore && hasAnyPurchase && Object.keys(info.entitlements.active).length === 0) {

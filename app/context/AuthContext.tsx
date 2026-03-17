@@ -3,6 +3,7 @@ import { Session, User } from "@supabase/supabase-js"
 import * as Linking from "expo-linking"
 import Purchases from "react-native-purchases"
 import { supabase } from "@/services/supabase"
+import { logAuthOperation, setUserContext, captureException } from "@/services/sentry"
 
 const AUTH_REDIRECT_URL = Linking.createURL("auth-callback")
 const DEV_SKIP_AUTH = process.env.EXPO_PUBLIC_DEV_SKIP_AUTH === "true"
@@ -34,10 +35,36 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s)
       setIsLoading(false)
+
+      if (s?.user) {
+        setUserContext({ id: s.user.id, email: s.user.email })
+        logAuthOperation("session-refresh", {
+          userId: s.user.id,
+          email: s.user.email,
+        })
+      } else {
+        setUserContext(null)
+      }
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
+      console.log("[Auth] State change:", event)
       setSession(s)
+
+      if (s?.user) {
+        setUserContext({ id: s.user.id, email: s.user.email })
+        if (event === "SIGNED_IN") {
+          logAuthOperation("login", {
+            userId: s.user.id,
+            email: s.user.email,
+          })
+        }
+      } else {
+        setUserContext(null)
+        if (event === "SIGNED_OUT") {
+          logAuthOperation("logout", {})
+        }
+      }
     })
 
     return () => subscription.unsubscribe()
@@ -71,8 +98,52 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
   }, [])
 
   const signIn = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) return { error: error.message }
+    console.log("[Auth] signIn called", {
+      email,
+      emailLength: email.length,
+      passwordLength: password.length,
+      emailTrimmed: email.trim(),
+      hasWhitespace: email !== email.trim()
+    })
+
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+
+    if (error) {
+      console.error("[Auth] signIn error:", {
+        message: error.message,
+        status: error.status,
+        name: error.name,
+        email: email,
+      })
+
+      logAuthOperation("login", {
+        email,
+        error,
+        method: "password",
+      })
+
+      captureException(error, {
+        component: "AuthContext",
+        operation: "signIn",
+        email,
+        errorStatus: error.status,
+      })
+
+      return { error: error.message }
+    }
+
+    console.log("[Auth] signIn success:", {
+      userId: data?.user?.id,
+      email: data?.user?.email,
+      hasSession: !!data?.session
+    })
+
+    logAuthOperation("login", {
+      email: data?.user?.email,
+      userId: data?.user?.id,
+      method: "password",
+    })
+
     return { error: null }
   }, [])
 

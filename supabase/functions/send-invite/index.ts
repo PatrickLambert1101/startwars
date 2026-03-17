@@ -2,10 +2,24 @@
 // Uses Resend for email and Clickatell for SMS/WhatsApp
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { createClient } from "@supabase/supabase-js"
+import * as Sentry from "@sentry/deno"
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")
 const CLICKATELL_API_KEY = Deno.env.get("CLICKATELL_API_KEY")
+const SENTRY_DSN = Deno.env.get("SENTRY_DSN")
+
+// Initialize Sentry
+if (SENTRY_DSN) {
+  Sentry.init({
+    dsn: SENTRY_DSN,
+    tracesSampleRate: 0.2,
+    environment: Deno.env.get("SUPABASE_ENV") || "production",
+  })
+  console.log("[Sentry] Initialized for Edge Function")
+} else {
+  console.warn("[Sentry] DSN not configured, skipping initialization")
+}
 
 interface InviteRequest {
   inviteId: string
@@ -167,6 +181,19 @@ serve(async (req) => {
     })
   } catch (error) {
     console.error("[send-invite] Error in send-invite function:", error)
+
+    // Capture error in Sentry
+    if (SENTRY_DSN) {
+      Sentry.captureException(error, {
+        contexts: {
+          function: {
+            name: "send-invite",
+            invoked_at: new Date().toISOString(),
+          },
+        },
+      })
+    }
+
     return new Response(JSON.stringify({
       error: error.message,
       details: error.toString(),
@@ -260,12 +287,41 @@ async function sendEmail(
     if (!response.ok) {
       const errorData = await response.json()
       console.error("Resend error:", errorData)
+
+      // Capture Resend API error in Sentry
+      if (SENTRY_DSN) {
+        Sentry.captureMessage(`Resend API error: ${errorData.message || "Unknown error"}`, {
+          level: "error",
+          contexts: {
+            resend: {
+              email,
+              orgName,
+              statusCode: response.status,
+              errorData,
+            },
+          },
+        })
+      }
+
       return { success: false, error: `Failed to send email: ${errorData.message || "Unknown error"}` }
     }
 
     return { success: true }
   } catch (error) {
     console.error("Error sending email:", error)
+
+    // Capture exception in Sentry
+    if (SENTRY_DSN) {
+      Sentry.captureException(error, {
+        contexts: {
+          email_send: {
+            email,
+            orgName,
+          },
+        },
+      })
+    }
+
     return { success: false, error: error.message }
   }
 }
@@ -314,12 +370,43 @@ Download the app and enter this code to join the team. Valid for 7 days.`
     if (!response.ok) {
       const errorData = await response.json()
       console.error("Clickatell error:", errorData)
+
+      // Capture Clickatell API error in Sentry
+      if (SENTRY_DSN) {
+        Sentry.captureMessage(`Clickatell API error: ${errorData.error || "Unknown error"}`, {
+          level: "error",
+          contexts: {
+            clickatell: {
+              method,
+              phoneOrEmail,
+              orgName,
+              statusCode: response.status,
+              errorData,
+            },
+          },
+        })
+      }
+
       return { success: false, error: `Failed to send ${method}: ${errorData.error || "Unknown error"}` }
     }
 
     return { success: true }
   } catch (error) {
     console.error(`Error sending ${method}:`, error)
+
+    // Capture exception in Sentry
+    if (SENTRY_DSN) {
+      Sentry.captureException(error, {
+        contexts: {
+          message_send: {
+            method,
+            phoneOrEmail,
+            orgName,
+          },
+        },
+      })
+    }
+
     return { success: false, error: error.message }
   }
 }

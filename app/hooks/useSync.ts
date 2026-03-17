@@ -1,5 +1,7 @@
 import { useCallback, useState, useEffect, useRef } from "react"
 import { syncDatabase } from "@/services/sync_rpc"
+import { logSyncOperation, startTransaction, captureException } from "@/services/sentry"
+import * as Sentry from "@sentry/react-native"
 
 export type SyncStatus = "idle" | "syncing" | "success" | "error"
 
@@ -16,6 +18,7 @@ export function useSync() {
     // Prevent concurrent syncs
     if (isSyncingRef.current) {
       pendingSync = true
+      console.log("[Sync] Already syncing, queuing another sync")
       return { success: true }
     }
 
@@ -25,34 +28,90 @@ export function useSync() {
       setError(null)
     }
 
-    const result = await syncDatabase()
+    const startTime = Date.now()
+    const transaction = startTransaction("database-sync", "sync")
 
-    if (result.success) {
-      if (showStatus) {
-        setStatus("success")
+    console.log("[Sync] 🔄 Starting sync operation...")
+
+    try {
+      const result = await syncDatabase()
+      const duration = Date.now() - startTime
+
+      if (result.success) {
+        if (showStatus) {
+          setStatus("success")
+        }
+        setLastSynced(new Date())
+
+        console.log(`[Sync] ✅ Sync completed successfully in ${duration}ms`)
+        logSyncOperation("full-sync", {
+          recordsPulled: result.pulled || 0,
+          recordsPushed: result.pushed || 0,
+          duration,
+          lastPulledAt: new Date(),
+        })
+
+        transaction?.setStatus({ code: 1 }) // OK
+        transaction?.finish()
+      } else {
+        if (showStatus) {
+          setStatus("error")
+          setError(result.error ?? "Unknown error")
+        }
+
+        console.error(`[Sync] ❌ Sync failed after ${duration}ms:`, result.error)
+        logSyncOperation("full-sync", {
+          error: new Error(result.error || "Unknown sync error"),
+          duration,
+        })
+
+        captureException(new Error(result.error || "Unknown sync error"), {
+          component: "useSync",
+          operation: "performSync",
+          duration,
+        })
+
+        transaction?.setStatus({ code: 2 }) // Error
+        transaction?.finish()
       }
-      setLastSynced(new Date())
-    } else {
-      if (showStatus) {
-        setStatus("error")
-        setError(result.error ?? "Unknown error")
+
+      isSyncingRef.current = false
+
+      // If another sync was requested while we were syncing, do it now
+      if (pendingSync) {
+        pendingSync = false
+        console.log("[Sync] Processing queued sync request")
+        setTimeout(() => performSync(false), 1000)
       }
+
+      // Reset to idle after a few seconds
+      if (showStatus) {
+        setTimeout(() => setStatus("idle"), 3000)
+      }
+
+      return result
+    } catch (error) {
+      const duration = Date.now() - startTime
+      console.error(`[Sync] ❌ Sync crashed after ${duration}ms:`, error)
+
+      isSyncingRef.current = false
+
+      logSyncOperation("full-sync", {
+        error: error as Error,
+        duration,
+      })
+
+      captureException(error as Error, {
+        component: "useSync",
+        operation: "performSync",
+        duration,
+      })
+
+      transaction?.setStatus({ code: 2 }) // Error
+      transaction?.finish()
+
+      return { success: false, error: (error as Error).message }
     }
-
-    isSyncingRef.current = false
-
-    // If another sync was requested while we were syncing, do it now
-    if (pendingSync) {
-      pendingSync = false
-      setTimeout(() => performSync(false), 1000)
-    }
-
-    // Reset to idle after a few seconds
-    if (showStatus) {
-      setTimeout(() => setStatus("idle"), 3000)
-    }
-
-    return result
   }, [])
 
   const sync = useCallback(async () => {

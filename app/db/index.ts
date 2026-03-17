@@ -1,8 +1,10 @@
 import { Database } from "@nozbe/watermelondb"
 import SQLiteAdapter from "@nozbe/watermelondb/adapters/sqlite"
+import * as Sentry from "@sentry/react-native"
 
 import { schema, migrations } from "./schema"
 import { Organization, Animal, HealthRecord, WeightRecord, BreedingRecord, TreatmentProtocol, Pasture, PastureMovement, OrganizationMember, VaccinationSchedule, ScheduledVaccination } from "./models"
+import { logDatabaseOperation, captureException } from "@/services/sentry"
 
 // Use SQLite adapter for reliable persistence on native platforms
 // This fixes the LokiJS reset bug that was wiping data on every refresh
@@ -12,13 +14,27 @@ const adapter = new SQLiteAdapter({
   jsi: false,
   onSetUpError: (error) => {
     console.error("[DB] Setup error:", error)
+
+    // Capture database setup errors in Sentry with rich context
+    captureException(error, {
+      component: "SQLiteAdapter",
+      schemaVersion: schema.version,
+    })
+
+    logDatabaseOperation("reset", {
+      error,
+    })
   },
 })
+
+console.log("[DB] Initializing WatermelonDB with schema version:", schema.version)
 
 export const database = new Database({
   adapter,
   modelClasses: [Organization, Animal, HealthRecord, WeightRecord, BreedingRecord, TreatmentProtocol, Pasture, PastureMovement, OrganizationMember, VaccinationSchedule, ScheduledVaccination],
 })
+
+console.log("[DB] WatermelonDB initialized successfully with", Object.keys(database.collections).length, "collections")
 
 export { schema } from "./schema"
 export * from "./models"

@@ -5,6 +5,7 @@ import { Organization, LivestockType } from "@/db/models/Organization"
 import { OrganizationMember } from "@/db/models/OrganizationMember"
 import { useAuth } from "./AuthContext"
 import { seedDefaultSchedules } from "@/services/defaultSchedules"
+import { logDatabaseOperation, setOrgContext, captureException, measureDatabaseQuery } from "@/services/sentry"
 
 export type CreateOrgParams = {
   name: string
@@ -37,24 +38,34 @@ export const DatabaseProvider: FC<PropsWithChildren> = ({ children }) => {
       if (!user) {
         console.log("[DatabaseContext] No user, clearing current org")
         setCurrentOrg(null)
+        setOrgContext(null)
         setIsOrgLoading(false)
         return
       }
 
       try {
         // Get all active memberships for this user
-        const memberships = await database.get<OrganizationMember>("organization_members")
-          .query(
-            Q.where("user_id", user.id),
-            Q.where("is_active", true)
-          )
-          .fetch()
+        const memberships = await measureDatabaseQuery(
+          "findActiveMemberships",
+          "organization_members",
+          () => database.get<OrganizationMember>("organization_members")
+            .query(
+              Q.where("user_id", user.id),
+              Q.where("is_active", true)
+            )
+            .fetch()
+        )
 
         console.log("[DatabaseContext] Found", memberships.length, "active memberships for user:", user.email)
+        logDatabaseOperation("query", {
+          table: "organization_members",
+          recordCount: memberships.length,
+        })
 
         if (memberships.length === 0) {
           console.log("[DatabaseContext] User has no organization memberships")
           setCurrentOrg(null)
+          setOrgContext(null)
           setIsOrgLoading(false)
           return
         }
@@ -63,24 +74,44 @@ export const DatabaseProvider: FC<PropsWithChildren> = ({ children }) => {
         const orgIds = memberships.map(m => m.organizationId)
 
         // Load organizations that the user is a member of
-        const orgs = await database.get<Organization>("organizations")
-          .query(
-            Q.where("id", Q.oneOf(orgIds)),
-            Q.where("is_deleted", false)
-          )
-          .fetch()
+        const orgs = await measureDatabaseQuery(
+          "findUserOrganizations",
+          "organizations",
+          () => database.get<Organization>("organizations")
+            .query(
+              Q.where("id", Q.oneOf(orgIds)),
+              Q.where("is_deleted", false)
+            )
+            .fetch()
+        )
 
         console.log("[DatabaseContext] Found", orgs.length, "organizations for user")
+        logDatabaseOperation("query", {
+          table: "organizations",
+          recordCount: orgs.length,
+        })
 
         if (orgs.length > 0) {
           console.log("[DatabaseContext] Setting current org:", orgs[0].name)
           setCurrentOrg(orgs[0])
+          setOrgContext({ id: orgs[0].id, name: orgs[0].name })
         } else {
           console.log("[DatabaseContext] No non-deleted organizations found")
           setCurrentOrg(null)
+          setOrgContext(null)
         }
       } catch (error) {
         console.error("[DatabaseContext] Error loading orgs:", error)
+        captureException(error as Error, {
+          component: "DatabaseContext",
+          operation: "loadOrg",
+          userId: user.id,
+          userEmail: user.email,
+        })
+        logDatabaseOperation("query", {
+          table: "organizations",
+          error: error as Error,
+        })
       }
       setIsOrgLoading(false)
     }
@@ -88,63 +119,132 @@ export const DatabaseProvider: FC<PropsWithChildren> = ({ children }) => {
   }, [user])
 
   const createOrganization = useCallback(async (params: CreateOrgParams): Promise<Organization> => {
-    const org = await database.write(async () => {
-      const newOrg = await database.get<Organization>("organizations").create((o) => {
-        o.name = params.name
-        o.livestockTypes = params.livestockTypes
-        o.location = params.location ?? null
-        o.defaultBreeds = params.defaultBreeds || {}
-        o.subscriptionTier = "starter" // All new organizations start on free tier
-        o.subscriptionStatus = "active"
-        o.subscriptionStartsAt = null
-        o.subscriptionEndsAt = null
-        o.isDeleted = false
+    const startTime = Date.now()
+
+    try {
+      const org = await database.write(async () => {
+        const newOrg = await database.get<Organization>("organizations").create((o) => {
+          o.name = params.name
+          o.livestockTypes = params.livestockTypes
+          o.location = params.location ?? null
+          o.defaultBreeds = params.defaultBreeds || {}
+          o.subscriptionTier = "starter" // All new organizations start on free tier
+          o.subscriptionStatus = "active"
+          o.subscriptionStartsAt = null
+          o.subscriptionEndsAt = null
+          o.isDeleted = false
+        })
+
+        logDatabaseOperation("create", {
+          table: "organizations",
+          recordId: newOrg.id,
+        })
+
+        // Auto-create admin membership if user info provided
+        if (params.userIdForAdmin && params.userEmailForAdmin) {
+          await database.get<OrganizationMember>("organization_members").create((m) => {
+            m.organizationId = newOrg.id
+            m.userId = params.userIdForAdmin!
+            m.userEmail = params.userEmailForAdmin!
+            m.userDisplayName = params.userDisplayName ?? null
+            m.role = "admin"
+            m.invitedBy = null
+            m.invitedAt = null
+            m.joinedAt = new Date()
+            m.isActive = true
+          })
+
+          console.log("[DatabaseContext] Created admin membership for", params.userEmailForAdmin, "with display name:", params.userDisplayName)
+          logDatabaseOperation("create", {
+            table: "organization_members",
+          })
+        }
+
+        return newOrg
       })
 
-      // Auto-create admin membership if user info provided
-      if (params.userIdForAdmin && params.userEmailForAdmin) {
-        await database.get<OrganizationMember>("organization_members").create((m) => {
-          m.organizationId = newOrg.id
-          m.userId = params.userIdForAdmin!
-          m.userEmail = params.userEmailForAdmin!
-          m.userDisplayName = params.userDisplayName ?? null
-          m.role = "admin"
-          m.invitedBy = null
-          m.invitedAt = null
-          m.joinedAt = new Date()
-          m.isActive = true
-        })
-        console.log("[DatabaseContext] Created admin membership for", params.userEmailForAdmin, "with display name:", params.userDisplayName)
+      // Seed default vaccination schedules for cattle farms
+      if (params.livestockTypes.includes("cattle")) {
+        console.log("[DatabaseContext] Seeding default vaccination schedules for cattle farm")
+        const seeded = await seedDefaultSchedules(org.id)
+        if (seeded) {
+          console.log("[DatabaseContext] Successfully seeded default schedules")
+        } else {
+          console.warn("[DatabaseContext] Failed to seed default schedules")
+        }
       }
 
-      return newOrg
-    })
+      const duration = Date.now() - startTime
+      console.log(`[DatabaseContext] Organization created in ${duration}ms:`, org.name)
 
-    // Seed default vaccination schedules for cattle farms
-    if (params.livestockTypes.includes("cattle")) {
-      console.log("[DatabaseContext] Seeding default vaccination schedules for cattle farm")
-      const seeded = await seedDefaultSchedules(org.id)
-      if (seeded) {
-        console.log("[DatabaseContext] Successfully seeded default schedules")
-      } else {
-        console.warn("[DatabaseContext] Failed to seed default schedules")
-      }
+      setCurrentOrg(org)
+      setOrgContext({ id: org.id, name: org.name })
+      return org
+    } catch (error) {
+      const duration = Date.now() - startTime
+      console.error(`[DatabaseContext] Failed to create organization after ${duration}ms:`, error)
+
+      captureException(error as Error, {
+        component: "DatabaseContext",
+        operation: "createOrganization",
+        params,
+      })
+
+      logDatabaseOperation("create", {
+        table: "organizations",
+        error: error as Error,
+        duration,
+      })
+
+      throw error
     }
-
-    setCurrentOrg(org)
-    return org
   }, [])
 
   const switchOrganization = useCallback(async (orgId: string) => {
-    const org = await database.get<Organization>("organizations").find(orgId)
-    setCurrentOrg(org)
+    try {
+      const org = await database.get<Organization>("organizations").find(orgId)
+      setCurrentOrg(org)
+      setOrgContext({ id: org.id, name: org.name })
+
+      logDatabaseOperation("query", {
+        table: "organizations",
+        recordId: orgId,
+      })
+    } catch (error) {
+      console.error("[DatabaseContext] Failed to switch organization:", error)
+      captureException(error as Error, {
+        component: "DatabaseContext",
+        operation: "switchOrganization",
+        orgId,
+      })
+      throw error
+    }
   }, [])
 
   const resetDatabase = useCallback(async () => {
-    await database.write(async () => {
-      await database.unsafeResetDatabase()
-    })
-    setCurrentOrg(null)
+    try {
+      console.warn("[DatabaseContext] ⚠️  RESETTING DATABASE - ALL DATA WILL BE DELETED")
+
+      await database.write(async () => {
+        await database.unsafeResetDatabase()
+      })
+
+      setCurrentOrg(null)
+      setOrgContext(null)
+
+      logDatabaseOperation("reset", {})
+      console.log("[DatabaseContext] ✅ Database reset successfully")
+    } catch (error) {
+      console.error("[DatabaseContext] Failed to reset database:", error)
+      captureException(error as Error, {
+        component: "DatabaseContext",
+        operation: "resetDatabase",
+      })
+      logDatabaseOperation("reset", {
+        error: error as Error,
+      })
+      throw error
+    }
   }, [])
 
   return (

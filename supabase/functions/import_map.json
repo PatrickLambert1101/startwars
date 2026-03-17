@@ -1,0 +1,6 @@
+{
+  "imports": {
+    "@sentry/deno": "https://deno.land/x/sentry@8.43.0/index.mjs",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2"
+  }
+}

@@ -399,6 +399,7 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
                     {t("teamScreen.inviteForm.methodEmail")}
                   </Text>
                 </Pressable>
+                {/* SMS and WhatsApp temporarily hidden
                 <Pressable
                   onPress={() => setInviteMethod("sms")}
                   style={[themed($roleOption), inviteMethod === "sms" && themed($roleOptionSelected)]}
@@ -422,6 +423,7 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
                     {t("teamScreen.inviteForm.methodWhatsApp")}
                   </Text>
                 </Pressable>
+                */}
               </View>
             </View>
 

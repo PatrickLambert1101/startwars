@@ -31,8 +31,10 @@
     "icon": "./assets/images/app-icon-ios.png",
     "supportsTablet": true,
     "bundleIdentifier": "com.herdtrackr",
+    "buildNumber": "2",
     "infoPlist": {
       "NSCameraUsageDescription": "HerdTrackr uses the camera to scan ear tag numbers for quick animal identification",
+      "NSLocationWhenInUseUsageDescription": "HerdTrackr may use your location to help organize and track your herd across different farm locations",
       "ITSAppUsesNonExemptEncryption": false
     },
     "privacyManifests": {

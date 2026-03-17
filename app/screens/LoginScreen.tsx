@@ -45,7 +45,17 @@ export const LoginScreen: FC<LoginScreenProps> = () => {
     setIsSubmitted(true)
     setServerError("")
 
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 6) return
+    console.log("[LoginScreen] handleSubmit", {
+      email,
+      emailValid: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),
+      passwordLength: password.length,
+      isSignUp
+    })
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 6) {
+      console.warn("[LoginScreen] Validation failed, not submitting")
+      return
+    }
 
     setIsSubmitting(true)
     const { error } = isSignUp
@@ -55,7 +65,10 @@ export const LoginScreen: FC<LoginScreenProps> = () => {
     setIsSubmitting(false)
 
     if (error) {
+      console.error("[LoginScreen] Login/signup failed:", error)
       setServerError(error)
+    } else {
+      console.log("[LoginScreen] Login/signup successful")
     }
   }
 
