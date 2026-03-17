@@ -323,11 +323,23 @@ export const migrations = schemaMigrations({
         },
       ],
     },
+    {
+      toVersion: 15,
+      steps: [
+        {
+          type: "add_columns",
+          table: "animals",
+          columns: [
+            { name: "genetic_traits", type: "string", isOptional: true }, // JSON genetic traits object
+          ],
+        },
+      ],
+    },
   ],
 })
 
 export const schema = appSchema({
-  version: 14,
+  version: 15,
   tables: [
     tableSchema({
       name: "organizations",
@@ -367,6 +379,7 @@ export const schema = appSchema({
         { name: "notes", type: "string", isOptional: true },
         { name: "photos", type: "string", isOptional: true }, // JSON array of photo objects
         { name: "tags", type: "string", isOptional: true }, // JSON array of tag strings like ["Breeding Stock", "For Sale"]
+        { name: "genetic_traits", type: "string", isOptional: true }, // JSON genetic traits object (horns, coat, temperament, etc.)
         { name: "created_at", type: "number" },
         { name: "updated_at", type: "number" },
         { name: "is_deleted", type: "boolean" },

@@ -19,7 +19,7 @@ export type MainTabParamList = {
   } | undefined
   Pastures: undefined
   Calendar: undefined
-  Settings: undefined
+  Breeding: undefined
 }
 
 // App Stack Navigator types
@@ -30,6 +30,7 @@ export type AppStackParamList = {
   Main: NavigatorScreenParams<MainTabParamList>
   OrgSetup: undefined
   Team: undefined
+  Settings: undefined
   AnimalDetail: { animalId: string }
   AnimalForm: { mode: "create" | "edit"; animalId?: string }
   BulkAnimalAdd: undefined

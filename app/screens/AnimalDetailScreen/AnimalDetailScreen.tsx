@@ -1,4 +1,4 @@
-import { FC, useCallback, useState } from "react"
+import { FC, useCallback, useState, useEffect } from "react"
 import { Pressable, View, ViewStyle, TextStyle } from "react-native"
 import { format } from "date-fns"
 import { useTranslation } from "react-i18next"
@@ -12,8 +12,11 @@ import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { useAnimal, useAnimalActions } from "@/hooks/useAnimals"
 import { useHealthRecords, useWeightRecords, useBreedingRecords } from "@/hooks/useRecords"
 import { useScheduledVaccinations } from "@/hooks/useVaccinationSchedules"
+import { useOffspring } from "@/hooks/useOffspring"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { database } from "@/db"
+import { Animal } from "@/db/models/Animal"
+import { formatTraits } from "@/types/GeneticTraits"
 
 type Tab = "overview" | "health" | "weight" | "breeding"
 
@@ -27,6 +30,7 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
   const { records: weightRecords } = useWeightRecords(animalId)
   const { records: breedingRecords } = useBreedingRecords(animalId)
   const { vaccinations } = useScheduledVaccinations(animalId)
+  const { offspring, stats: offspringStats } = useOffspring(animalId)
 
   // Debug logging
   if (__DEV__ && vaccinations.length > 0) {
@@ -40,6 +44,31 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
   const [activeTab, setActiveTab] = useState<Tab>("overview")
   const [tags, setTags] = useState<string[]>(animal?.tagsList || [])
   const [isEditingTags, setIsEditingTags] = useState(false)
+  const [sireName, setSireName] = useState<string | null>(null)
+  const [damName, setDamName] = useState<string | null>(null)
+
+  // Load parent names
+  useEffect(() => {
+    const loadParents = async () => {
+      if (animal?.sireId) {
+        try {
+          const sire = await database.get<Animal>("animals").find(animal.sireId)
+          setSireName(sire.displayName)
+        } catch (error) {
+          console.log("[AnimalDetail] Sire not found:", error)
+        }
+      }
+      if (animal?.damId) {
+        try {
+          const dam = await database.get<Animal>("animals").find(animal.damId)
+          setDamName(dam.displayName)
+        } catch (error) {
+          console.log("[AnimalDetail] Dam not found:", error)
+        }
+      }
+    }
+    loadParents()
+  }, [animal?.sireId, animal?.damId])
 
   const handleEdit = useCallback(() => {
     navigation.navigate("AnimalForm", { mode: "edit", animalId })
@@ -134,6 +163,84 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
           <DetailRow label={t("animalDetailScreen.overview.visualTag")} value={animal.visualTag} themed={themed} />
           <DetailRow label={t("animalDetailScreen.overview.dateOfBirth")} value={formatDate(animal.dateOfBirth)} themed={themed} />
           <DetailRow label={t("animalDetailScreen.overview.registrationNumber")} value={animal.registrationNumber || t("animalDetailScreen.overview.noValue")} themed={themed} />
+
+          {/* Lineage Section */}
+          {(animal.sireId || animal.damId || offspringStats.total > 0) && (
+            <View style={themed($lineageSection)}>
+              <Text preset="formLabel" text="Lineage" style={themed($sectionLabel)} />
+
+              {/* Sire */}
+              {animal.sireId && (
+                <Pressable
+                  onPress={async () => {
+                    try {
+                      const sire = await database.get<Animal>("animals").find(animal.sireId!)
+                      navigation.navigate("AnimalDetail", { animalId: sire.id })
+                    } catch (error) {
+                      console.error("Failed to navigate to sire:", error)
+                    }
+                  }}
+                  style={themed($lineageRow)}
+                >
+                  <MaterialCommunityIcons name="gender-male" size={18} color={theme.colors.tint} />
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text text="Sire" size="xs" style={themed($dimText)} />
+                    <Text text={sireName || "Loading..."} preset="bold" />
+                  </View>
+                  <MaterialCommunityIcons name="chevron-right" size={20} color={theme.colors.textDim} />
+                </Pressable>
+              )}
+
+              {/* Dam */}
+              {animal.damId && (
+                <Pressable
+                  onPress={async () => {
+                    try {
+                      const dam = await database.get<Animal>("animals").find(animal.damId!)
+                      navigation.navigate("AnimalDetail", { animalId: dam.id })
+                    } catch (error) {
+                      console.error("Failed to navigate to dam:", error)
+                    }
+                  }}
+                  style={themed($lineageRow)}
+                >
+                  <MaterialCommunityIcons name="gender-female" size={18} color={theme.colors.palette.accent500} />
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text text="Dam" size="xs" style={themed($dimText)} />
+                    <Text text={damName || "Loading..."} preset="bold" />
+                  </View>
+                  <MaterialCommunityIcons name="chevron-right" size={20} color={theme.colors.textDim} />
+                </Pressable>
+              )}
+
+              {/* Offspring count */}
+              {offspringStats.total > 0 && (
+                <View style={themed($lineageRow)}>
+                  <MaterialCommunityIcons name="heart-multiple" size={18} color={theme.colors.textDim} />
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text text="Offspring" size="xs" style={themed($dimText)} />
+                    <Text text={`${offspringStats.total} (${offspringStats.alive} active)`} preset="bold" />
+                  </View>
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* Genetic Traits */}
+          {animal.traits && formatTraits(animal.traits).length > 0 && (
+            <View style={themed($traitsSection)}>
+              <Text preset="formLabel" text="Genetic Traits" style={themed($sectionLabel)} />
+              <View style={themed($traitsGrid)}>
+                {formatTraits(animal.traits).map((trait, index) => (
+                  <View key={index} style={themed($traitChip)}>
+                    <MaterialCommunityIcons name="dna" size={14} color={theme.colors.tint} />
+                    <Text text={trait} size="xs" style={{ marginLeft: 4 }} />
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
           {animal.notes ? <DetailRow label={t("animalDetailScreen.overview.notes")} value={animal.notes} themed={themed} /> : null}
 
           <View style={themed($tagsSection)}>
@@ -345,6 +452,61 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
 
       {activeTab === "breeding" && (
         <View style={themed($section)}>
+          {/* Offspring Statistics */}
+          {offspringStats.total > 0 && (
+            <>
+              <Text preset="subheading" text="Offspring" style={themed($sectionTitle)} />
+
+              {/* Stats Card */}
+              <View style={themed($offspringStatsCard)}>
+                <View style={themed($statsRow)}>
+                  <View style={themed($statItem)}>
+                    <Text text={offspringStats.total.toString()} preset="heading" style={{ color: theme.colors.tint }} />
+                    <Text text="Total" size="xs" style={themed($dimText)} />
+                  </View>
+                  <View style={themed($statItem)}>
+                    <Text text={offspringStats.alive.toString()} preset="heading" style={{ color: theme.colors.palette.primary500 }} />
+                    <Text text="Active" size="xs" style={themed($dimText)} />
+                  </View>
+                  <View style={themed($statItem)}>
+                    <Text text={offspringStats.male.toString()} preset="heading" />
+                    <Text text="Male" size="xs" style={themed($dimText)} />
+                  </View>
+                  <View style={themed($statItem)}>
+                    <Text text={offspringStats.female.toString()} preset="heading" />
+                    <Text text="Female" size="xs" style={themed($dimText)} />
+                  </View>
+                </View>
+              </View>
+
+              {/* Offspring List (first 5) */}
+              <View style={themed($offspringList)}>
+                {offspring.slice(0, 5).map((child) => (
+                  <Pressable
+                    key={child.id}
+                    onPress={() => navigation.navigate("AnimalDetail", { animalId: child.id })}
+                    style={themed($offspringRow)}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text text={child.displayName} preset="bold" />
+                      <Text text={`${child.breed} | ${child.sexLabel}`} size="xs" style={themed($dimText)} />
+                    </View>
+                    <View style={[$statusBadge, { backgroundColor: theme.colors.tint + "22" }]}>
+                      <Text text={child.status} size="xxs" style={{ color: theme.colors.tint }} />
+                    </View>
+                    <MaterialCommunityIcons name="chevron-right" size={20} color={theme.colors.textDim} />
+                  </Pressable>
+                ))}
+
+                {offspring.length > 5 && (
+                  <Text text={`+ ${offspring.length - 5} more offspring`} size="sm" style={themed($dimText)} />
+                )}
+              </View>
+            </>
+          )}
+
+          {/* Breeding Records */}
+          <Text preset="subheading" text="Breeding Records" style={themed($sectionTitle)} />
           <Button
             text={t("animalDetailScreen.breeding.addButton")}
             preset="filled"
@@ -520,10 +682,6 @@ const $createdByText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   fontStyle: "italic",
 })
 
-const $sectionTitle: ThemedStyle<TextStyle> = ({ spacing }) => ({
-  marginBottom: spacing.md,
-})
-
 const $emptyState: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   alignItems: "center",
   paddingVertical: spacing.xxl,
@@ -623,5 +781,93 @@ const $tagChipText: ThemedStyle<TextStyle> = ({ colors }) => ({
 const $saveTagsButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   marginTop: spacing.sm,
   alignSelf: "flex-start",
+})
+
+const $lineageSection: ThemedStyle<ViewStyle> = ({ spacing, colors }) => ({
+  marginTop: spacing.md,
+  marginBottom: spacing.md,
+  paddingTop: spacing.md,
+  borderTopWidth: 1,
+  borderTopColor: colors.separator,
+  gap: spacing.xs,
+})
+
+const $lineageRow: ThemedStyle<ViewStyle> = ({ spacing, colors }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  padding: spacing.sm,
+  backgroundColor: colors.palette.neutral100,
+  borderRadius: 8,
+  borderWidth: 1,
+  borderColor: colors.border,
+})
+
+const $sectionLabel: ThemedStyle<TextStyle> = ({ spacing }) => ({
+  marginBottom: spacing.xs,
+})
+
+const $traitsSection: ThemedStyle<ViewStyle> = ({ spacing, colors }) => ({
+  marginTop: spacing.md,
+  marginBottom: spacing.md,
+  paddingTop: spacing.md,
+  borderTopWidth: 1,
+  borderTopColor: colors.separator,
+})
+
+const $traitsGrid: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  flexWrap: "wrap",
+  gap: spacing.xs,
+  marginTop: spacing.xs,
+})
+
+const $traitChip: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  backgroundColor: colors.palette.neutral100,
+  paddingHorizontal: spacing.sm,
+  paddingVertical: spacing.xs,
+  borderRadius: 6,
+  borderWidth: 0.5,
+  borderColor: colors.border,
+})
+
+const $offspringStatsCard: ThemedStyle<ViewStyle> = ({ spacing, colors }) => ({
+  backgroundColor: colors.background,
+  borderRadius: 12,
+  padding: spacing.md,
+  marginBottom: spacing.md,
+  borderWidth: 1,
+  borderColor: colors.border,
+})
+
+const $statsRow: ThemedStyle<ViewStyle> = () => ({
+  flexDirection: "row",
+  justifyContent: "space-around",
+})
+
+const $statItem: ThemedStyle<ViewStyle> = () => ({
+  alignItems: "center",
+})
+
+const $offspringList: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  gap: spacing.sm,
+  marginBottom: spacing.lg,
+})
+
+const $offspringRow: ThemedStyle<ViewStyle> = ({ spacing, colors }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  padding: spacing.sm,
+  backgroundColor: colors.background,
+  borderRadius: 8,
+  borderWidth: 1,
+  borderColor: colors.border,
+  gap: spacing.sm,
+})
+
+const $sectionTitle: ThemedStyle<TextStyle> = ({ spacing }) => ({
+  marginTop: spacing.md,
+  marginBottom: spacing.sm,
 })
 

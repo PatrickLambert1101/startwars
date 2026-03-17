@@ -1,4 +1,6 @@
 export { AnimatedLogo } from "./AnimatedLogo"
+export { AppHeader } from "./AppHeader"
+export type { AppHeaderProps } from "./AppHeader"
 export { Button } from "./Button"
 export { LoadingScreen } from "./LoadingScreen"
 export { DateField } from "./DateField"

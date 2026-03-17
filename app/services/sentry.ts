@@ -4,6 +4,12 @@ import { Platform } from "react-native"
 const SENTRY_DSN = process.env.EXPO_PUBLIC_SENTRY_DSN
 
 export function initSentry() {
+  // Skip in development to avoid console instrumentation issues
+  if (__DEV__) {
+    console.log("[Sentry] Skipping initialization in development")
+    return
+  }
+
   // Skip if no DSN configured or if it's a placeholder
   if (!SENTRY_DSN || SENTRY_DSN.includes("your-") || SENTRY_DSN === "your-sentry-dsn-here") {
     console.warn("[Sentry] DSN not configured, skipping initialization")
@@ -16,13 +22,9 @@ export function initSentry() {
     // Enable debug in development to see what's being sent
     debug: __DEV__,
 
-    // Capture all console.error, console.warn
+    // Integrations - only add tracing, let default integrations load
     integrations: [
-      Sentry.reactNativeTracingIntegration({
-        // Track screen navigation performance
-        routingInstrumentation: new Sentry.ReactNavigationInstrumentation(),
-        enableNativeFramesTracking: !__DEV__, // Only in production
-      }),
+      Sentry.reactNativeTracingIntegration(),
     ],
 
     // Performance monitoring - sample 100% in dev, 10% in production
@@ -41,6 +43,11 @@ export function initSentry() {
 
     // Filter out noisy errors
     beforeSend(event, hint) {
+      // Filter out console instrumentation errors (causing Babel construct issues)
+      if (event.logger === 'console') {
+        return null
+      }
+
       // Log what we're about to send in dev
       if (__DEV__) {
         console.log("[Sentry] Sending event:", event.message || event.exception)
@@ -58,6 +65,11 @@ export function initSentry() {
 
         // Ignore specific React Native warnings
         if (message.includes("Warning: ")) {
+          return null
+        }
+
+        // Ignore RevenueCat configuration warnings
+        if (message.includes("RevenueCat") || message.includes("offerings")) {
           return null
         }
       }
@@ -253,16 +265,13 @@ export function captureException(error: Error, context?: Record<string, any>) {
 }
 
 /**
- * Start a performance transaction
+ * Start a performance transaction (stub for now - v8 API changed)
  */
 export function startTransaction(name: string, operation: string) {
-  const transaction = Sentry.startTransaction({
-    name,
-    op: operation,
-  })
-
-  console.log(`[Sentry] Transaction started: ${name}`)
-  return transaction
+  if (__DEV__) {
+    console.log(`[Sentry] Transaction: ${name} (${operation})`)
+  }
+  return null
 }
 
 /**
@@ -273,40 +282,32 @@ export async function measureDatabaseQuery<T>(
   table: string,
   queryFn: () => Promise<T>
 ): Promise<T> {
-  const span = Sentry.startSpan(
-    {
-      op: "db.query",
-      name: `${table}.${queryName}`,
-    },
-    async (span) => {
-      const startTime = Date.now()
-      try {
-        const result = await queryFn()
-        const duration = Date.now() - startTime
+  const startTime = Date.now()
 
-        logDatabaseOperation("query", {
-          table,
-          query: queryName,
-          duration,
-        })
+  try {
+    const result = await queryFn()
+    const duration = Date.now() - startTime
 
-        span?.setStatus({ code: 1 }) // OK
-        return result
-      } catch (error) {
-        const duration = Date.now() - startTime
-
-        logDatabaseOperation("query", {
-          table,
-          query: queryName,
-          duration,
-          error: error as Error,
-        })
-
-        span?.setStatus({ code: 2 }) // Error
-        throw error
-      }
+    // Only log in dev or if it takes longer than 100ms
+    if (__DEV__ || duration > 100) {
+      logDatabaseOperation("query", {
+        table,
+        query: queryName,
+        duration,
+      })
     }
-  )
 
-  return span
+    return result
+  } catch (error) {
+    const duration = Date.now() - startTime
+
+    logDatabaseOperation("query", {
+      table,
+      query: queryName,
+      duration,
+      error: error as Error,
+    })
+
+    throw error
+  }
 }

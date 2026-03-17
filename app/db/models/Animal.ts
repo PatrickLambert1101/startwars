@@ -1,6 +1,7 @@
 import { Model, Query } from "@nozbe/watermelondb"
 import { field, date, readonly, relation, children, lazy } from "@nozbe/watermelondb/decorators"
 import type { LivestockType } from "./Organization"
+import type { GeneticTraits } from "@/types/GeneticTraits"
 
 export type AnimalSpecies = LivestockType
 
@@ -65,6 +66,7 @@ export class Animal extends Model {
   @field("notes") notes!: string | null
   @field("photos") photos!: string | null // JSON array of photo objects
   @field("tags") tags!: string | null // JSON array of tag strings
+  @field("genetic_traits") geneticTraits!: string | null // JSON genetic traits object
   @readonly @date("created_at") createdAt!: Date
   @date("updated_at") updatedAt!: Date
   @field("is_deleted") isDeleted!: boolean
@@ -92,6 +94,14 @@ export class Animal extends Model {
       return this.tags ? JSON.parse(this.tags) : []
     } catch {
       return []
+    }
+  }
+
+  get traits(): GeneticTraits | null {
+    try {
+      return this.geneticTraits ? JSON.parse(this.geneticTraits) : null
+    } catch {
+      return null
     }
   }
 }

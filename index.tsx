@@ -8,8 +8,8 @@ import { App } from "@/app"
 // Initialize Sentry BEFORE app starts
 initSentry()
 
-// Wrap the App component with Sentry's error boundary
-const SentryWrappedApp = Sentry.wrap(App)
+// Only wrap with Sentry in production to avoid console instrumentation issues in dev
+const SentryWrappedApp = __DEV__ ? App : Sentry.wrap(App)
 
 // registerRootComponent calls AppRegistry.registerComponent('main', () => App);
 // It also ensures that whether you load the app in Expo Go or in a native build,

@@ -14,6 +14,7 @@ import { AuthScreen } from "@/screens/AuthScreen"
 import { LandingScreen } from "@/screens/LandingScreen"
 import { LoginScreen } from "@/screens/LoginScreen"
 import { TeamScreen } from "@/screens/TeamScreen"
+import { SettingsScreen } from "@/screens/SettingsScreen"
 import { AnimalDetailScreen } from "@/screens/AnimalDetailScreen/AnimalDetailScreen"
 import { AnimalFormScreen } from "@/screens/AnimalFormScreen"
 import { BulkAnimalAddScreen } from "@/screens/BulkAnimalAddScreen"
@@ -72,6 +73,7 @@ const AppStack = () => {
           <Stack.Screen name="Main" component={MainTabNavigator} />
           <Stack.Screen name="OrgSetup" component={OrgSetupScreen} />
           <Stack.Screen name="Team" component={TeamScreen} />
+          <Stack.Screen name="Settings" component={SettingsScreen} />
           <Stack.Screen name="AnimalDetail" component={AnimalDetailScreen} />
           <Stack.Screen name="AnimalForm" component={AnimalFormScreen} />
           <Stack.Screen name="BulkAnimalAdd" component={BulkAnimalAddScreen} />

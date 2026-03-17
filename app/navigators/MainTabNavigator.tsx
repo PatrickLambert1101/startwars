@@ -7,7 +7,7 @@ import { HerdListScreen } from "@/screens/HerdListScreen"
 import { ChuteScreen } from "@/screens/ChuteScreen"
 import { PasturesScreen } from "@/screens/PasturesScreen"
 import { CalendarScreen } from "@/screens/CalendarScreen"
-import { SettingsScreen } from "@/screens/SettingsScreen"
+import { BreedingScreen } from "@/screens/BreedingScreen"
 import { useAppTheme } from "@/theme/context"
 
 import type { MainTabParamList } from "./navigationTypes"
@@ -95,11 +95,11 @@ export const MainTabNavigator = () => {
         }}
       />
       <Tab.Screen
-        name="Settings"
-        component={SettingsScreen}
+        name="Breeding"
+        component={BreedingScreen}
         options={{
-          tabBarLabel: "Settings",
-          tabBarIcon: ({ color, focused }) => renderTabIcon("cog-outline", focused, color),
+          tabBarLabel: "Breeding",
+          tabBarIcon: ({ color, focused }) => renderTabIcon("heart", focused, color),
         }}
       />
     </Tab.Navigator>

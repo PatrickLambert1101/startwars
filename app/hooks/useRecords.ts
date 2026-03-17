@@ -212,6 +212,29 @@ export function useBreedingRecords(animalId: string) {
   return { records, isLoading }
 }
 
+export function useAllBreedingRecords() {
+  const [records, setRecords] = useState<BreedingRecord[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const { currentOrg } = useDatabase()
+
+  useEffect(() => {
+    if (!currentOrg) { setIsLoading(false); return }
+
+    const sub = database.get<BreedingRecord>("breeding_records")
+      .query(
+        Q.where("organization_id", currentOrg.id),
+        Q.where("is_deleted", false),
+        Q.sortBy("breeding_date", Q.desc)
+      )
+      .observeWithColumns(["breeding_date", "outcome"])
+      .subscribe((r) => { setRecords(r); setIsLoading(false) })
+
+    return () => sub.unsubscribe()
+  }, [currentOrg])
+
+  return { records, isLoading }
+}
+
 export function useBreedingRecordActions() {
   const { currentOrg } = useDatabase()
   const { user } = useAuth()
