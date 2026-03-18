@@ -2,7 +2,7 @@ import React, { useMemo } from "react"
 import { View, ViewStyle, TextStyle, FlatList, Pressable } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
-import { Screen, Text, Button } from "@/components"
+import { Screen, Text, Button, AppHeader } from "@/components"
 import { PastureIcon } from "@/components/icons"
 import { useAppTheme } from "@/theme/context"
 import { useSubscription } from "@/context/SubscriptionContext"
@@ -140,8 +140,8 @@ export const PasturesScreen: React.FC<MainTabScreenProps<"Pastures">> = ({ navig
 
   return (
     <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={themed($container)}>
+      <AppHeader title={t("pasturesScreen.title")} showSettings={true} />
       <View style={themed($header)}>
-        <Text preset="heading" text={t("pasturesScreen.title")} style={themed($headerTitle)} />
         <Button text={t("pasturesScreen.createButton")} onPress={handleCreatePasture} style={themed($createButton)} />
       </View>
 

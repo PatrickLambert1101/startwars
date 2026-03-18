@@ -8,9 +8,10 @@ import { useAuth } from "@/context/AuthContext"
 import { useDatabase } from "@/context/DatabaseContext"
 import { useSubscription } from "@/context/SubscriptionContext"
 import { useRfidReader } from "@/hooks/useRfidReader"
+import { useSync } from "@/hooks/useSync"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-import { loadString, saveString } from "@/utils/storage"
+import { loadString, saveString, remove } from "@/utils/storage"
 import { database } from "@/db"
 import { seedDefaultSchedules } from "@/services/defaultSchedules"
 import { calculateScheduledVaccinations } from "@/services/vaccinationScheduler"
@@ -33,6 +34,7 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
   const { currentOrg } = useDatabase()
   const { plan, isPremium, isLoading } = useSubscription()
   const { setOutputPower, isInitialized, initialize, hasRfidHardware } = useRfidReader()
+  const { sync, status } = useSync()
   const { i18n, t } = useTranslation()
 
   const [readerPower, setReaderPower] = useState(POWER_DEFAULT)
@@ -165,6 +167,38 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
       ],
     )
   }, [currentOrg])
+
+  const handleForceFullSync = useCallback(async () => {
+    Alert.alert(
+      "Force Full Sync",
+      "This will clear the sync timestamp and re-download all data from Supabase. Continue?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Full Sync",
+          onPress: async () => {
+            try {
+              // Clear the last sync timestamp to force a full sync
+              await remove("__watermelon_last_pulled_at")
+              console.log("[Settings] Cleared sync timestamp, triggering full sync...")
+
+              // Trigger sync
+              const result = await sync()
+
+              if (result.success) {
+                Alert.alert("Success", "Full sync completed successfully!")
+              } else {
+                Alert.alert("Error", result.error || "Sync failed")
+              }
+            } catch (error) {
+              console.error("[Settings] Force sync error:", error)
+              Alert.alert("Error", "Failed to sync: " + (error as Error).message)
+            }
+          },
+        },
+      ],
+    )
+  }, [sync])
 
   const handleResetDatabase = useCallback(async () => {
     Alert.alert(
@@ -462,6 +496,28 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
           </View>
         </View>
       )}
+
+      <View style={themed($section)}>
+        <Text preset="formLabel" text="Sync" style={themed($sectionLabel)} />
+        <View style={themed($seedCard)}>
+          <Text style={themed($seedText)}>
+            ✅ Auto-sync is active! Your data syncs automatically when you make changes, when the app opens, and every 5 minutes.
+          </Text>
+        </View>
+        <View style={themed($seedCard)}>
+          <Text style={themed($seedTitle)}>Force Full Sync</Text>
+          <Text style={themed($seedText)}>
+            Only use this if data is missing or out of sync. This will re-download all data from the server.
+          </Text>
+          <Button
+            text={status === "syncing" ? "Syncing..." : "Force Full Sync"}
+            preset="default"
+            onPress={handleForceFullSync}
+            disabled={status === "syncing"}
+            style={themed($seedButton)}
+          />
+        </View>
+      </View>
 
       <View style={themed($section)}>
         <Text preset="formLabel" text={t("settingsScreen.sections.dangerZone")} style={themed($dangerLabel)} />

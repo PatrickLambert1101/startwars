@@ -4,7 +4,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { Q } from "@nozbe/watermelondb"
 import { useTranslation } from "react-i18next"
 
-import { Screen, Text, Button } from "@/components"
+import { Screen, Text, Button, AppHeader } from "@/components"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { useDashboardStats } from "@/hooks/useDashboardStats"
@@ -99,9 +99,9 @@ export const DashboardScreen: FC<MainTabScreenProps<"Dashboard">> = ({ navigatio
 
   return (
     <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
+      <AppHeader title={t("dashboardScreen.title")} showSettings={true} />
       <View style={themed($headerSection)}>
         <View>
-          <Text preset="heading" text={t("dashboardScreen.title")} style={themed($heading)} />
           {userDisplayName ? (
             <Text text={t("dashboardScreen.welcomeBack", { name: userDisplayName })} size="md" style={themed($welcomeText)} />
           ) : null}
@@ -257,18 +257,14 @@ export const DashboardScreen: FC<MainTabScreenProps<"Dashboard">> = ({ navigatio
 }
 
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  paddingHorizontal: spacing.lg,
-  paddingBottom: spacing.xl,
+  paddingHorizontal: spacing.sm,
+  paddingBottom: spacing.lg,
 })
 
 const $headerSection: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   marginBottom: spacing.sm,
 })
 
-const $heading: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  marginBottom: spacing.xxs,
-  marginTop: spacing.md,
-})
 
 const $welcomeText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   color: colors.text,
@@ -278,28 +274,28 @@ const $welcomeText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
 
 const $emailText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   color: colors.textDim,
-  marginBottom: spacing.md,
+  marginBottom: spacing.sm,
 })
 
 const $setupCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 16,
-  padding: spacing.lg,
-  marginTop: spacing.lg,
-  gap: spacing.sm,
+  borderRadius: 12,
+  padding: spacing.md,
+  marginTop: spacing.sm,
+  gap: spacing.xs,
 })
 
 const $statsRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
-  gap: spacing.sm,
-  marginBottom: spacing.sm,
+  gap: spacing.xs,
+  marginBottom: spacing.xs,
 })
 
 const $statCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flex: 1,
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 12,
-  padding: spacing.md,
+  borderRadius: 8,
+  padding: spacing.sm,
   alignItems: "center",
 })
 
@@ -308,14 +304,14 @@ const $statNumber: ThemedStyle<TextStyle> = ({ colors }) => ({
 })
 
 const $section: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  marginTop: spacing.lg,
-  gap: spacing.sm,
+  marginTop: spacing.md,
+  gap: spacing.xs,
 })
 
 const $recentItem: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 10,
-  padding: spacing.sm,
+  borderRadius: 8,
+  padding: spacing.xs,
 })
 
 const $dimText: ThemedStyle<TextStyle> = ({ colors }) => ({
@@ -324,9 +320,9 @@ const $dimText: ThemedStyle<TextStyle> = ({ colors }) => ({
 
 const $farmSwitcher: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 12,
-  padding: spacing.md,
-  marginBottom: spacing.md,
+  borderRadius: 8,
+  padding: spacing.sm,
+  marginBottom: spacing.sm,
   flexDirection: "row",
   justifyContent: "space-between",
   alignItems: "center",
@@ -374,10 +370,10 @@ const $cancelButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 
 const $reportsCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.primary100,
-  borderRadius: 12,
-  padding: spacing.md,
-  marginBottom: spacing.md,
-  borderLeftWidth: 4,
+  borderRadius: 8,
+  padding: spacing.sm,
+  marginBottom: spacing.sm,
+  borderLeftWidth: 3,
   borderLeftColor: colors.tint,
 })
 
@@ -389,18 +385,18 @@ const $reportsHeader: ThemedStyle<ViewStyle> = () => ({
 
 const $vaccinationCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.accent100,
-  borderRadius: 12,
-  padding: spacing.md,
-  marginBottom: spacing.md,
-  borderLeftWidth: 4,
+  borderRadius: 8,
+  padding: spacing.sm,
+  marginBottom: spacing.sm,
+  borderLeftWidth: 3,
   borderLeftColor: colors.palette.accent500,
 })
 
 const $vaccinationHeader: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
-  gap: spacing.sm,
-  marginBottom: spacing.sm,
+  gap: spacing.xs,
+  marginBottom: spacing.xs,
 })
 
 const $vaccinationTitle: ThemedStyle<TextStyle> = () => ({
@@ -410,15 +406,15 @@ const $vaccinationTitle: ThemedStyle<TextStyle> = () => ({
 const $vaccinationCounts: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   flexWrap: "wrap",
-  gap: spacing.xs,
-  marginBottom: spacing.sm,
+  gap: spacing.xxs,
+  marginBottom: spacing.xs,
 })
 
 const $vaccinationBadge = (badgeStyle: ThemedStyle<ViewStyle>): ThemedStyle<ViewStyle> => ({ spacing, colors }) => ({
   ...badgeStyle({ spacing, colors }),
-  paddingHorizontal: spacing.sm,
+  paddingHorizontal: spacing.xs,
   paddingVertical: spacing.xxs,
-  borderRadius: 12,
+  borderRadius: 8,
 })
 
 const $vaccinationBadgeError: ThemedStyle<ViewStyle> = ({ colors }) => ({
@@ -434,7 +430,7 @@ const $vaccinationBadgeInfo: ThemedStyle<ViewStyle> = ({ colors }) => ({
 })
 
 const $vaccinationBadgeText: ThemedStyle<TextStyle> = ({ colors }) => ({
-  fontSize: 12,
+  fontSize: 11,
   fontWeight: "600",
   color: colors.text,
 })

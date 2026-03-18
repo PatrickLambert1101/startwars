@@ -5,7 +5,7 @@ import { format } from "date-fns"
 import { useTranslation } from "react-i18next"
 import { useFocusEffect } from "@react-navigation/native"
 
-import { Screen, Text, TextField, Button, ScanTagButton } from "@/components"
+import { Screen, Text, TextField, Button, ScanTagButton, AppHeader } from "@/components"
 import { WeightChart } from "@/components/WeightChart"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -368,7 +368,7 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
   if (!sessionMode) {
     return (
       <Screen preset="fixed" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
-        <Text preset="heading" text={t("chuteScreen.title")} style={themed($heading)} />
+        <AppHeader title={t("chuteScreen.title")} showSettings={true} />
         <Text text={t("chuteScreen.selectMode")} style={themed($subtitle)} />
 
         <View style={themed($modePickerArea)}>
@@ -914,23 +914,21 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
 
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flex: 1,
-  paddingHorizontal: spacing.lg,
-})
-
-const $heading: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  marginTop: spacing.md,
-  marginBottom: spacing.xs,
+  paddingHorizontal: spacing.sm,
 })
 
 const $subtitle: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   color: colors.textDim,
+  marginTop: spacing.md,
   marginBottom: spacing.lg,
+  paddingHorizontal: spacing.md,
 })
 
 const $modePickerArea: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flex: 1,
   justifyContent: "center",
   gap: spacing.md,
+  paddingHorizontal: spacing.md,
 })
 
 const $modeCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({

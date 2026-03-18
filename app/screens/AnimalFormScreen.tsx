@@ -69,10 +69,14 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
   const [showSirePicker, setShowSirePicker] = useState(false)
   const [showDamePicker, setShowDamePicker] = useState(false)
   const [parentSearch, setParentSearch] = useState("")
+  const [showRfidHelp, setShowRfidHelp] = useState(false)
+  const [showVisualTagHelp, setShowVisualTagHelp] = useState(false)
 
   // Initialize RFID scanner
   useEffect(() => {
+    console.log("[AnimalForm] RFID initialization check:", { hasRfidHardware, isInitialized })
     if (hasRfidHardware && !isInitialized) {
+      console.log("[AnimalForm] Initializing RFID scanner...")
       initialize()
     }
   }, [hasRfidHardware, isInitialized, initialize])
@@ -95,7 +99,6 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
       setStatus(animal.status)
       setDateOfBirth(animal.dateOfBirth || null)
       setRegistrationNumber(animal.registrationNumber || "")
-      setHerdTag(animal.herdTag || "")
       setNotes(animal.notes || "")
       // Load existing photos if editing
       if (animal.photos) {
@@ -219,7 +222,6 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
         dateOfBirth: dateOfBirth || undefined,
         status,
         registrationNumber: registrationNumber.trim() || undefined,
-        herdTag: herdTag.trim() || undefined,
         notes: notes.trim() || undefined,
         tags: tagsJson,
       }
@@ -249,7 +251,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
       )
     }
     setIsSubmitting(false)
-  }, [rfidTag, visualTag, name, breed, sex, dateOfBirth, status, registrationNumber, herdTag, notes, photos, currentOrg, isEditing, animalId, createAnimal, updateAnimal, navigation, t, hasRfidHardware])
+  }, [rfidTag, visualTag, name, breed, sex, dateOfBirth, status, registrationNumber, notes, photos, tags, currentOrg, isEditing, animalId, createAnimal, updateAnimal, navigation, t, hasRfidHardware, animals])
 
   const uploadPhotosInBackground = async (savedAnimalId: string, photosToUpload: PhotoWithMetadata[]) => {
     try {
@@ -321,28 +323,34 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
           <View>
             <View style={themed($labelWithHint)}>
               <Text preset="formLabel" text={t("animalFormScreen.fields.rfidTag.label")} style={themed($pickerLabel)} />
-              <View style={themed($hint)}>
+              <Pressable onPress={() => setShowRfidHelp(!showRfidHelp)} style={themed($hint)}>
                 <MaterialCommunityIcons name="information-outline" size={14} color={colors.textDim} />
+              </Pressable>
+            </View>
+            {showRfidHelp && (
+              <View style={themed($helpBox)}>
+                <MaterialCommunityIcons name="lightbulb-on-outline" size={14} color={colors.palette.primary700 || colors.tint} style={{ marginRight: 6 }} />
+                <Text text={t("animalFormScreen.fields.rfidTag.helpText")} size="xxs" style={themed($helpText)} />
               </View>
-            </View>
-            <View style={themed($helpBox)}>
-              <MaterialCommunityIcons name="lightbulb-on-outline" size={14} color={colors.palette.primary700 || colors.tint} style={{ marginRight: 6 }} />
-              <Text text={t("animalFormScreen.fields.rfidTag.helpText")} size="xxs" style={themed($helpText)} />
-            </View>
+            )}
             {isScanning ? (
-              <View style={themed($scanningBox)}>
+              <View style={themed($rfidScanningBox)}>
                 <ActivityIndicator size="small" color={colors.tint} />
-                <Text text={t("animalFormScreen.fields.rfidTag.scanning")} size="sm" style={{ color: colors.tint }} />
+                <Text text="Scanning..." size="md" style={{ color: colors.tint, fontWeight: "600" }} />
+              </View>
+            ) : rfidTag ? (
+              <View style={themed($rfidDisplayBox)}>
+                <MaterialCommunityIcons name="check-circle" size={20} color={colors.palette.success500 || "#10b981"} />
+                <Text text={rfidTag} size="md" style={{ color: colors.text, fontWeight: "600", flex: 1 }} />
+                <Pressable onPress={() => setRfidTag("")} style={{ padding: 4 }}>
+                  <MaterialCommunityIcons name="close-circle" size={20} color={colors.textDim} />
+                </Pressable>
               </View>
             ) : (
-              <TextField
-                value={rfidTag}
-                onChangeText={setRfidTag}
-                placeholder={t("animalFormScreen.fields.rfidTag.scanPlaceholder")}
-                autoCapitalize="characters"
-                autoCorrect={false}
-                containerStyle={{ marginTop: 0 }}
-              />
+              <View style={themed($rfidPromptBox)}>
+                <MaterialCommunityIcons name="radio-tower" size={24} color={colors.textDim} />
+                <Text text="Pull trigger to scan RFID tag" size="sm" style={{ color: colors.textDim }} />
+              </View>
             )}
           </View>
         )}
@@ -350,14 +358,16 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
         <View>
           <View style={themed($labelWithHint)}>
             <Text preset="formLabel" text={t("animalFormScreen.fields.visualTag.label")} style={themed($pickerLabel)} />
-            <View style={themed($hint)}>
+            <Pressable onPress={() => setShowVisualTagHelp(!showVisualTagHelp)} style={themed($hint)}>
               <MaterialCommunityIcons name="camera-outline" size={14} color={colors.textDim} />
+            </Pressable>
+          </View>
+          {showVisualTagHelp && (
+            <View style={themed($helpBox)}>
+              <MaterialCommunityIcons name="camera-outline" size={14} color={colors.palette.primary700 || colors.tint} style={{ marginRight: 6 }} />
+              <Text text={t("animalFormScreen.fields.visualTag.helpText")} size="xxs" style={themed($helpText)} />
             </View>
-          </View>
-          <View style={themed($helpBox)}>
-            <MaterialCommunityIcons name="camera-outline" size={14} color={colors.palette.primary700 || colors.tint} style={{ marginRight: 6 }} />
-            <Text text={t("animalFormScreen.fields.visualTag.helpText")} size="xxs" style={themed($helpText)} />
-          </View>
+          )}
           <View style={themed($tagInputRow)}>
             <TextField
               value={visualTag}
@@ -464,15 +474,6 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
           value={registrationNumber}
           onChangeText={setRegistrationNumber}
           placeholder={t("animalFormScreen.fields.registrationNumber.placeholder")}
-          autoCorrect={false}
-        />
-
-        <TextField
-          label={t("animalFormScreen.fields.herdTag.label")}
-          value={herdTag}
-          onChangeText={setHerdTag}
-          placeholder={t("animalFormScreen.fields.herdTag.placeholder")}
-          autoCapitalize="characters"
           autoCorrect={false}
         />
 
@@ -671,6 +672,45 @@ const $scanningBox: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
   gap: spacing.sm,
+})
+
+const $rfidScanningBox: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.palette.primary100,
+  borderWidth: 2,
+  borderColor: colors.tint,
+  borderRadius: 12,
+  padding: spacing.md,
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: spacing.sm,
+  minHeight: 56,
+})
+
+const $rfidDisplayBox: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.palette.success100 || "#d1fae5",
+  borderWidth: 2,
+  borderColor: colors.palette.success500 || "#10b981",
+  borderRadius: 12,
+  padding: spacing.md,
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.sm,
+  minHeight: 56,
+})
+
+const $rfidPromptBox: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.palette.neutral100,
+  borderWidth: 2,
+  borderColor: colors.border,
+  borderStyle: "dashed",
+  borderRadius: 12,
+  padding: spacing.md,
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: spacing.sm,
+  minHeight: 56,
 })
 
 const $placeholderText: ThemedStyle<TextStyle> = ({ colors }) => ({

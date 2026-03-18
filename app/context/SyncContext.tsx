@@ -3,14 +3,17 @@ import { useSync } from "@/hooks/useSync"
 
 interface SyncContextValue {
   queueSync: () => void
+  status: "idle" | "syncing" | "error"
+  lastSynced: Date | null
+  error: string | null
 }
 
 const SyncContext = createContext<SyncContextValue | undefined>(undefined)
 
 export function SyncProvider({ children }: { children: ReactNode }) {
-  const { queueSync } = useSync()
+  const { queueSync, status, lastSynced, error } = useSync()
 
-  return <SyncContext.Provider value={{ queueSync }}>{children}</SyncContext.Provider>
+  return <SyncContext.Provider value={{ queueSync, status, lastSynced, error }}>{children}</SyncContext.Provider>
 }
 
 export function useSyncContext() {

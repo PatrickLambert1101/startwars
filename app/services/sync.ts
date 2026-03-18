@@ -15,6 +15,8 @@ import { supabase } from "@/services/supabase"
 const SYNC_TABLES = [
   "organizations",
   "organization_members",
+  "pastures",
+  "pasture_movements",
   "animals",
   "health_records",
   "weight_records",
@@ -36,6 +38,9 @@ function getSupabaseTable(localTable: string): string {
   return TABLE_MAP[localTable] || localTable
 }
 
+// Tables that don't support soft deletes (no is_deleted column)
+const TABLES_WITHOUT_SOFT_DELETE = new Set(["organization_members"])
+
 /**
  * Pull changes from Supabase since lastPulledAt
  */
@@ -48,30 +53,41 @@ async function pullChanges({ lastPulledAt }: SyncPullArgs) {
     const created: any[] = []
     const updated: any[] = []
     const deleted: string[] = []
+    const supportsSoftDelete = !TABLES_WITHOUT_SOFT_DELETE.has(table)
 
     if (lastPulledAt) {
       // Fetch records updated after last sync
       const since = new Date(lastPulledAt).toISOString()
 
-      const { data: upserted, error: upsertError} = await supabase
+      let query = supabase
         .from(supabaseTable)
         .select("*")
         .gt("updated_at", since)
-        .eq("is_deleted", false)
+
+      // Only filter by is_deleted if the table supports it
+      if (supportsSoftDelete) {
+        query = query.eq("is_deleted", false)
+      }
+
+      const { data: upserted, error: upsertError } = await query
 
       if (upsertError) {
         console.warn(`Sync pull error for ${table}:`, upsertError.message)
       }
 
-      // Fetch deleted records
-      const { data: deletedRows, error: deleteError } = await supabase
-        .from(supabaseTable)
-        .select("id")
-        .gt("updated_at", since)
-        .eq("is_deleted", true)
+      // Fetch deleted records (only for tables that support soft deletes)
+      let deletedRows = null
+      if (supportsSoftDelete) {
+        const { data, error: deleteError } = await supabase
+          .from(supabaseTable)
+          .select("id")
+          .gt("updated_at", since)
+          .eq("is_deleted", true)
 
-      if (deleteError) {
-        console.warn(`Sync pull deleted error for ${table}:`, deleteError.message)
+        if (deleteError) {
+          console.warn(`Sync pull deleted error for ${table}:`, deleteError.message)
+        }
+        deletedRows = data
       }
 
       if (upserted) {
@@ -91,10 +107,16 @@ async function pullChanges({ lastPulledAt }: SyncPullArgs) {
       }
     } else {
       // First sync — pull everything
-      const { data, error } = await supabase
+      let query = supabase
         .from(supabaseTable)
         .select("*")
-        .eq("is_deleted", false)
+
+      // Only filter by is_deleted if the table supports it
+      if (supportsSoftDelete) {
+        query = query.eq("is_deleted", false)
+      }
+
+      const { data, error } = await query
 
       if (error) {
         console.warn(`Sync initial pull error for ${table}:`, error.message)

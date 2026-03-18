@@ -2,7 +2,7 @@ import { FC, useEffect, useState } from "react"
 import { Share, View, ViewStyle, TextStyle, Pressable, Alert, ScrollView, TouchableOpacity } from "react-native"
 import { useTranslation } from "react-i18next"
 
-import { Screen, Text, Button, Icon } from "@/components"
+import { Screen, Text, Button, Icon, AppHeader } from "@/components"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { useDatabase } from "@/context/DatabaseContext"
@@ -267,7 +267,7 @@ export const ReportsScreen: FC = () => {
   if (!report || report.totalHead === 0) {
     return (
       <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
-        <Text preset="heading" text={t("reportsScreen.title")} style={themed($heading)} />
+        <AppHeader title={t("reportsScreen.title")} showSettings={true} />
         <Text text={t("reportsScreen.noAnimals")} style={themed($dimText)} />
       </Screen>
     )
@@ -275,7 +275,7 @@ export const ReportsScreen: FC = () => {
 
   return (
     <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
-      <Text preset="heading" text={t("reportsScreen.title")} style={themed($heading)} />
+      <AppHeader title={t("reportsScreen.title")} showSettings={true} />
 
       <View style={themed($card)}>
         <Text preset="subheading" text={t("reportsScreen.herdSummary.title")} style={themed($cardTitle)} />
@@ -389,7 +389,7 @@ export const ReportsScreen: FC = () => {
           </View>
         </View>
 
-        <View style={themed($animalList)}>
+        <ScrollView style={themed($animalList)} nestedScrollEnabled>
           {allAnimals.map((animal) => {
             const isSelected = selectedAnimalIds.has(animal.id)
             return (
@@ -411,7 +411,7 @@ export const ReportsScreen: FC = () => {
               </TouchableOpacity>
             )
           })}
-        </View>
+        </ScrollView>
 
         <Button
           text={isGeneratingReport ? t("reportsScreen.traceability.generating") : t("reportsScreen.traceability.generateButton")}
@@ -435,8 +435,8 @@ function SummaryRow({ label, value, themed }: { label: string; value: string; th
 }
 
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  paddingHorizontal: spacing.lg,
-  paddingBottom: spacing.xxl,
+  paddingHorizontal: spacing.sm,
+  paddingBottom: spacing.lg,
 })
 
 const $centered: ThemedStyle<ViewStyle> = () => ({
@@ -445,20 +445,16 @@ const $centered: ThemedStyle<ViewStyle> = () => ({
   alignItems: "center",
 })
 
-const $heading: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  marginTop: spacing.md,
-  marginBottom: spacing.lg,
-})
 
 const $card: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 12,
-  padding: spacing.md,
-  marginBottom: spacing.md,
+  borderRadius: 8,
+  padding: spacing.sm,
+  marginBottom: spacing.sm,
 })
 
 const $cardTitle: ThemedStyle<TextStyle> = ({ spacing }) => ({
-  marginBottom: spacing.sm,
+  marginBottom: spacing.xs,
 })
 
 const $summaryRow: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
@@ -479,11 +475,11 @@ const $exportButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 
 const $alertCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: "#FFF5F5",
-  borderRadius: 12,
+  borderRadius: 8,
   borderWidth: 2,
   borderColor: "#FEB2B2",
-  padding: spacing.md,
-  marginBottom: spacing.md,
+  padding: spacing.sm,
+  marginBottom: spacing.sm,
 })
 
 const $alertHeader: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -499,16 +495,16 @@ const $alertTitle: ThemedStyle<TextStyle> = () => ({
 })
 
 const $alertSubtext: ThemedStyle<TextStyle> = ({ spacing }) => ({
-  fontSize: 13,
+  fontSize: 12,
   color: "#9B2C2C",
-  marginBottom: spacing.md,
+  marginBottom: spacing.sm,
   fontWeight: "600",
 })
 
 const $alertItem: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: "#FFFFFF",
-  borderRadius: 8,
-  padding: spacing.sm,
+  borderRadius: 6,
+  padding: spacing.xs,
   marginBottom: spacing.xs,
   borderLeftWidth: 3,
   borderLeftColor: "#E53E3E",
@@ -540,9 +536,9 @@ const $alertItemReason: ThemedStyle<TextStyle> = () => ({
 
 const $traceabilitySection: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 12,
-  padding: spacing.md,
-  marginTop: spacing.lg,
+  borderRadius: 8,
+  padding: spacing.sm,
+  marginTop: spacing.sm,
 })
 
 const $sectionTitle: ThemedStyle<TextStyle> = ({ spacing }) => ({
@@ -550,10 +546,10 @@ const $sectionTitle: ThemedStyle<TextStyle> = ({ spacing }) => ({
 })
 
 const $sectionDescription: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
-  fontSize: 13,
+  fontSize: 12,
   color: colors.textDim,
-  lineHeight: 18,
-  marginBottom: spacing.md,
+  lineHeight: 16,
+  marginBottom: spacing.sm,
 })
 
 const $selectionControls: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -579,15 +575,15 @@ const $smallButtonText: ThemedStyle<TextStyle> = () => ({
 })
 
 const $animalList: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  maxHeight: 300,
-  marginBottom: spacing.md,
+  maxHeight: 200,
+  marginBottom: spacing.sm,
 })
 
 const $animalItem: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flexDirection: "row",
   justifyContent: "space-between",
   alignItems: "center",
-  paddingVertical: spacing.sm,
+  paddingVertical: spacing.xs,
   paddingHorizontal: spacing.xs,
   borderBottomWidth: 1,
   borderBottomColor: colors.separator,
@@ -598,7 +594,7 @@ const $animalItemSelected: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flexDirection: "row",
   justifyContent: "space-between",
   alignItems: "center",
-  paddingVertical: spacing.sm,
+  paddingVertical: spacing.xs,
   paddingHorizontal: spacing.xs,
   borderBottomWidth: 1,
   borderBottomColor: colors.separator,
@@ -608,13 +604,13 @@ const $animalItemSelected: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
 const $animalItemLeft: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
-  gap: spacing.sm,
+  gap: spacing.xs,
 })
 
 const $checkbox: ThemedStyle<ViewStyle> = ({ colors }) => ({
-  width: 24,
-  height: 24,
-  borderRadius: 4,
+  width: 20,
+  height: 20,
+  borderRadius: 3,
   borderWidth: 2,
   borderColor: colors.border,
   backgroundColor: colors.palette.primary500,

@@ -33,89 +33,88 @@ export const DatabaseProvider: FC<PropsWithChildren> = ({ children }) => {
   const [isOrgLoading, setIsOrgLoading] = useState(true)
 
   // On mount (or user change), load organizations the user is a member of
+  // This effect observes the organization_members table to react to sync changes
   useEffect(() => {
-    const loadOrg = async () => {
-      if (!user) {
-        console.log("[DatabaseContext] No user, clearing current org")
-        setCurrentOrg(null)
-        setOrgContext(null)
-        setIsOrgLoading(false)
-        return
-      }
-
-      try {
-        // Get all active memberships for this user
-        const memberships = await measureDatabaseQuery(
-          "findActiveMemberships",
-          "organization_members",
-          () => database.get<OrganizationMember>("organization_members")
-            .query(
-              Q.where("user_id", user.id),
-              Q.where("is_active", true)
-            )
-            .fetch()
-        )
-
-        console.log("[DatabaseContext] Found", memberships.length, "active memberships for user:", user.email)
-        logDatabaseOperation("query", {
-          table: "organization_members",
-          recordCount: memberships.length,
-        })
-
-        if (memberships.length === 0) {
-          console.log("[DatabaseContext] User has no organization memberships")
-          setCurrentOrg(null)
-          setOrgContext(null)
-          setIsOrgLoading(false)
-          return
-        }
-
-        // Get organization IDs from memberships
-        const orgIds = memberships.map(m => m.organizationId)
-
-        // Load organizations that the user is a member of
-        const orgs = await measureDatabaseQuery(
-          "findUserOrganizations",
-          "organizations",
-          () => database.get<Organization>("organizations")
-            .query(
-              Q.where("id", Q.oneOf(orgIds)),
-              Q.where("is_deleted", false)
-            )
-            .fetch()
-        )
-
-        console.log("[DatabaseContext] Found", orgs.length, "organizations for user")
-        logDatabaseOperation("query", {
-          table: "organizations",
-          recordCount: orgs.length,
-        })
-
-        if (orgs.length > 0) {
-          console.log("[DatabaseContext] Setting current org:", orgs[0].name)
-          setCurrentOrg(orgs[0])
-          setOrgContext({ id: orgs[0].id, name: orgs[0].name })
-        } else {
-          console.log("[DatabaseContext] No non-deleted organizations found")
-          setCurrentOrg(null)
-          setOrgContext(null)
-        }
-      } catch (error) {
-        console.error("[DatabaseContext] Error loading orgs:", error)
-        captureException(error as Error, {
-          component: "DatabaseContext",
-          operation: "loadOrg",
-          userId: user.id,
-          userEmail: user.email,
-        })
-        logDatabaseOperation("query", {
-          table: "organizations",
-          error: error as Error,
-        })
-      }
+    if (!user) {
+      console.log("[DatabaseContext] No user, clearing current org")
+      setCurrentOrg(null)
+      setOrgContext(null)
       setIsOrgLoading(false)
+      return
     }
-    loadOrg()
+
+    // Observe memberships for this user
+    const subscription = database.get<OrganizationMember>("organization_members")
+      .query(
+        Q.where("user_id", user.id),
+        Q.where("is_active", true)
+      )
+      .observeWithColumns(["is_active"])
+      .subscribe(async (memberships) => {
+        try {
+          console.log("[DatabaseContext] Memberships changed, found", memberships.length, "active memberships for user:", user.email)
+          logDatabaseOperation("query", {
+            table: "organization_members",
+            recordCount: memberships.length,
+          })
+
+          if (memberships.length === 0) {
+            console.log("[DatabaseContext] User has no organization memberships")
+            setCurrentOrg(null)
+            setOrgContext(null)
+            setIsOrgLoading(false)
+            return
+          }
+
+          // Get organization IDs from memberships
+          const orgIds = memberships.map(m => m.organizationId)
+
+          // Load organizations that the user is a member of
+          const orgs = await measureDatabaseQuery(
+            "findUserOrganizations",
+            "organizations",
+            () => database.get<Organization>("organizations")
+              .query(
+                Q.where("id", Q.oneOf(orgIds)),
+                Q.where("is_deleted", false)
+              )
+              .fetch()
+          )
+
+          console.log("[DatabaseContext] Found", orgs.length, "organizations for user")
+          logDatabaseOperation("query", {
+            table: "organizations",
+            recordCount: orgs.length,
+          })
+
+          if (orgs.length > 0) {
+            console.log("[DatabaseContext] Setting current org:", orgs[0].name)
+            setCurrentOrg(orgs[0])
+            setOrgContext({ id: orgs[0].id, name: orgs[0].name })
+          } else {
+            console.log("[DatabaseContext] No non-deleted organizations found")
+            setCurrentOrg(null)
+            setOrgContext(null)
+          }
+        } catch (error) {
+          console.error("[DatabaseContext] Error loading orgs:", error)
+          captureException(error as Error, {
+            component: "DatabaseContext",
+            operation: "loadOrg",
+            userId: user.id,
+            userEmail: user.email,
+          })
+          logDatabaseOperation("query", {
+            table: "organizations",
+            error: error as Error,
+          })
+        }
+        setIsOrgLoading(false)
+      })
+
+    return () => {
+      subscription.unsubscribe()
+    }
   }, [user])
 
   const createOrganization = useCallback(async (params: CreateOrgParams): Promise<Organization> => {

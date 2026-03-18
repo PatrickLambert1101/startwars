@@ -20,7 +20,7 @@ import { AuthProvider } from "./context/AuthContext"
 import { DatabaseProvider } from "./context/DatabaseContext"
 import { SubscriptionProvider } from "./context/SubscriptionContext"
 import { SyncProvider } from "./context/SyncContext"
-import { AutoSync } from "./components/AutoSync"
+import { AutoSync, SyncIndicator } from "./components"
 import { initI18n } from "./i18n"
 import { AppNavigator } from "./navigators/AppNavigator"
 import { useNavigationPersistence } from "./navigators/navigationUtilities"
@@ -93,6 +93,7 @@ export function App() {
               <SubscriptionProvider>
                 <ThemeProvider>
                   <AutoSync />
+                  <SyncIndicator />
                   <AppNavigator
                     linking={linking}
                     initialState={initialNavigationState}

@@ -103,7 +103,8 @@ export const SubscriptionProvider: FC<PropsWithChildren> = ({ children }) => {
         }
 
         // Configure RevenueCat with minimal logging
-        Purchases.setLogLevel(LOG_LEVEL.INFO)
+        // In development, only show errors (not warnings about missing products)
+        Purchases.setLogLevel(__DEV__ ? LOG_LEVEL.ERROR : LOG_LEVEL.WARN)
 
         // Initialize SDK
         await Purchases.configure({

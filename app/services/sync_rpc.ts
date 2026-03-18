@@ -66,17 +66,13 @@ async function pullChanges({ lastPulledAt }: SyncPullArgs) {
  * This function runs as SECURITY DEFINER and bypasses RLS
  */
 async function pushChanges({ changes }: SyncPushArgs) {
-  console.log("[Sync] pushChanges called")
-  console.log("[Sync] Raw changes object:", JSON.stringify(changes, null, 2))
-
   const tableKeys = Object.keys(changes as any)
 
   if (tableKeys.length === 0) {
-    console.log(`[Sync] No local changes to push - changes object is empty`)
     return
   }
 
-  console.log(`[Sync] Pushing changes from ${tableKeys.length} tables:`, tableKeys)
+  console.log(`[Sync] Pushing changes from ${tableKeys.length} tables`)
 
   // Convert WatermelonDB format to Supabase format
   const supabaseChanges: Record<string, any> = {}
@@ -105,19 +101,8 @@ async function pushChanges({ changes }: SyncPushArgs) {
       deleted: deleted,
     }
 
-    console.log(`[Sync] → ${supabaseTableName}: ${totalChanges} changes`, {
-      created: created.length,
-      updated: updated.length,
-      deleted: deleted.length,
-    })
-
-    // Log first created record for debugging
-    if (created.length > 0) {
-      console.log(`[Sync]   First created record:`, {
-        id: created[0].id,
-        _status: created[0]._status,
-        _changed: created[0]._changed,
-      })
+    if (totalChanges > 0) {
+      console.log(`[Sync] → ${supabaseTableName}: +${created.length} ~${updated.length} -${deleted.length}`)
     }
   }
 
@@ -129,8 +114,6 @@ async function pushChanges({ changes }: SyncPushArgs) {
     console.error("[Sync] Push error:", error)
     throw new Error(`Sync push failed: ${error.message}`)
   }
-
-  console.log(`[Sync] Push successful:`, data)
 }
 
 /**
@@ -164,15 +147,10 @@ function watermelonToSupabase(record: any) {
   const raw = record._raw || record
   const row: any = { ...raw }
 
-  console.log(`[Sync] watermelonToSupabase BEFORE conversion:`, {
-    id: row.id,
-    created_at: row.created_at,
-    created_at_type: typeof row.created_at
-  })
-
   // Convert timestamp fields (milliseconds) to ISO strings for Postgres
+  const dateFields = ["date_of_birth", "breeding_date", "expected_calving_date", "actual_calving_date", "movement_date", "treatment_date", "measurement_date", "record_date"]
   for (const key of Object.keys(row)) {
-    if (key.endsWith("_at") || key.endsWith("_date")) {
+    if (key.endsWith("_at") || key.endsWith("_date") || dateFields.includes(key)) {
       if (row[key] && typeof row[key] === "number") {
         row[key] = new Date(row[key]).toISOString()
       }
@@ -193,13 +171,9 @@ function watermelonToSupabase(record: any) {
     }
   }
 
-  console.log(`[Sync] watermelonToSupabase AFTER conversion:`, {
-    id: row.id,
-    created_at: row.created_at,
-    created_at_type: typeof row.created_at,
-    livestock_types: row.livestock_types,
-    livestock_types_type: typeof row.livestock_types
-  })
+  // Remove WatermelonDB internal fields before sending to Supabase
+  delete row._status
+  delete row._changed
 
   return row
 }
@@ -364,7 +338,14 @@ async function ensureOrganizationMemberships(userId?: string, userEmail?: string
       .query(Q.where("is_deleted", false))
       .fetch()
 
-    console.log(`[Sync] Found ${allOrgs.length} organizations to check`)
+    if (allOrgs.length === 0) {
+      console.log(`[Sync] No organizations to check`)
+      return false
+    }
+
+    let checkedCount = 0
+    let createdCount = 0
+    let updatedCount = 0
 
     for (const org of allOrgs) {
       // Check if membership exists in Supabase (not just locally)
@@ -381,8 +362,6 @@ async function ensureOrganizationMemberships(userId?: string, userEmail?: string
       }
 
       if (!supabaseMembership) {
-        console.log(`[Sync] No membership in Supabase for ${org.name}, checking local...`)
-
         // Check if user has a local membership
         const existingMemberships = await database.get<any>("organization_members")
           .query(
@@ -393,7 +372,6 @@ async function ensureOrganizationMemberships(userId?: string, userEmail?: string
 
         if (existingMemberships.length > 0) {
           // Mark existing membership as updated to trigger push
-          console.log(`[Sync] Marking existing membership as updated for ${org.name}`)
           await database.write(async () => {
             await existingMemberships[0].update((m: any) => {
               // Update fields to ensure they're set correctly and marked as changed
@@ -402,10 +380,10 @@ async function ensureOrganizationMemberships(userId?: string, userEmail?: string
               m.updatedAt = new Date()
             })
           })
+          updatedCount++
           madeChanges = true
         } else {
           // No membership at all - create one
-          console.log(`[Sync] Creating new admin membership for ${userEmail} in ${org.name}`)
           await database.write(async () => {
             await database.get<any>("organization_members").create((m: any) => {
               m.organizationId = org.id
@@ -420,12 +398,15 @@ async function ensureOrganizationMemberships(userId?: string, userEmail?: string
               m.isDeleted = false
             })
           })
-          console.log(`[Sync] Admin membership created successfully`)
+          createdCount++
           madeChanges = true
         }
-      } else {
-        console.log(`[Sync] Membership already exists in Supabase for ${org.name}`)
       }
+      checkedCount++
+    }
+
+    if (createdCount > 0 || updatedCount > 0) {
+      console.log(`[Sync] Memberships: checked ${checkedCount}, created ${createdCount}, updated ${updatedCount}`)
     }
 
     return madeChanges

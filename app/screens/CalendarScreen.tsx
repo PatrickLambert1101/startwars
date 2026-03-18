@@ -3,7 +3,7 @@ import { View, ViewStyle, TextStyle, FlatList, Pressable } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
 
-import { Screen, Text } from "@/components"
+import { Screen, Text, AppHeader } from "@/components"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import type { MainTabScreenProps } from "@/navigators/navigationTypes"
@@ -234,8 +234,8 @@ export const CalendarScreen: FC<MainTabScreenProps<"Calendar">> = ({ navigation 
 
   return (
     <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={themed($container)}>
+      <AppHeader title="Calendar" showSettings={true} />
       <View style={themed($header)}>
-        <Text preset="heading" text="Calendar" />
         <View style={themed($headerStats)}>
           <MaterialCommunityIcons name="bell-outline" size={20} color={colors.textDim} />
           <Text text={`${filteredEvents.length}`} preset="bold" style={themed($statsText)} />
