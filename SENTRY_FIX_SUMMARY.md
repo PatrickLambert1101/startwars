@@ -120,15 +120,19 @@ To enable source map uploads in production builds, add a Sentry auth token:
 ### 2. Update app.json with Correct Project Info
 Verify the organization and project names in the Sentry plugin config match your Sentry account.
 
-### 3. Disable Debug Mode in Production
+### 3. Disable Development Mode Features in Production
 In `app/services/sentry.ts`, change:
 ```typescript
+enableInExpoDevelopment: true,  // Currently enabled for testing
 debug: true,  // Currently always enabled
 ```
 to:
 ```typescript
+enableInExpoDevelopment: false,  // Disable for production (or remove this line)
 debug: __DEV__,  // Only enable in development
 ```
+
+**Note:** `sentry-expo` disables Sentry in Expo development mode by default. The `enableInExpoDevelopment: true` flag was added to allow local testing.
 
 ### 4. Test with a New TestFlight Build
 1. Build a new version: `eas build --platform ios --profile production`

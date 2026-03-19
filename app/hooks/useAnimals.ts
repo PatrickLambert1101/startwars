@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { Q } from "@nozbe/watermelondb"
 import { database } from "@/db"
 import { Animal, AnimalSex, AnimalStatus } from "@/db/models/Animal"
 import { useDatabase } from "@/context/DatabaseContext"
 import { calculateScheduledVaccinations } from "@/services/vaccinationScheduler"
+import type { FilterState, SortField } from "@/components/FilterModal"
 
 export type AnimalFormData = {
   rfidTag: string
@@ -169,4 +170,111 @@ export function useAnimalActions() {
   }
 
   return { createAnimal, updateAnimal, deleteAnimal }
+}
+
+/**
+ * Apply filters and sorting to a list of animals
+ * Uses a combination of WatermelonDB queries (for efficient filtering) and in-memory processing (for calculated fields)
+ */
+export function useFilteredAnimals(animals: Animal[], filters: FilterState, searchQuery: string = "") {
+  return useMemo(() => {
+    let filtered = [...animals]
+
+    // 1. Apply search filter (text search)
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      filtered = filtered.filter(
+        (a) =>
+          a.visualTag.toLowerCase().includes(q) ||
+          a.rfidTag.toLowerCase().includes(q) ||
+          (a.name && a.name.toLowerCase().includes(q)) ||
+          a.breed.toLowerCase().includes(q)
+      )
+    }
+
+    // 2. Apply breed filter
+    if (filters.breeds.length > 0) {
+      filtered = filtered.filter((a) => filters.breeds.includes(a.breed))
+    }
+
+    // 3. Apply sex filter
+    if (filters.sexes.length > 0) {
+      filtered = filtered.filter((a) => filters.sexes.includes(a.sex))
+    }
+
+    // 4. Apply status filter
+    if (filters.statuses.length > 0) {
+      filtered = filtered.filter((a) => filters.statuses.includes(a.status))
+    }
+
+    // 5. Apply age range filter (in months)
+    if (filters.ageFrom !== null || filters.ageTo !== null) {
+      filtered = filtered.filter((a) => {
+        if (!a.dateOfBirth) return false
+
+        const ageInMonths = Math.floor(
+          (Date.now() - a.dateOfBirth.getTime()) / (1000 * 60 * 60 * 24 * 30.44)
+        )
+
+        if (filters.ageFrom !== null && ageInMonths < filters.ageFrom) return false
+        if (filters.ageTo !== null && ageInMonths > filters.ageTo) return false
+
+        return true
+      })
+    }
+
+    // 6. Apply tag search filter
+    if (filters.tagSearch.trim()) {
+      const tagQuery = filters.tagSearch.toLowerCase()
+      filtered = filtered.filter((a) => {
+        return a.tagsList.some((tag) => tag.toLowerCase().includes(tagQuery))
+      })
+    }
+
+    // 7. Apply parent filter (children of a specific animal)
+    if (filters.parentAnimalId) {
+      filtered = filtered.filter(
+        (a) => a.sireId === filters.parentAnimalId || a.damId === filters.parentAnimalId
+      )
+    }
+
+    // 8. Apply sorting
+    const sortMultiplier = filters.sortDirection === "asc" ? 1 : -1
+
+    filtered.sort((a, b) => {
+      let compareResult = 0
+
+      switch (filters.sortBy) {
+        case "visualTag":
+          compareResult = a.visualTag.localeCompare(b.visualTag)
+          break
+
+        case "dateOfBirth":
+          // Sort by age (newer = younger, older = older)
+          const aDate = a.dateOfBirth?.getTime() || 0
+          const bDate = b.dateOfBirth?.getTime() || 0
+          compareResult = bDate - aDate // Descending by default (youngest first)
+          break
+
+        case "breed":
+          compareResult = a.breed.localeCompare(b.breed)
+          break
+
+        case "sex":
+          compareResult = a.sex.localeCompare(b.sex)
+          break
+
+        case "status":
+          compareResult = a.status.localeCompare(b.status)
+          break
+
+        default:
+          compareResult = 0
+      }
+
+      return compareResult * sortMultiplier
+    })
+
+    return filtered
+  }, [animals, filters, searchQuery])
 }

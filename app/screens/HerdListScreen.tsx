@@ -5,11 +5,12 @@ import { useTranslation } from "react-i18next"
 import * as Network from "expo-network"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 
-import { Screen, Text, Button, TextField, AppHeader } from "@/components"
+import { Screen, Text, Button, TextField, AppHeader, FilterModal, DEFAULT_FILTER_STATE } from "@/components"
+import type { FilterState } from "@/components"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import type { MainTabScreenProps } from "@/navigators/navigationTypes"
-import { useAnimals } from "@/hooks/useAnimals"
+import { useAnimals, useFilteredAnimals } from "@/hooks/useAnimals"
 import { Animal } from "@/db/models/Animal"
 import { STATUS_COLORS } from "@/theme/colors"
 import { parsePhotos } from "@/types/Photo"
@@ -26,6 +27,8 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation 
   const [isOffline, setIsOffline] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [onboardingStep, setOnboardingStep] = useState(0)
+  const [showFilterModal, setShowFilterModal] = useState(false)
+  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTER_STATE)
 
   // Check if first time visiting and show onboarding
   useEffect(() => {
@@ -103,17 +106,33 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation 
     }
   }, [onboardingStep])
 
-  const filtered = search
-    ? animals.filter((a) => {
-        const q = search.toLowerCase()
-        return (
-          a.visualTag.toLowerCase().includes(q) ||
-          a.rfidTag.toLowerCase().includes(q) ||
-          (a.name && a.name.toLowerCase().includes(q)) ||
-          a.breed.toLowerCase().includes(q)
-        )
-      })
-    : animals
+  const handleOpenFilters = useCallback(() => {
+    setShowFilterModal(true)
+  }, [])
+
+  const handleCloseFilters = useCallback(() => {
+    setShowFilterModal(false)
+  }, [])
+
+  const handleApplyFilters = useCallback((newFilters: FilterState) => {
+    setFilters(newFilters)
+  }, [])
+
+  // Apply filters and sorting
+  const filtered = useFilteredAnimals(animals, filters, search)
+
+  // Count active filters (excluding sort)
+  const activeFilterCount =
+    filters.breeds.length +
+    filters.sexes.length +
+    filters.statuses.length +
+    (filters.ageFrom !== null || filters.ageTo !== null ? 1 : 0) +
+    (filters.tagSearch !== "" ? 1 : 0) +
+    (filters.parentAnimalId !== null ? 1 : 0)
+
+  const hasActiveFilters = activeFilterCount > 0 ||
+    filters.sortBy !== "visualTag" ||
+    filters.sortDirection !== "asc"
 
   const renderAnimal = useCallback(({ item }: { item: Animal }) => {
     const statusColor = STATUS_COLORS[item.status] || theme.colors.textDim
@@ -172,6 +191,14 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation 
 
       <View style={themed($header)}>
         <View style={themed($headerButtons)}>
+          <Pressable onPress={handleOpenFilters} style={themed($filterButton)}>
+            <MaterialCommunityIcons name="filter-variant" size={18} color={hasActiveFilters ? theme.colors.palette.primary500 : theme.colors.tint} />
+            {hasActiveFilters && (
+              <View style={themed($filterBadge)}>
+                <Text text={activeFilterCount.toString()} size="xxs" style={themed($filterBadgeText)} />
+              </View>
+            )}
+          </Pressable>
           <Pressable onPress={handleBulkAdd} style={themed($bulkAddButton)}>
             <MaterialCommunityIcons name="lightning-bolt" size={18} color={theme.colors.tint} />
           </Pressable>
@@ -387,6 +414,16 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation 
           </View>
         </View>
       </Modal>
+
+      {/* Filter Modal */}
+      <FilterModal
+        visible={showFilterModal}
+        onClose={handleCloseFilters}
+        onApply={handleApplyFilters}
+        initialFilters={filters}
+        animals={animals}
+        currentSpecies="cattle"
+      />
     </Screen>
   )
 }
@@ -409,6 +446,37 @@ const $headerButtons: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
   gap: spacing.xs,
+})
+
+const $filterButton: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  backgroundColor: colors.palette.neutral100,
+  borderWidth: 1,
+  borderColor: colors.tint,
+  borderRadius: 8,
+  width: 36,
+  height: 36,
+  justifyContent: "center",
+  alignItems: "center",
+  position: "relative",
+})
+
+const $filterBadge: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  position: "absolute",
+  top: -4,
+  right: -4,
+  backgroundColor: colors.palette.primary500,
+  borderRadius: 8,
+  minWidth: 16,
+  height: 16,
+  justifyContent: "center",
+  alignItems: "center",
+  paddingHorizontal: 4,
+})
+
+const $filterBadgeText: ThemedStyle<TextStyle> = () => ({
+  color: "#FFF",
+  fontWeight: "700",
+  fontSize: 10,
 })
 
 const $bulkAddButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({

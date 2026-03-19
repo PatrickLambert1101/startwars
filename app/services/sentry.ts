@@ -15,6 +15,10 @@ export function initSentry() {
   Sentry.init({
     dsn: SENTRY_DSN,
 
+    // IMPORTANT: Enable Sentry in Expo development mode for testing
+    // Remove this in production or set to false
+    enableInExpoDevelopment: true,
+
     // Enable debug to see what's being sent (useful for troubleshooting)
     // Set to false in production once everything works
     debug: true,
