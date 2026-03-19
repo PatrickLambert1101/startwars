@@ -83,6 +83,9 @@ npm-debug.*
 *.mobileprovision
 *.orig.*
 web-build/
+fin.json
+*-credentials.json
+service-account*.json
 
 # Configurations
 !env.js
