@@ -1,49 +1,50 @@
-import * as Sentry from "@sentry/react-native"
+import * as Sentry from "sentry-expo"
 import { Platform } from "react-native"
 
 const SENTRY_DSN = process.env.EXPO_PUBLIC_SENTRY_DSN
 
 export function initSentry() {
-  // Skip in development to avoid console instrumentation issues
-  if (__DEV__) {
-    console.log("[Sentry] Skipping initialization in development")
-    return
-  }
-
   // Skip if no DSN configured or if it's a placeholder
   if (!SENTRY_DSN || SENTRY_DSN.includes("your-") || SENTRY_DSN === "your-sentry-dsn-here") {
     console.warn("[Sentry] DSN not configured, skipping initialization")
     return
   }
 
+  console.log("[Sentry] Initializing with DSN:", SENTRY_DSN)
+
   Sentry.init({
     dsn: SENTRY_DSN,
 
-    // Enable debug in development to see what's being sent
-    debug: __DEV__,
+    // Enable debug to see what's being sent (useful for troubleshooting)
+    // Set to false in production once everything works
+    debug: true,
 
-    // Integrations - only add tracing, let default integrations load
-    integrations: [
-      Sentry.reactNativeTracingIntegration(),
-    ],
-
-    // Performance monitoring - sample 100% in dev, 10% in production
-    // Lower this if you want even less overhead (5% = 0.05)
-    tracesSampleRate: __DEV__ ? 1.0 : 0.1,
-
-    // Environment
+    // Environment - auto-detected by sentry-expo
     environment: __DEV__ ? "development" : "production",
 
-    // Release version
+    // Enable auto session tracking
     enableAutoSessionTracking: true,
     sessionTrackingIntervalMillis: 30000, // 30 seconds
 
     // Attach stack traces to all messages
     attachStacktrace: true,
 
+    // Performance monitoring - sample 100% in dev, 10% in production
+    tracesSampleRate: __DEV__ ? 1.0 : 0.1,
+
+    // Integrations
+    integrations: [
+      new Sentry.Native.ReactNativeTracing({
+        // Set to true to track app start-up performance
+        enableAppStartTracking: true,
+        // Set to true to track slow/frozen frames
+        enableStallTracking: true,
+      }),
+    ],
+
     // Filter out noisy errors
     beforeSend(event, hint) {
-      // Filter out console instrumentation errors (causing Babel construct issues)
+      // Filter out console instrumentation errors
       if (event.logger === 'console') {
         return null
       }
@@ -90,7 +91,7 @@ export function initSentry() {
   })
 
   // Set user context with platform info
-  Sentry.setContext("device", {
+  Sentry.Native.setContext("device", {
     platform: Platform.OS,
     version: Platform.Version,
   })
@@ -119,7 +120,7 @@ export function logDatabaseOperation(
   // Only add breadcrumb in dev or if there's an error
   // This reduces overhead in production for successful operations
   if (__DEV__ || details.error) {
-    Sentry.addBreadcrumb({
+    Sentry.Native.addBreadcrumb({
       category: "database",
       message: `Database ${operation}${details.table ? ` on ${details.table}` : ""}`,
       level: details.error ? "error" : "info",
@@ -162,7 +163,7 @@ export function logSyncOperation(
     lastPulledAt?: Date | null
   }
 ) {
-  Sentry.addBreadcrumb({
+  Sentry.Native.addBreadcrumb({
     category: "sync",
     message: `Sync ${operation}`,
     level: details.error ? "error" : "info",
@@ -199,7 +200,7 @@ export function logAuthOperation(
     method?: "password" | "magic-link" | "otp"
   }
 ) {
-  Sentry.addBreadcrumb({
+  Sentry.Native.addBreadcrumb({
     category: "auth",
     message: `Auth ${operation}`,
     level: details.error ? "error" : "info",
@@ -227,13 +228,13 @@ export function logAuthOperation(
  */
 export function setUserContext(user: { id: string; email?: string } | null) {
   if (user) {
-    Sentry.setUser({
+    Sentry.Native.setUser({
       id: user.id,
       email: user.email,
     })
     console.log("[Sentry] User context set:", user.email)
   } else {
-    Sentry.setUser(null)
+    Sentry.Native.setUser(null)
     console.log("[Sentry] User context cleared")
   }
 }
@@ -243,13 +244,13 @@ export function setUserContext(user: { id: string; email?: string } | null) {
  */
 export function setOrgContext(org: { id: string; name: string } | null) {
   if (org) {
-    Sentry.setContext("organization", {
+    Sentry.Native.setContext("organization", {
       id: org.id,
       name: org.name,
     })
     console.log("[Sentry] Organization context set:", org.name)
   } else {
-    Sentry.setContext("organization", null)
+    Sentry.Native.setContext("organization", null)
     console.log("[Sentry] Organization context cleared")
   }
 }
@@ -258,7 +259,7 @@ export function setOrgContext(org: { id: string; name: string } | null) {
  * Capture an exception with rich context
  */
 export function captureException(error: Error, context?: Record<string, any>) {
-  Sentry.captureException(error, {
+  Sentry.Native.captureException(error, {
     contexts: context ? { extra: context } : undefined,
   })
   console.error("[Sentry] Exception captured:", error, context)

@@ -71,6 +71,7 @@ export const SubscriptionProvider: FC<PropsWithChildren> = ({ children }) => {
   const [plan, setPlan] = useState<PlanTier>("starter")
   const [packages, setPackages] = useState<PurchasesPackage[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isSuperUser, setIsSuperUser] = useState(false)
 
   // Computed tier checks
   const isStarter = plan === "starter"
@@ -146,11 +147,58 @@ export const SubscriptionProvider: FC<PropsWithChildren> = ({ children }) => {
     initRevenueCat()
   }, [])
 
+  // ── Check if user is a super user (full commercial access) ──
+  useEffect(() => {
+    const checkSuperUser = async () => {
+      if (!user?.id || !user?.email) {
+        setIsSuperUser(false)
+        return
+      }
+
+      try {
+        console.log("[Subscriptions] Checking super user status for:", user.email)
+        const { supabase } = await import("@/services/supabase")
+
+        const { data, error } = await supabase
+          .rpc('is_super_user', {
+            check_user_id: user.id,
+            check_email: user.email
+          })
+
+        if (error) {
+          console.error("[Subscriptions] Error checking super user status:", error)
+          setIsSuperUser(false)
+          return
+        }
+
+        console.log("[Subscriptions] Super user status:", data)
+        setIsSuperUser(data === true)
+
+        // If user is a super user, grant them commercial access
+        if (data === true) {
+          console.log("[Subscriptions] User is a super user - granting commercial access")
+          setPlan("commercial")
+        }
+      } catch (error) {
+        console.error("[Subscriptions] Failed to check super user status:", error)
+        setIsSuperUser(false)
+      }
+    }
+
+    checkSuperUser()
+  }, [user?.id, user?.email])
+
   // ── Identify user with RevenueCat when they log in ──────────
   useEffect(() => {
     const identifyUser = async () => {
       if (!user?.id) {
         console.log("[Subscriptions] No user logged in, skipping identification")
+        return
+      }
+
+      // Skip RevenueCat if user is a super user
+      if (isSuperUser) {
+        console.log("[Subscriptions] User is a super user, skipping RevenueCat")
         return
       }
 
@@ -172,10 +220,17 @@ export const SubscriptionProvider: FC<PropsWithChildren> = ({ children }) => {
     }
 
     identifyUser()
-  }, [user?.id])
+  }, [user?.id, isSuperUser])
 
   // ── Helpers ───────────────────────────────────────────────
   const updatePlanFromCustomerInfo = (info: CustomerInfo) => {
+    // Super users always get commercial access
+    if (isSuperUser) {
+      console.log("[Subscriptions] Super user detected - maintaining commercial access")
+      setPlan("commercial")
+      return
+    }
+
     // DEVELOPMENT WORKAROUND: Check if using test store and grant farm by default if any purchase exists
     const apiKey = getRevenueCatApiKey()
     const isTestStore = apiKey?.startsWith("test_") || false

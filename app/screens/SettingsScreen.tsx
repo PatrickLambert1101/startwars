@@ -15,6 +15,7 @@ import { loadString, saveString, remove } from "@/utils/storage"
 import { database } from "@/db"
 import { seedDefaultSchedules } from "@/services/defaultSchedules"
 import { calculateScheduledVaccinations } from "@/services/vaccinationScheduler"
+import * as Sentry from "sentry-expo"
 
 const STORAGE_KEY_POWER = "rfid_reader_power"
 const POWER_MIN = 18
@@ -223,6 +224,30 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
       ],
     )
   }, [t])
+
+  const handleTestSentry = useCallback(() => {
+    try {
+      console.log("[DEBUG] Testing Sentry integration...")
+
+      // Add a breadcrumb
+      Sentry.Native.addBreadcrumb({
+        category: "debug",
+        message: "User triggered test error from Settings",
+        level: "info",
+      })
+
+      // Capture a test message
+      Sentry.Native.captureMessage("Test message from Settings screen", "info")
+
+      // Throw a test error
+      throw new Error("Test error from Settings screen - Sentry integration test")
+    } catch (error) {
+      // Capture the error
+      Sentry.Native.captureException(error)
+      console.log("[DEBUG] Test error captured and sent to Sentry")
+      Alert.alert("Test Sent!", "A test error has been sent to Sentry. Check your Sentry dashboard in a few moments.")
+    }
+  }, [])
 
   const powerPercent = Math.round(((readerPower - POWER_MIN) / (POWER_MAX - POWER_MIN)) * 100)
 
@@ -514,6 +539,22 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
             preset="default"
             onPress={handleForceFullSync}
             disabled={status === "syncing"}
+            style={themed($seedButton)}
+          />
+        </View>
+      </View>
+
+      <View style={themed($section)}>
+        <Text preset="formLabel" text="DEBUG & TESTING" style={themed($sectionLabel)} />
+        <View style={themed($seedCard)}>
+          <Text style={themed($seedTitle)}>Test Sentry Integration</Text>
+          <Text style={themed($seedText)}>
+            Send a test error to Sentry to verify logging is working. This will create a test event in your Sentry dashboard.
+          </Text>
+          <Button
+            text="Test Sentry"
+            preset="default"
+            onPress={handleTestSentry}
             style={themed($seedButton)}
           />
         </View>

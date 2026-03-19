@@ -80,7 +80,14 @@
         "enableCodeScanner": false
       }
     ],
-    "expo-build-properties"
+    "expo-build-properties",
+    [
+      "sentry-expo",
+      {
+        "organization": "patrick-sullivan",
+        "project": "javascript-react-native"
+      }
+    ]
   ],
   "experiments": {
     "tsconfigPaths": true
