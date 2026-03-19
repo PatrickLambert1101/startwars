@@ -14,6 +14,7 @@ import { loadString, saveString } from "@/utils/storage"
 import { database } from "@/db"
 import { seedDefaultSchedules } from "@/services/defaultSchedules"
 import { calculateScheduledVaccinations } from "@/services/vaccinationScheduler"
+import { generateTestData } from "@/services/testDataGenerator"
 
 const STORAGE_KEY_POWER = "rfid_reader_power"
 const POWER_MIN = 18
@@ -159,6 +160,42 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
             } catch (error) {
               console.error("Error calculating vaccinations:", error)
               Alert.alert("Error", "An error occurred while calculating vaccinations")
+            }
+          },
+        },
+      ],
+    )
+  }, [currentOrg])
+
+  const handleGenerateTestData = useCallback(async () => {
+    if (!currentOrg) {
+      Alert.alert("No Organization", "Please create an organization first")
+      return
+    }
+
+    Alert.alert(
+      "Generate Test Data",
+      "This will create 20 sample cattle with pastures, health records, weight records, and breeding records. Use this to explore the app with realistic data.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Generate",
+          onPress: async () => {
+            try {
+              const result = await generateTestData(currentOrg.id, {
+                animalCount: 20,
+                includeHealthRecords: true,
+                includeWeightRecords: true,
+                includeBreedingRecords: true,
+                includePastures: true,
+              })
+              Alert.alert(
+                "Test Data Created!",
+                `Generated:\n• ${result.animalsCreated} animals\n• ${result.pasturesCreated} pastures\n• ${result.healthRecordsCreated} health records\n• ${result.weightRecordsCreated} weight records\n• ${result.breedingRecordsCreated} breeding records`,
+              )
+            } catch (error) {
+              console.error("Error generating test data:", error)
+              Alert.alert("Error", "An error occurred while generating test data")
             }
           },
         },
@@ -386,6 +423,24 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
           </View>
         )}
       </View>
+
+      {currentOrg && (
+        <View style={themed($section)}>
+          <Text preset="formLabel" text="DEV TOOLS" style={themed($sectionLabel)} />
+          <View style={themed($testDataCard)}>
+            <Text style={themed($testDataTitle)}>Generate Test Data</Text>
+            <Text style={themed($testDataText)}>
+              Populate your farm with 20 sample cattle, pastures, health records, weight records, and breeding records to explore the app.
+            </Text>
+            <Button
+              text="Generate Sample Data"
+              preset="default"
+              onPress={handleGenerateTestData}
+              style={themed($testDataButton)}
+            />
+          </View>
+        </View>
+      )}
 
       {hasRfidHardware && (
         <View style={themed($section)}>
@@ -707,6 +762,35 @@ const $seedText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
 })
 
 const $seedButton: ThemedStyle<ViewStyle> = () => ({
+  marginTop: 8,
+})
+
+// --- TEST DATA styles ---
+
+const $testDataCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.palette.neutral100,
+  borderRadius: 12,
+  borderWidth: 2,
+  borderColor: colors.palette.neutral300,
+  padding: spacing.md,
+  marginTop: spacing.sm,
+})
+
+const $testDataTitle: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  fontSize: 16,
+  fontWeight: "700",
+  color: colors.text,
+  marginBottom: spacing.xs,
+})
+
+const $testDataText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  fontSize: 14,
+  color: colors.textDim,
+  lineHeight: 20,
+  marginBottom: spacing.sm,
+})
+
+const $testDataButton: ThemedStyle<ViewStyle> = () => ({
   marginTop: 8,
 })
 
