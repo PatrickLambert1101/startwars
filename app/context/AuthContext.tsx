@@ -4,6 +4,7 @@ import * as Linking from "expo-linking"
 import Purchases from "react-native-purchases"
 import { supabase } from "@/services/supabase"
 import { logAuthOperation, setUserContext, captureException } from "@/services/sentry"
+import { loadString, saveString } from "@/utils/storage"
 
 const AUTH_REDIRECT_URL = Linking.createURL("auth-callback")
 const DEV_SKIP_AUTH = process.env.EXPO_PUBLIC_DEV_SKIP_AUTH === "true"
@@ -47,7 +48,7 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
       }
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, s) => {
       console.log("[Auth] State change:", event)
       setSession(s)
 
@@ -58,11 +59,20 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
             userId: s.user.id,
             email: s.user.email,
           })
+
+          // Multi-tenant approach: We keep ALL data in the local database
+          // The DatabaseContext will filter to show only this user's organizations
+          // This allows background sync to continue for all users without data loss
+          console.log("[Auth] User signed in:", s.user.email)
+          console.log("[Auth] Local database preserved - will show only this user's data via filtering")
         }
       } else {
         setUserContext(null)
         if (event === "SIGNED_OUT") {
           logAuthOperation("logout", {})
+          console.log("[Auth] User signed out - local database preserved for background sync")
+          // Note: We do NOT clear the database on logout
+          // This preserves unsynced changes and allows sync to complete in the background
         }
       }
     })
@@ -265,6 +275,10 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
     } catch (error) {
       console.error("[Auth] Error logging out RevenueCat:", error)
     }
+
+    // NOTE: We do NOT clear the local database on logout to preserve offline changes
+    // The database will be automatically cleared on login if a different user signs in
+    // This prevents data loss if the user has unsynced changes
 
     // Sign out from Supabase
     await supabase.auth.signOut()

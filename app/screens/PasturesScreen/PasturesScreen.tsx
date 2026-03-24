@@ -213,8 +213,8 @@ const $proBadge: ThemedStyle<ViewStyle> = ({ colors }) => ({
   paddingVertical: 3,
 })
 
-const $proBadgeText: ThemedStyle<TextStyle> = () => ({
-  color: "#FFF",
+const $proBadgeText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.palette.neutral100,
   fontWeight: "800",
   letterSpacing: 1.5,
 })

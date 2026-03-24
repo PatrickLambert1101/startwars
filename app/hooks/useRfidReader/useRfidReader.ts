@@ -5,7 +5,8 @@ import {
   KeyEventModule,
   UHFReader,
   VolumeUpEventModule,
-} from "@/services/nativeModules"
+  SoundFeedback,
+} from "@/services"
 
 import { RfidReaderHook } from "./types"
 
@@ -38,6 +39,9 @@ export const useRfidReader = (): RfidReaderHook => {
         console.log("[RFID] Calling UHFReader.initialize()...")
         await UHFReader.initialize()
         console.log("[RFID] ✅ UHFReader.initialize() completed successfully")
+
+        // Play success beep
+        await SoundFeedback.neutral()
       } else if (Platform.OS === "android") {
         console.warn("[RFID] UHFReader module not available - native module needs to be implemented")
       }
@@ -47,6 +51,9 @@ export const useRfidReader = (): RfidReaderHook => {
     } catch (err) {
       console.error("[RFID] ❌ Initialization failed:", err)
       setError(`Initialization error: ${err}`)
+
+      // Play error beep
+      await SoundFeedback.error()
     }
   }, [])
 
@@ -129,6 +136,11 @@ export const useRfidReader = (): RfidReaderHook => {
       (tag) => {
         console.log("[RFID] 📡 TAG SCANNED EVENT:", tag)
         setScannedTag(tag)
+
+        // Play success beep when tag is scanned
+        SoundFeedback.success().catch((err) =>
+          console.warn("[RFID] Failed to play success sound:", err)
+        )
       },
     )
 
@@ -137,6 +149,11 @@ export const useRfidReader = (): RfidReaderHook => {
       (err) => {
         console.error("[RFID] ❌ SCAN ERROR:", err)
         setError(`Scanning error: ${err}`)
+
+        // Play error beep when scan fails
+        SoundFeedback.error().catch((e) =>
+          console.warn("[RFID] Failed to play error sound:", e)
+        )
       },
     )
 

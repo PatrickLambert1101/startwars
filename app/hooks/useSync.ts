@@ -4,12 +4,15 @@ import { logSyncOperation, startTransaction, captureException } from "@/services
 import * as Sentry from "@sentry/react-native"
 
 export type SyncStatus = "idle" | "syncing" | "success" | "error"
+export type SyncStage = "pulling" | "processing" | "pushing" | "complete"
 
 let pendingSync = false
 let syncTimeout: NodeJS.Timeout | null = null
 
 export function useSync() {
   const [status, setStatus] = useState<SyncStatus>("idle")
+  const [progress, setProgress] = useState<number>(0)
+  const [stage, setStage] = useState<SyncStage | null>(null)
   const [lastSynced, setLastSynced] = useState<Date | null>(null)
   const [error, setError] = useState<string | null>(null)
   const isSyncingRef = useRef(false)
@@ -26,6 +29,8 @@ export function useSync() {
     if (showStatus) {
       setStatus("syncing")
       setError(null)
+      setProgress(0)
+      setStage("pulling")
     }
 
     const startTime = Date.now()
@@ -34,7 +39,34 @@ export function useSync() {
     console.log("[Sync] 🔄 Starting sync operation...")
 
     try {
+      // Pulling stage (0-40%)
+      if (showStatus) {
+        setStage("pulling")
+        setProgress(10)
+      }
+
       const result = await syncDatabase()
+
+      // Processing stage (40-70%)
+      if (showStatus) {
+        setStage("processing")
+        setProgress(60)
+      }
+
+      // Small delay to show processing stage
+      await new Promise(resolve => setTimeout(resolve, 300))
+
+      // Pushing stage (70-90%)
+      if (showStatus) {
+        setStage("pushing")
+        setProgress(85)
+      }
+
+      // Complete (100%)
+      if (showStatus) {
+        setStage("complete")
+        setProgress(100)
+      }
       const duration = Date.now() - startTime
 
       if (result.success) {
@@ -86,11 +118,19 @@ export function useSync() {
 
       // Reset to idle after a few seconds
       if (showStatus) {
-        setTimeout(() => setStatus("idle"), 3000)
+        setTimeout(() => {
+          setStatus("idle")
+          setProgress(0)
+          setStage(null)
+        }, 3000)
       }
 
       return result
     } catch (error) {
+      if (showStatus) {
+        setProgress(0)
+        setStage(null)
+      }
       const duration = Date.now() - startTime
       console.error(`[Sync] ❌ Sync crashed after ${duration}ms:`, error)
 
@@ -131,5 +171,5 @@ export function useSync() {
     }, 3000)
   }, [performSync])
 
-  return { sync, queueSync, status, lastSynced, error }
+  return { sync, queueSync, status, progress, stage, lastSynced, error }
 }

@@ -1,14 +1,13 @@
 -- ============================================================================
--- FIX: Sync Pull - Explicitly select columns that match WatermelonDB schema
+-- FIX: Increase statement timeout for sync_pull to handle large datasets
 -- ============================================================================
--- Issue: row_to_json returns ALL columns, including ones not in WatermelonDB
--- Solution: Explicitly select only the columns that WatermelonDB expects
--- This prevents _status, _changed, and other unexpected fields from being returned
 
+-- Drop and recreate with increased timeout and user filtering
 CREATE OR REPLACE FUNCTION public.sync_pull(last_pulled_at BIGINT DEFAULT 0)
 RETURNS JSONB
 SECURITY DEFINER
 SET search_path = public
+SET statement_timeout = '60s'  -- Increase from default 10s to 60s
 AS $$
 DECLARE
   timestamp_now BIGINT;
@@ -17,12 +16,40 @@ DECLARE
   created_records JSONB;
   updated_records JSONB;
   deleted_ids JSONB;
+  user_org_ids UUID[];
 BEGIN
   timestamp_now := CAST(EXTRACT(EPOCH FROM NOW()) * 1000 AS BIGINT);
   since_timestamp := to_timestamp(last_pulled_at / 1000.0);
 
+  -- Get user's organization IDs for filtering
+  -- Only sync data from organizations the user is a member of
+  SELECT ARRAY_AGG(DISTINCT organization_id::uuid)
+  INTO user_org_ids
+  FROM memberships
+  WHERE user_id::text = auth.uid()::text AND is_deleted = false AND is_active = true;
+
+  -- If user has no organizations, return empty changes
+  IF user_org_ids IS NULL OR array_length(user_org_ids, 1) IS NULL THEN
+    RETURN jsonb_build_object(
+      'changes', jsonb_build_object(
+        'organizations', jsonb_build_object('created', '[]'::jsonb, 'updated', '[]'::jsonb, 'deleted', '[]'::jsonb),
+        'memberships', jsonb_build_object('created', '[]'::jsonb, 'updated', '[]'::jsonb, 'deleted', '[]'::jsonb),
+        'pastures', jsonb_build_object('created', '[]'::jsonb, 'updated', '[]'::jsonb, 'deleted', '[]'::jsonb),
+        'animals', jsonb_build_object('created', '[]'::jsonb, 'updated', '[]'::jsonb, 'deleted', '[]'::jsonb),
+        'treatment_protocols', jsonb_build_object('created', '[]'::jsonb, 'updated', '[]'::jsonb, 'deleted', '[]'::jsonb),
+        'health_records', jsonb_build_object('created', '[]'::jsonb, 'updated', '[]'::jsonb, 'deleted', '[]'::jsonb),
+        'weight_records', jsonb_build_object('created', '[]'::jsonb, 'updated', '[]'::jsonb, 'deleted', '[]'::jsonb),
+        'breeding_records', jsonb_build_object('created', '[]'::jsonb, 'updated', '[]'::jsonb, 'deleted', '[]'::jsonb),
+        'pasture_movements', jsonb_build_object('created', '[]'::jsonb, 'updated', '[]'::jsonb, 'deleted', '[]'::jsonb),
+        'vaccination_schedules', jsonb_build_object('created', '[]'::jsonb, 'updated', '[]'::jsonb, 'deleted', '[]'::jsonb),
+        'scheduled_vaccinations', jsonb_build_object('created', '[]'::jsonb, 'updated', '[]'::jsonb, 'deleted', '[]'::jsonb)
+      ),
+      'timestamp', timestamp_now
+    );
+  END IF;
+
   -- ============================================================================
-  -- ORGANIZATIONS
+  -- ORGANIZATIONS - Only organizations the user is a member of
   -- ============================================================================
   IF last_pulled_at > 0 THEN
     SELECT COALESCE(jsonb_agg(jsonb_build_object(
@@ -37,7 +64,9 @@ BEGIN
     )), '[]'::jsonb)
     INTO created_records
     FROM organizations
-    WHERE created_at > since_timestamp AND is_deleted = false;
+    WHERE created_at > since_timestamp
+      AND is_deleted = false
+      AND id = ANY(user_org_ids);
 
     SELECT COALESCE(jsonb_agg(jsonb_build_object(
       'id', id,
@@ -51,14 +80,19 @@ BEGIN
     )), '[]'::jsonb)
     INTO updated_records
     FROM organizations
-    WHERE updated_at > since_timestamp AND created_at <= since_timestamp AND is_deleted = false;
+    WHERE updated_at > since_timestamp
+      AND created_at <= since_timestamp
+      AND is_deleted = false
+      AND id = ANY(user_org_ids);
 
     SELECT COALESCE(jsonb_agg(id), '[]'::jsonb)
     INTO deleted_ids
     FROM organizations
-    WHERE updated_at > since_timestamp AND is_deleted = true;
+    WHERE updated_at > since_timestamp
+      AND is_deleted = true
+      AND id = ANY(user_org_ids);
   ELSE
-    -- First sync: pull everything
+    -- First sync: pull everything for user's organizations
     SELECT COALESCE(jsonb_agg(jsonb_build_object(
       'id', id,
       'name', name,
@@ -71,7 +105,8 @@ BEGIN
     )), '[]'::jsonb)
     INTO created_records
     FROM organizations
-    WHERE is_deleted = false;
+    WHERE is_deleted = false
+      AND id = ANY(user_org_ids);
 
     updated_records := '[]'::jsonb;
     deleted_ids := '[]'::jsonb;
@@ -84,7 +119,7 @@ BEGIN
   ));
 
   -- ============================================================================
-  -- MEMBERSHIPS (organization_members in WatermelonDB)
+  -- MEMBERSHIPS - Only for user's organizations
   -- ============================================================================
   IF last_pulled_at > 0 THEN
     SELECT COALESCE(jsonb_agg(jsonb_build_object(
@@ -105,7 +140,9 @@ BEGIN
     )), '[]'::jsonb)
     INTO created_records
     FROM memberships
-    WHERE created_at > since_timestamp AND is_deleted = false;
+    WHERE created_at > since_timestamp
+      AND is_deleted = false
+      AND organization_id = ANY(user_org_ids);
 
     SELECT COALESCE(jsonb_agg(jsonb_build_object(
       'id', id,
@@ -125,12 +162,17 @@ BEGIN
     )), '[]'::jsonb)
     INTO updated_records
     FROM memberships
-    WHERE updated_at > since_timestamp AND created_at <= since_timestamp AND is_deleted = false;
+    WHERE updated_at > since_timestamp
+      AND created_at <= since_timestamp
+      AND is_deleted = false
+      AND organization_id = ANY(user_org_ids);
 
     SELECT COALESCE(jsonb_agg(id), '[]'::jsonb)
     INTO deleted_ids
     FROM memberships
-    WHERE updated_at > since_timestamp AND is_deleted = true;
+    WHERE updated_at > since_timestamp
+      AND is_deleted = true
+      AND organization_id = ANY(user_org_ids);
   ELSE
     SELECT COALESCE(jsonb_agg(jsonb_build_object(
       'id', id,
@@ -150,7 +192,8 @@ BEGIN
     )), '[]'::jsonb)
     INTO created_records
     FROM memberships
-    WHERE is_deleted = false;
+    WHERE is_deleted = false
+      AND organization_id = ANY(user_org_ids);
 
     updated_records := '[]'::jsonb;
     deleted_ids := '[]'::jsonb;
@@ -163,7 +206,7 @@ BEGIN
   ));
 
   -- ============================================================================
-  -- PASTURES
+  -- PASTURES - Only for user's organizations
   -- ============================================================================
   IF last_pulled_at > 0 THEN
     SELECT COALESCE(jsonb_agg(jsonb_build_object(
@@ -194,7 +237,9 @@ BEGIN
     )), '[]'::jsonb)
     INTO created_records
     FROM pastures
-    WHERE created_at > since_timestamp AND is_deleted = false;
+    WHERE created_at > since_timestamp
+      AND is_deleted = false
+      AND organization_id = ANY(user_org_ids);
 
     SELECT COALESCE(jsonb_agg(jsonb_build_object(
       'id', id,
@@ -224,12 +269,17 @@ BEGIN
     )), '[]'::jsonb)
     INTO updated_records
     FROM pastures
-    WHERE updated_at > since_timestamp AND created_at <= since_timestamp AND is_deleted = false;
+    WHERE updated_at > since_timestamp
+      AND created_at <= since_timestamp
+      AND is_deleted = false
+      AND organization_id = ANY(user_org_ids);
 
     SELECT COALESCE(jsonb_agg(id), '[]'::jsonb)
     INTO deleted_ids
     FROM pastures
-    WHERE updated_at > since_timestamp AND is_deleted = true;
+    WHERE updated_at > since_timestamp
+      AND is_deleted = true
+      AND organization_id = ANY(user_org_ids);
   ELSE
     SELECT COALESCE(jsonb_agg(jsonb_build_object(
       'id', id,
@@ -259,7 +309,8 @@ BEGIN
     )), '[]'::jsonb)
     INTO created_records
     FROM pastures
-    WHERE is_deleted = false;
+    WHERE is_deleted = false
+      AND organization_id = ANY(user_org_ids);
 
     updated_records := '[]'::jsonb;
     deleted_ids := '[]'::jsonb;
@@ -272,7 +323,7 @@ BEGIN
   ));
 
   -- ============================================================================
-  -- ANIMALS
+  -- ANIMALS - Only for user's organizations
   -- ============================================================================
   IF last_pulled_at > 0 THEN
     SELECT COALESCE(jsonb_agg(jsonb_build_object(
@@ -301,7 +352,9 @@ BEGIN
     )), '[]'::jsonb)
     INTO created_records
     FROM animals
-    WHERE created_at > since_timestamp AND is_deleted = false;
+    WHERE created_at > since_timestamp
+      AND is_deleted = false
+      AND organization_id = ANY(user_org_ids);
 
     SELECT COALESCE(jsonb_agg(jsonb_build_object(
       'id', id,
@@ -329,12 +382,17 @@ BEGIN
     )), '[]'::jsonb)
     INTO updated_records
     FROM animals
-    WHERE updated_at > since_timestamp AND created_at <= since_timestamp AND is_deleted = false;
+    WHERE updated_at > since_timestamp
+      AND created_at <= since_timestamp
+      AND is_deleted = false
+      AND organization_id = ANY(user_org_ids);
 
     SELECT COALESCE(jsonb_agg(id), '[]'::jsonb)
     INTO deleted_ids
     FROM animals
-    WHERE updated_at > since_timestamp AND is_deleted = true;
+    WHERE updated_at > since_timestamp
+      AND is_deleted = true
+      AND organization_id = ANY(user_org_ids);
   ELSE
     SELECT COALESCE(jsonb_agg(jsonb_build_object(
       'id', id,
@@ -362,7 +420,8 @@ BEGIN
     )), '[]'::jsonb)
     INTO created_records
     FROM animals
-    WHERE is_deleted = false;
+    WHERE is_deleted = false
+      AND organization_id = ANY(user_org_ids);
 
     updated_records := '[]'::jsonb;
     deleted_ids := '[]'::jsonb;
@@ -375,7 +434,7 @@ BEGIN
   ));
 
   -- ============================================================================
-  -- TREATMENT_PROTOCOLS
+  -- TREATMENT_PROTOCOLS - Only for user's organizations
   -- ============================================================================
   IF last_pulled_at > 0 THEN
     SELECT COALESCE(jsonb_agg(jsonb_build_object(
@@ -399,7 +458,9 @@ BEGIN
     )), '[]'::jsonb)
     INTO created_records
     FROM treatment_protocols
-    WHERE created_at > since_timestamp AND is_deleted = false;
+    WHERE created_at > since_timestamp
+      AND is_deleted = false
+      AND organization_id = ANY(user_org_ids);
 
     SELECT COALESCE(jsonb_agg(jsonb_build_object(
       'id', id,
@@ -422,12 +483,17 @@ BEGIN
     )), '[]'::jsonb)
     INTO updated_records
     FROM treatment_protocols
-    WHERE updated_at > since_timestamp AND created_at <= since_timestamp AND is_deleted = false;
+    WHERE updated_at > since_timestamp
+      AND created_at <= since_timestamp
+      AND is_deleted = false
+      AND organization_id = ANY(user_org_ids);
 
     SELECT COALESCE(jsonb_agg(id), '[]'::jsonb)
     INTO deleted_ids
     FROM treatment_protocols
-    WHERE updated_at > since_timestamp AND is_deleted = true;
+    WHERE updated_at > since_timestamp
+      AND is_deleted = true
+      AND organization_id = ANY(user_org_ids);
   ELSE
     SELECT COALESCE(jsonb_agg(jsonb_build_object(
       'id', id,
@@ -450,7 +516,8 @@ BEGIN
     )), '[]'::jsonb)
     INTO created_records
     FROM treatment_protocols
-    WHERE is_deleted = false;
+    WHERE is_deleted = false
+      AND organization_id = ANY(user_org_ids);
 
     updated_records := '[]'::jsonb;
     deleted_ids := '[]'::jsonb;
@@ -463,7 +530,7 @@ BEGIN
   ));
 
   -- ============================================================================
-  -- HEALTH_RECORDS
+  -- HEALTH_RECORDS - Only for user's organizations
   -- ============================================================================
   IF last_pulled_at > 0 THEN
     SELECT COALESCE(jsonb_agg(jsonb_build_object(
@@ -489,7 +556,9 @@ BEGIN
     )), '[]'::jsonb)
     INTO created_records
     FROM health_records
-    WHERE created_at > since_timestamp AND is_deleted = false;
+    WHERE created_at > since_timestamp
+      AND is_deleted = false
+      AND organization_id = ANY(user_org_ids);
 
     SELECT COALESCE(jsonb_agg(jsonb_build_object(
       'id', id,
@@ -514,12 +583,17 @@ BEGIN
     )), '[]'::jsonb)
     INTO updated_records
     FROM health_records
-    WHERE updated_at > since_timestamp AND created_at <= since_timestamp AND is_deleted = false;
+    WHERE updated_at > since_timestamp
+      AND created_at <= since_timestamp
+      AND is_deleted = false
+      AND organization_id = ANY(user_org_ids);
 
     SELECT COALESCE(jsonb_agg(id), '[]'::jsonb)
     INTO deleted_ids
     FROM health_records
-    WHERE updated_at > since_timestamp AND is_deleted = true;
+    WHERE updated_at > since_timestamp
+      AND is_deleted = true
+      AND organization_id = ANY(user_org_ids);
   ELSE
     SELECT COALESCE(jsonb_agg(jsonb_build_object(
       'id', id,
@@ -544,7 +618,8 @@ BEGIN
     )), '[]'::jsonb)
     INTO created_records
     FROM health_records
-    WHERE is_deleted = false;
+    WHERE is_deleted = false
+      AND organization_id = ANY(user_org_ids);
 
     updated_records := '[]'::jsonb;
     deleted_ids := '[]'::jsonb;
@@ -557,7 +632,7 @@ BEGIN
   ));
 
   -- ============================================================================
-  -- WEIGHT_RECORDS
+  -- WEIGHT_RECORDS - Only for user's organizations
   -- ============================================================================
   IF last_pulled_at > 0 THEN
     SELECT COALESCE(jsonb_agg(jsonb_build_object(
@@ -578,7 +653,9 @@ BEGIN
     )), '[]'::jsonb)
     INTO created_records
     FROM weight_records
-    WHERE created_at > since_timestamp AND is_deleted = false;
+    WHERE created_at > since_timestamp
+      AND is_deleted = false
+      AND organization_id = ANY(user_org_ids);
 
     SELECT COALESCE(jsonb_agg(jsonb_build_object(
       'id', id,
@@ -598,12 +675,17 @@ BEGIN
     )), '[]'::jsonb)
     INTO updated_records
     FROM weight_records
-    WHERE updated_at > since_timestamp AND created_at <= since_timestamp AND is_deleted = false;
+    WHERE updated_at > since_timestamp
+      AND created_at <= since_timestamp
+      AND is_deleted = false
+      AND organization_id = ANY(user_org_ids);
 
     SELECT COALESCE(jsonb_agg(id), '[]'::jsonb)
     INTO deleted_ids
     FROM weight_records
-    WHERE updated_at > since_timestamp AND is_deleted = true;
+    WHERE updated_at > since_timestamp
+      AND is_deleted = true
+      AND organization_id = ANY(user_org_ids);
   ELSE
     SELECT COALESCE(jsonb_agg(jsonb_build_object(
       'id', id,
@@ -623,7 +705,8 @@ BEGIN
     )), '[]'::jsonb)
     INTO created_records
     FROM weight_records
-    WHERE is_deleted = false;
+    WHERE is_deleted = false
+      AND organization_id = ANY(user_org_ids);
 
     updated_records := '[]'::jsonb;
     deleted_ids := '[]'::jsonb;
@@ -636,7 +719,7 @@ BEGIN
   ));
 
   -- ============================================================================
-  -- BREEDING_RECORDS
+  -- BREEDING_RECORDS - Only for user's organizations
   -- ============================================================================
   IF last_pulled_at > 0 THEN
     SELECT COALESCE(jsonb_agg(jsonb_build_object(
@@ -661,7 +744,9 @@ BEGIN
     )), '[]'::jsonb)
     INTO created_records
     FROM breeding_records
-    WHERE created_at > since_timestamp AND is_deleted = false;
+    WHERE created_at > since_timestamp
+      AND is_deleted = false
+      AND organization_id = ANY(user_org_ids);
 
     SELECT COALESCE(jsonb_agg(jsonb_build_object(
       'id', id,
@@ -685,12 +770,17 @@ BEGIN
     )), '[]'::jsonb)
     INTO updated_records
     FROM breeding_records
-    WHERE updated_at > since_timestamp AND created_at <= since_timestamp AND is_deleted = false;
+    WHERE updated_at > since_timestamp
+      AND created_at <= since_timestamp
+      AND is_deleted = false
+      AND organization_id = ANY(user_org_ids);
 
     SELECT COALESCE(jsonb_agg(id), '[]'::jsonb)
     INTO deleted_ids
     FROM breeding_records
-    WHERE updated_at > since_timestamp AND is_deleted = true;
+    WHERE updated_at > since_timestamp
+      AND is_deleted = true
+      AND organization_id = ANY(user_org_ids);
   ELSE
     SELECT COALESCE(jsonb_agg(jsonb_build_object(
       'id', id,
@@ -714,7 +804,8 @@ BEGIN
     )), '[]'::jsonb)
     INTO created_records
     FROM breeding_records
-    WHERE is_deleted = false;
+    WHERE is_deleted = false
+      AND organization_id = ANY(user_org_ids);
 
     updated_records := '[]'::jsonb;
     deleted_ids := '[]'::jsonb;
@@ -727,7 +818,7 @@ BEGIN
   ));
 
   -- ============================================================================
-  -- PASTURE_MOVEMENTS
+  -- PASTURE_MOVEMENTS - Only for user's organizations
   -- ============================================================================
   IF last_pulled_at > 0 THEN
     SELECT COALESCE(jsonb_agg(jsonb_build_object(
@@ -748,7 +839,9 @@ BEGIN
     )), '[]'::jsonb)
     INTO created_records
     FROM pasture_movements
-    WHERE created_at > since_timestamp AND is_deleted = false;
+    WHERE created_at > since_timestamp
+      AND is_deleted = false
+      AND organization_id = ANY(user_org_ids);
 
     SELECT COALESCE(jsonb_agg(jsonb_build_object(
       'id', id,
@@ -768,12 +861,17 @@ BEGIN
     )), '[]'::jsonb)
     INTO updated_records
     FROM pasture_movements
-    WHERE updated_at > since_timestamp AND created_at <= since_timestamp AND is_deleted = false;
+    WHERE updated_at > since_timestamp
+      AND created_at <= since_timestamp
+      AND is_deleted = false
+      AND organization_id = ANY(user_org_ids);
 
     SELECT COALESCE(jsonb_agg(id), '[]'::jsonb)
     INTO deleted_ids
     FROM pasture_movements
-    WHERE updated_at > since_timestamp AND is_deleted = true;
+    WHERE updated_at > since_timestamp
+      AND is_deleted = true
+      AND organization_id = ANY(user_org_ids);
   ELSE
     SELECT COALESCE(jsonb_agg(jsonb_build_object(
       'id', id,
@@ -793,7 +891,8 @@ BEGIN
     )), '[]'::jsonb)
     INTO created_records
     FROM pasture_movements
-    WHERE is_deleted = false;
+    WHERE is_deleted = false
+      AND organization_id = ANY(user_org_ids);
 
     updated_records := '[]'::jsonb;
     deleted_ids := '[]'::jsonb;
@@ -806,7 +905,7 @@ BEGIN
   ));
 
   -- ============================================================================
-  -- VACCINATION_SCHEDULES
+  -- VACCINATION_SCHEDULES - Only for user's organizations
   -- ============================================================================
   IF last_pulled_at > 0 THEN
     SELECT COALESCE(jsonb_agg(jsonb_build_object(
@@ -826,7 +925,9 @@ BEGIN
     )), '[]'::jsonb)
     INTO created_records
     FROM vaccination_schedules
-    WHERE created_at > since_timestamp AND is_deleted = false;
+    WHERE created_at > since_timestamp
+      AND is_deleted = false
+      AND organization_id = ANY(user_org_ids);
 
     SELECT COALESCE(jsonb_agg(jsonb_build_object(
       'id', id,
@@ -845,12 +946,17 @@ BEGIN
     )), '[]'::jsonb)
     INTO updated_records
     FROM vaccination_schedules
-    WHERE updated_at > since_timestamp AND created_at <= since_timestamp AND is_deleted = false;
+    WHERE updated_at > since_timestamp
+      AND created_at <= since_timestamp
+      AND is_deleted = false
+      AND organization_id = ANY(user_org_ids);
 
     SELECT COALESCE(jsonb_agg(id), '[]'::jsonb)
     INTO deleted_ids
     FROM vaccination_schedules
-    WHERE updated_at > since_timestamp AND is_deleted = true;
+    WHERE updated_at > since_timestamp
+      AND is_deleted = true
+      AND organization_id = ANY(user_org_ids);
   ELSE
     SELECT COALESCE(jsonb_agg(jsonb_build_object(
       'id', id,
@@ -869,7 +975,8 @@ BEGIN
     )), '[]'::jsonb)
     INTO created_records
     FROM vaccination_schedules
-    WHERE is_deleted = false;
+    WHERE is_deleted = false
+      AND organization_id = ANY(user_org_ids);
 
     updated_records := '[]'::jsonb;
     deleted_ids := '[]'::jsonb;
@@ -882,7 +989,7 @@ BEGIN
   ));
 
   -- ============================================================================
-  -- SCHEDULED_VACCINATIONS
+  -- SCHEDULED_VACCINATIONS - Only for user's organizations
   -- ============================================================================
   IF last_pulled_at > 0 THEN
     SELECT COALESCE(jsonb_agg(jsonb_build_object(
@@ -901,7 +1008,9 @@ BEGIN
     )), '[]'::jsonb)
     INTO created_records
     FROM scheduled_vaccinations
-    WHERE created_at > since_timestamp AND is_deleted = false;
+    WHERE created_at > since_timestamp
+      AND is_deleted = false
+      AND organization_id = ANY(user_org_ids);
 
     SELECT COALESCE(jsonb_agg(jsonb_build_object(
       'id', id,
@@ -919,12 +1028,17 @@ BEGIN
     )), '[]'::jsonb)
     INTO updated_records
     FROM scheduled_vaccinations
-    WHERE updated_at > since_timestamp AND created_at <= since_timestamp AND is_deleted = false;
+    WHERE updated_at > since_timestamp
+      AND created_at <= since_timestamp
+      AND is_deleted = false
+      AND organization_id = ANY(user_org_ids);
 
     SELECT COALESCE(jsonb_agg(id), '[]'::jsonb)
     INTO deleted_ids
     FROM scheduled_vaccinations
-    WHERE updated_at > since_timestamp AND is_deleted = true;
+    WHERE updated_at > since_timestamp
+      AND is_deleted = true
+      AND organization_id = ANY(user_org_ids);
   ELSE
     SELECT COALESCE(jsonb_agg(jsonb_build_object(
       'id', id,
@@ -942,7 +1056,8 @@ BEGIN
     )), '[]'::jsonb)
     INTO created_records
     FROM scheduled_vaccinations
-    WHERE is_deleted = false;
+    WHERE is_deleted = false
+      AND organization_id = ANY(user_org_ids);
 
     updated_records := '[]'::jsonb;
     deleted_ids := '[]'::jsonb;
@@ -971,12 +1086,13 @@ GRANT EXECUTE ON FUNCTION public.sync_pull(BIGINT) TO authenticated;
 DO $$
 BEGIN
   RAISE NOTICE '============================================================================';
-  RAISE NOTICE '✅ SYNC_PULL EXPLICIT COLUMNS FIXED';
+  RAISE NOTICE '✅ SYNC_PULL TIMEOUT AND USER FILTERING ADDED';
   RAISE NOTICE '============================================================================';
   RAISE NOTICE '';
-  RAISE NOTICE '✓ All tables now explicitly select only WatermelonDB-compatible columns';
-  RAISE NOTICE '✓ No more _status, _changed, or unexpected fields';
-  RAISE NOTICE '✓ Prevents validation errors in WatermelonDB sync';
+  RAISE NOTICE '✓ Statement timeout increased from 10s to 60s';
+  RAISE NOTICE '✓ Only syncs data from organizations user is a member of';
+  RAISE NOTICE '✓ Prevents timeout on first sync with large datasets';
+  RAISE NOTICE '✓ Improves security - users only get their own data';
   RAISE NOTICE '';
   RAISE NOTICE '============================================================================';
 END $$;
