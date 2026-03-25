@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react"
-import { View, ViewStyle, TextStyle, ScrollView, Pressable, FlatList, Alert, Modal } from "react-native"
+import { View, ViewStyle, TextStyle, ScrollView, Pressable, FlatList, Alert, Modal, ActivityIndicator } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
+import Toast from "react-native-toast-message"
 import { Screen, Text, TextField, Button, Icon, ScanTagButton } from "@/components"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -24,7 +25,7 @@ export function MovementFormScreen({ navigation, route }: MovementFormScreenProp
   const { pastures } = usePastures()
   const { moveAnimalsIn, moveAnimalsOut } = usePastureActions()
   const { currentOrg } = useDatabase()
-  const { hasRfidHardware } = useRfidReader()
+  const { hasRfidHardware, isInitialized, initialize, isScanning, scannedTag, clearScannedTag } = useRfidReader()
 
   const [movementType, setMovementType] = useState<MovementType>(initialType)
   const [selectedPastureId, setSelectedPastureId] = useState<string>(initialPastureId || "")
@@ -35,6 +36,24 @@ export function MovementFormScreen({ navigation, route }: MovementFormScreenProp
   const [showTagPicker, setShowTagPicker] = useState(false)
   const [notes, setNotes] = useState("")
   const [isSaving, setIsSaving] = useState(false)
+
+  // Initialize RFID reader if available
+  useEffect(() => {
+    if (hasRfidHardware && !isInitialized) {
+      console.log("[MovementForm] Initializing RFID reader...")
+      initialize()
+    }
+  }, [hasRfidHardware, isInitialized, initialize])
+
+  // Handle RFID tag scanned via trigger
+  useEffect(() => {
+    if (scannedTag?.epc) {
+      console.log("[MovementForm] RFID tag scanned via trigger:", scannedTag.epc)
+      handleScanTag(scannedTag.epc)
+      // Clear the tag after processing
+      clearScannedTag()
+    }
+  }, [scannedTag])
 
   // Load available animals based on movement type
   useEffect(() => {
@@ -157,15 +176,39 @@ export function MovementFormScreen({ navigation, route }: MovementFormScreenProp
 
       if (canMove && !selectedAnimalIds.includes(animalData.id)) {
         setSelectedAnimalIds(prev => [...prev, animalData.id])
+        Toast.show({
+          type: "success",
+          text1: `Added: ${animalData.visualTag || animalData.rfidTag}`,
+          position: "top",
+          visibilityTime: 2000,
+        })
       } else if (!canMove) {
-        Alert.alert("Cannot Move",
-          movementType === "move_in"
+        Toast.show({
+          type: "error",
+          text1: "Cannot Move",
+          text2: movementType === "move_in"
             ? "This animal is already in a pasture"
-            : "This animal is not in the selected pasture"
-        )
+            : "This animal is not in the selected pasture",
+          position: "top",
+          visibilityTime: 3000,
+        })
+      } else {
+        Toast.show({
+          type: "info",
+          text1: "Already Selected",
+          text2: `${animalData.visualTag || animalData.rfidTag} is already in the list`,
+          position: "top",
+          visibilityTime: 2000,
+        })
       }
     } else {
-      Alert.alert("Not Found", `No animal found with tag: ${tagNumber}`)
+      Toast.show({
+        type: "error",
+        text1: "Not Found",
+        text2: `No animal found with tag: ${tagNumber}`,
+        position: "top",
+        visibilityTime: 3000,
+      })
     }
   }
 
@@ -326,18 +369,28 @@ export function MovementFormScreen({ navigation, route }: MovementFormScreenProp
             Animals ({selectedAnimalIds.length} selected)
           </Text>
 
+          {/* RFID Scanning Box */}
+          {hasRfidHardware && (
+            <View style={{ marginBottom: 12 }}>
+              {isScanning ? (
+                <View style={themed($rfidScanningBox)}>
+                  <ActivityIndicator size="small" color={colors.tint} />
+                  <Text text="Scanning..." size="md" style={{ color: colors.tint, fontWeight: "600" }} />
+                </View>
+              ) : (
+                <View style={themed($rfidPromptBox)}>
+                  <MaterialCommunityIcons name="radio-tower" size={24} color={colors.textDim} />
+                  <Text text="Pull trigger to scan RFID tag" size="sm" style={{ color: colors.textDim }} />
+                </View>
+              )}
+            </View>
+          )}
+
           <View style={themed($actionButtons)}>
-            {hasRfidHardware ? (
-              <ScanTagButton
-                onTagScanned={handleScanTag}
-                style={themed($actionButton)}
-              />
-            ) : (
-              <ScanTagButton
-                onTagScanned={handleScanTag}
-                style={themed($actionButton)}
-              />
-            )}
+            <ScanTagButton
+              onTagScanned={handleScanTag}
+              style={themed($actionButton)}
+            />
             <Button
               text="+ Select Manually"
               preset="default"
@@ -858,4 +911,31 @@ const $selectByTagButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
 const $selectByTagText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.tint,
   fontWeight: "600",
+})
+
+const $rfidScanningBox: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.palette.primary100,
+  borderWidth: 2,
+  borderColor: colors.tint,
+  borderRadius: 12,
+  padding: spacing.md,
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: spacing.sm,
+  minHeight: 56,
+})
+
+const $rfidPromptBox: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.palette.neutral100,
+  borderWidth: 2,
+  borderColor: colors.border,
+  borderStyle: "dashed",
+  borderRadius: 12,
+  padding: spacing.md,
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: spacing.sm,
+  minHeight: 56,
 })

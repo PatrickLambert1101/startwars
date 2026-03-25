@@ -100,8 +100,8 @@ public class ScanningService {
             Log.d(TAG, "🏁 SCANNING STOPPED");
         }).subscribeOn(Schedulers.io())
           .observeOn(AndroidSchedulers.mainThread())
-          .throttleFirst(THROTTLE_MS, TimeUnit.MILLISECONDS)
-          .distinctUntilChanged();
+          .throttleFirst(THROTTLE_MS, TimeUnit.MILLISECONDS);
+          // Removed distinctUntilChanged() to allow scanning the same tag multiple times
     }
 
     public void stopScanning() {
