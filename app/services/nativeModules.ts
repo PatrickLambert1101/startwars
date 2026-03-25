@@ -36,6 +36,11 @@ interface UHFReaderModule {
   setPower(power: number): Promise<boolean>
 
   /**
+   * Alias for setPower (for backwards compatibility)
+   */
+  setOutputPower?(power: number): Promise<boolean>
+
+  /**
    * Check if RFID reader is initialized
    * @returns Promise that resolves with initialization status
    */

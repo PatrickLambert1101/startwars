@@ -55,15 +55,18 @@ export const useRfidReader = (): RfidReaderHook => {
       // Play error beep
       await SoundFeedback.error()
     }
-  }, [])
+  }, [setOutputPower])
 
   const setOutputPower = useCallback(async (power: number) => {
     try {
       if (Platform.OS === "android" && UHFReader) {
-        await UHFReader.setOutputPower(power)
+        console.log(`[RFID] Setting power to ${power}...`)
+        await UHFReader.setPower(power)
+        console.log(`[RFID] ✅ Power set to ${power}`)
       }
       setError(null)
     } catch (err) {
+      console.error(`[RFID] ❌ Failed to set power to ${power}:`, err)
       setError(`Power setting error: ${err}`)
     }
   }, [])
@@ -147,9 +150,12 @@ export const useRfidReader = (): RfidReaderHook => {
         setScannedTag(tag)
 
         // Play success beep when tag is scanned
-        SoundFeedback.success().catch((err) =>
-          console.warn("[RFID] Failed to play success sound:", err)
-        )
+        console.log("[RFID] 🔊 Attempting to play success beep...")
+        SoundFeedback.success()
+          .then(() => console.log("[RFID] ✅ Success beep played"))
+          .catch((err) =>
+            console.warn("[RFID] ❌ Failed to play success sound:", err)
+          )
       },
     )
 

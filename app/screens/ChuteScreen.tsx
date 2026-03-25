@@ -19,6 +19,7 @@ import { useSubscription } from "@/context/SubscriptionContext"
 import { useWeightRecordActions, useHealthRecordActions } from "@/hooks/useRecords"
 import { useActiveProtocols } from "@/hooks/useProtocols"
 import { useScheduledVaccinations } from "@/hooks/useVaccinationSchedules"
+import { useRfidReader } from "@/hooks/useRfidReader"
 import { ScheduledVaccination } from "@/db/models"
 import { TreatmentProtocol } from "@/db/models"
 import { Q } from "@nozbe/watermelondb"
@@ -50,6 +51,9 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
 
   const rfidInputRef = useRef<TextInput>(null)
   const weightInputRef = useRef<TextInput>(null)
+
+  // RFID scanner integration
+  const { hasRfidHardware, isInitialized, scannedTag, initialize } = useRfidReader()
 
   // Session mode — pre-select the action for batch processing
   const [sessionMode, setSessionMode] = useState<SessionMode | null>(null)
@@ -102,6 +106,22 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
       }
     }, [isSingleMode])
   )
+
+  // Initialize RFID if available
+  useEffect(() => {
+    if (hasRfidHardware && !isInitialized) {
+      initialize()
+    }
+  }, [hasRfidHardware, isInitialized, initialize])
+
+  // Auto-lookup when RFID tag is scanned
+  useEffect(() => {
+    if (scannedTag && !scannedAnimal && sessionMode) {
+      console.log("[Chute] RFID tag scanned:", scannedTag.epc)
+      setRfidInput(scannedTag.epc)
+      lookupAnimal(scannedTag.epc)
+    }
+  }, [scannedTag, scannedAnimal, sessionMode, lookupAnimal])
 
   // Auto-select animal and protocol in single mode
   useEffect(() => {
@@ -451,32 +471,62 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
         /* ─── SCAN PHASE ─── */
         <View style={themed($scanArea)}>
           <View style={[themed($scanBox), { borderColor: modeColor }]}>
-            <Text preset="subheading" text={t("chuteScreen.scan.title")} style={[themed($scanText), { color: modeColor }]} />
-            <TextField
-              ref={rfidInputRef}
-              value={rfidInput}
-              onChangeText={setRfidInput}
-              placeholder={t("chuteScreen.scan.placeholder")}
-              containerStyle={themed($scanInput)}
-              autoCapitalize="characters"
-              autoFocus
-              onSubmitEditing={handleScanSubmit}
-            />
-            <View style={themed($scanButtons)}>
-              <ScanTagButton
-                onTagScanned={(tagNumber) => {
-                  setRfidInput(tagNumber)
-                  lookupAnimal(tagNumber)
-                }}
-                style={themed($scanTagBtn)}
-              />
-              <Button
-                text={isSearching ? t("chuteScreen.scan.searching") : t("chuteScreen.scan.lookUp")}
-                preset="reversed"
-                style={themed($lookupButton)}
-                onPress={handleScanSubmit}
-              />
-            </View>
+            {hasRfidHardware && isInitialized ? (
+              /* Show RFID scanning indicator */
+              <View style={{ alignItems: "center", width: "100%" }}>
+                <View style={themed($scanningIndicator)}>
+                  <MaterialCommunityIcons name="nfc" size={48} color={modeColor} />
+                  <Text preset="subheading" text="Scanning..." style={[themed($scanText), { color: modeColor }]} />
+                  <Text text="Hold tag near scanner" size="sm" style={themed($dimText)} />
+                </View>
+                <Text text={t("chuteScreen.scan.orManualEntry")} size="xs" style={[themed($dimText), { marginTop: spacing.md, marginBottom: spacing.xs }]} />
+                <TextField
+                  ref={rfidInputRef}
+                  value={rfidInput}
+                  onChangeText={setRfidInput}
+                  placeholder={t("chuteScreen.scan.placeholder")}
+                  containerStyle={themed($scanInput)}
+                  autoCapitalize="characters"
+                  onSubmitEditing={handleScanSubmit}
+                />
+                <Button
+                  text={isSearching ? t("chuteScreen.scan.searching") : t("chuteScreen.scan.lookUp")}
+                  preset="reversed"
+                  style={[themed($lookupButton), { marginTop: spacing.sm }]}
+                  onPress={handleScanSubmit}
+                />
+              </View>
+            ) : (
+              /* No RFID hardware - show manual entry */
+              <>
+                <Text preset="subheading" text={t("chuteScreen.scan.title")} style={[themed($scanText), { color: modeColor }]} />
+                <TextField
+                  ref={rfidInputRef}
+                  value={rfidInput}
+                  onChangeText={setRfidInput}
+                  placeholder={t("chuteScreen.scan.placeholder")}
+                  containerStyle={themed($scanInput)}
+                  autoCapitalize="characters"
+                  autoFocus
+                  onSubmitEditing={handleScanSubmit}
+                />
+                <View style={themed($scanButtons)}>
+                  <ScanTagButton
+                    onTagScanned={(tagNumber) => {
+                      setRfidInput(tagNumber)
+                      lookupAnimal(tagNumber)
+                    }}
+                    style={themed($scanTagBtn)}
+                  />
+                  <Button
+                    text={isSearching ? t("chuteScreen.scan.searching") : t("chuteScreen.scan.lookUp")}
+                    preset="reversed"
+                    style={themed($lookupButton)}
+                    onPress={handleScanSubmit}
+                  />
+                </View>
+              </>
+            )}
           </View>
         </View>
       ) : (
@@ -964,6 +1014,12 @@ const $scanBox: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
 const $scanText: ThemedStyle<TextStyle> = ({ spacing }) => ({
   marginBottom: spacing.md,
   letterSpacing: 2,
+})
+
+const $scanningIndicator: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  alignItems: "center",
+  gap: spacing.sm,
+  paddingVertical: spacing.xl,
 })
 
 const $scanInput: ThemedStyle<ViewStyle> = () => ({

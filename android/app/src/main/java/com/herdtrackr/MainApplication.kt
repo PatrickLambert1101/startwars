@@ -18,6 +18,7 @@ import expo.modules.ReactNativeHostWrapper
 
 import com.herdtrackr.rfid.UHFPackage
 import com.herdtrackr.rfid.KeyPackage
+import com.herdtrackr.rfid.BeepPackage
 
 class MainApplication : Application(), ReactApplication {
 
@@ -29,6 +30,7 @@ class MainApplication : Application(), ReactApplication {
               // RFID Scanner packages
               add(UHFPackage())
               add(KeyPackage())
+              add(BeepPackage())
             }
 
           override fun getJSMainModuleName(): String = ".expo/.virtual-metro-entry"

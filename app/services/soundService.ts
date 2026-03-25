@@ -1,53 +1,81 @@
-import SoundPlayer from "react-native-sound-player"
+import { NativeModules, Platform } from "react-native"
 
 /**
  * Sound feedback service for RFID scanning
- * Based on working implementation from Rental-Scanner-v2
- * Uses react-native-sound-player instead of expo-av for better reliability
+ * Uses native Android ToneGenerator for reliable beeps
  */
+
+interface BeepModule {
+  playBeep(): void
+}
+
+// Create a simple beep module reference
+const BeepNative = NativeModules.BeepModule as BeepModule | undefined
+
 export class SoundFeedback {
   /**
    * Play success beep (when tag is scanned successfully)
    */
-  static success(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      try {
-        SoundPlayer.playSoundFile("beep_success", "mp3")
-        resolve()
-      } catch (error) {
-        console.error("[SoundService] Failed to play beep_success:", error)
-        reject(error)
+  static async success(): Promise<void> {
+    try {
+      console.log("[SoundService] 🔊 Playing success beep...")
+
+      if (Platform.OS === "android") {
+        // Use native beep if available
+        if (BeepNative) {
+          BeepNative.playBeep()
+          console.log("[SoundService] ✅ Native beep played")
+        } else {
+          console.log("[SoundService] ℹ️ Native beep module not available, using fallback")
+          // Fallback: Do nothing for now
+        }
       }
-    })
+    } catch (error) {
+      console.error("[SoundService] ❌ Failed to play beep:", error)
+    }
   }
 
   /**
    * Play error/fail beep (when scan fails or error occurs)
    */
-  static error(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      try {
-        SoundPlayer.playSoundFile("beep_fail", "mp3")
-        resolve()
-      } catch (error) {
-        console.error("[SoundService] Failed to play beep_fail:", error)
-        reject(error)
+  static async error(): Promise<void> {
+    try {
+      console.log("[SoundService] 🔊 Playing error beep...")
+
+      if (Platform.OS === "android") {
+        // Use native beep if available
+        if (BeepNative) {
+          BeepNative.playBeep()
+          console.log("[SoundService] ✅ Native error beep played")
+        } else {
+          console.log("[SoundService] ℹ️ Native beep module not available, using fallback")
+          // Fallback: Do nothing for now
+        }
       }
-    })
+    } catch (error) {
+      console.error("[SoundService] ❌ Failed to play error beep:", error)
+    }
   }
 
   /**
    * Play neutral beep (for general feedback like initialization)
    */
-  static neutral(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      try {
-        SoundPlayer.playSoundFile("beep_neutral", "mp3")
-        resolve()
-      } catch (error) {
-        console.error("[SoundService] Failed to play beep_neutral:", error)
-        reject(error)
+  static async neutral(): Promise<void> {
+    try {
+      console.log("[SoundService] 🔊 Playing neutral beep...")
+
+      if (Platform.OS === "android") {
+        // Use native beep if available
+        if (BeepNative) {
+          BeepNative.playBeep()
+          console.log("[SoundService] ✅ Native neutral beep played")
+        } else {
+          console.log("[SoundService] ℹ️ Native beep module not available, using fallback")
+          // Fallback: Do nothing for now
+        }
       }
-    })
+    } catch (error) {
+      console.error("[SoundService] ❌ Failed to play neutral beep:", error)
+    }
   }
 }

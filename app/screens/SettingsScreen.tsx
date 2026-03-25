@@ -269,7 +269,13 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
 
   return (
     <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
-      <Text preset="heading" text={t("settingsScreen.title")} style={themed($heading)} />
+      <View style={themed($headerRow)}>
+        <Pressable onPress={() => navigation.goBack()} style={themed($backButton)}>
+          <Icon icon="caretLeft" size={24} color={themed($backIcon).color} />
+        </Pressable>
+        <Text preset="heading" text={t("settingsScreen.title")} style={themed($heading)} />
+        <View style={themed($backButtonPlaceholder)} />
+      </View>
 
       <View style={themed($section)}>
         <Text preset="formLabel" text={t("settingsScreen.sections.appearance")} style={themed($sectionLabel)} />
@@ -588,9 +594,30 @@ const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingBottom: spacing.xxl,
 })
 
-const $heading: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+const $headerRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
   marginTop: spacing.md,
   marginBottom: spacing.lg,
+})
+
+const $backButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  padding: spacing.xs,
+  marginLeft: -spacing.xs,
+})
+
+const $backIcon: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.text,
+})
+
+const $backButtonPlaceholder: ThemedStyle<ViewStyle> = () => ({
+  width: 40,
+})
+
+const $heading: ThemedStyle<ViewStyle> = () => ({
+  flex: 1,
+  textAlign: "center",
 })
 
 const $section: ThemedStyle<ViewStyle> = ({ spacing }) => ({
