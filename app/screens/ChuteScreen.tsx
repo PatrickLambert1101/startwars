@@ -1,9 +1,10 @@
 import { FC, useCallback, useEffect, useRef, useState } from "react"
-import { Alert, FlatList, Pressable, ScrollView, TextInput, View, ViewStyle, TextStyle } from "react-native"
+import { Alert, FlatList, Pressable, ScrollView, TextInput, View, ViewStyle, TextStyle, ActivityIndicator } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { format } from "date-fns"
 import { useTranslation } from "react-i18next"
 import { useFocusEffect } from "@react-navigation/native"
+import Toast from "react-native-toast-message"
 
 import { Screen, Text, TextField, Button, ScanTagButton, AppHeader } from "@/components"
 import { WeightChart } from "@/components/WeightChart"
@@ -51,9 +52,22 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
 
   const rfidInputRef = useRef<TextInput>(null)
   const weightInputRef = useRef<TextInput>(null)
+  const scanTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // RFID scanner integration
-  const { hasRfidHardware, isInitialized, scannedTag, initialize } = useRfidReader()
+  const { hasRfidHardware, isInitialized, isScanning, scannedTag, initialize, stopScanning, clearScannedTag } = useRfidReader()
+
+  // Debug RFID state
+  useEffect(() => {
+    console.log("[Chute] RFID state:", {
+      hasRfidHardware,
+      isInitialized,
+      isScanning,
+      scannedTag: scannedTag?.epc,
+      sessionMode,
+      scannedAnimal: scannedAnimal?.displayName,
+    })
+  }, [hasRfidHardware, isInitialized, isScanning, scannedTag, sessionMode, scannedAnimal])
 
   // Session mode — pre-select the action for batch processing
   const [sessionMode, setSessionMode] = useState<SessionMode | null>(null)
@@ -87,24 +101,29 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
   // Session log
   const [processedLog, setProcessedLog] = useState<ProcessedEntry[]>([])
 
-  // Reset screen when accessed normally (not in single mode)
+  // Reset screen when leaving (blur pattern like access-scanner)
   useFocusEffect(
     useCallback(() => {
-      if (!isSingleMode) {
-        // Reset all state when entering normal chute mode
-        setSessionMode(null)
-        setSelectedProtocol(null)
-        setScannedAnimal(null)
-        setRfidInput("")
-        setWeightValue("")
-        setConditionScore("")
-        setConditionValue("")
-        setTreatmentDesc("")
-        setProductName("")
-        setDosage("")
-        setProcessedLog([])
+      // Cleanup function runs when screen loses focus
+      return () => {
+        if (!isSingleMode) {
+          console.log("[Chute] Cleaning up state on blur (leaving screen)")
+          // Reset all state when leaving normal chute mode
+          setSessionMode(null)
+          setSelectedProtocol(null)
+          setScannedAnimal(null)
+          setRfidInput("")
+          setWeightValue("")
+          setConditionScore("")
+          setConditionValue("")
+          setTreatmentDesc("")
+          setProductName("")
+          setDosage("")
+          setProcessedLog([])
+          clearScannedTag() // Clear RFID hook state
+        }
       }
-    }, [isSingleMode])
+    }, [isSingleMode, clearScannedTag])
   )
 
   // Initialize RFID if available
@@ -114,7 +133,7 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
     }
   }, [hasRfidHardware, isInitialized, initialize])
 
-  // Auto-lookup when RFID tag is scanned
+  // Auto-lookup when RFID tag is scanned (access-scanner pattern: direct trigger on tag change)
   useEffect(() => {
     if (scannedTag && !scannedAnimal && sessionMode) {
       console.log("[Chute] RFID tag scanned:", scannedTag.epc)
@@ -122,6 +141,30 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
       lookupAnimal(scannedTag.epc)
     }
   }, [scannedTag, scannedAnimal, sessionMode, lookupAnimal])
+
+  // Scanning timeout - stop scanning after 10 seconds if no animal found
+  useEffect(() => {
+    if (isScanning && sessionMode && !scannedAnimal) {
+      console.log("[Chute] Starting 10-second scan timeout")
+      scanTimeoutRef.current = setTimeout(() => {
+        console.log("[Chute] Scan timeout reached, stopping scan")
+        stopScanning()
+      }, 10000)
+    } else {
+      // Clear timeout if scanning stopped or animal found
+      if (scanTimeoutRef.current) {
+        clearTimeout(scanTimeoutRef.current)
+        scanTimeoutRef.current = null
+      }
+    }
+
+    return () => {
+      if (scanTimeoutRef.current) {
+        clearTimeout(scanTimeoutRef.current)
+        scanTimeoutRef.current = null
+      }
+    }
+  }, [isScanning, sessionMode, scannedAnimal, stopScanning])
 
   // Auto-select animal and protocol in single mode
   useEffect(() => {
@@ -228,7 +271,14 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
         if (byVisual.length > 0) {
           setScannedAnimal(byVisual[0])
         } else {
-          Alert.alert(t("common.notFound"), t("chuteScreen.scan.notFound", { tag: rfid.trim() }))
+          // Show red toast for not found
+          Toast.show({
+            type: "error",
+            text1: t("chuteScreen.scan.notFound", { tag: rfid.trim() }),
+            position: "top",
+            visibilityTime: 3000,
+          })
+          setRfidInput("") // Clear input
         }
       }
     } catch {
@@ -242,6 +292,7 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
   }, [rfidInput, lookupAnimal])
 
   const resetForNextAnimal = useCallback(() => {
+    console.log("[Chute] Resetting for next animal")
     setScannedAnimal(null)
     setWeightValue("")
     setConditionScore("")
@@ -250,9 +301,10 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
     setDosage("")
     setConditionValue("")
     setRfidInput("")
+    clearScannedTag() // Clear RFID hook state to prevent re-lookup
     // Don't reset selected protocol — keep it for batch processing
     setTimeout(() => rfidInputRef.current?.focus(), 100)
-  }, [])
+  }, [clearScannedTag])
 
   const handleSaveWeight = useCallback(async () => {
     if (!scannedAnimal) return
@@ -460,8 +512,10 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
               })
               navigation.navigate("AnimalDetail", { animalId: preSelectedAnimalId })
             } else {
+              console.log("[Chute] Ending session - clearing all state")
               setSessionMode(null)
               resetForNextAnimal()
+              clearScannedTag() // Clear RFID hook state when ending session
             }
           }}
         />
@@ -471,13 +525,12 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
         /* ─── SCAN PHASE ─── */
         <View style={themed($scanArea)}>
           <View style={[themed($scanBox), { borderColor: modeColor }]}>
-            {hasRfidHardware && isInitialized ? (
-              /* Show RFID scanning indicator */
+            {isScanning ? (
+              /* Show RFID scanning indicator when actively scanning */
               <View style={{ alignItems: "center", width: "100%" }}>
                 <View style={themed($scanningIndicator)}>
-                  <MaterialCommunityIcons name="nfc" size={48} color={modeColor} />
-                  <Text preset="subheading" text="Scanning..." style={[themed($scanText), { color: modeColor }]} />
-                  <Text text="Hold tag near scanner" size="sm" style={themed($dimText)} />
+                  <ActivityIndicator size="small" color={modeColor} />
+                  <Text text={t("chuteScreen.scan.scanning")} size="md" style={{ color: modeColor, fontWeight: "600" }} />
                 </View>
                 <Text text={t("chuteScreen.scan.orManualEntry")} size="xs" style={[themed($dimText), { marginTop: spacing.md, marginBottom: spacing.xs }]} />
                 <TextField
@@ -489,17 +542,29 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
                   autoCapitalize="characters"
                   onSubmitEditing={handleScanSubmit}
                 />
-                <Button
-                  text={isSearching ? t("chuteScreen.scan.searching") : t("chuteScreen.scan.lookUp")}
-                  preset="reversed"
-                  style={[themed($lookupButton), { marginTop: spacing.sm }]}
-                  onPress={handleScanSubmit}
-                />
+                <View style={themed($scanButtons)}>
+                  <ScanTagButton
+                    onTagScanned={(tagNumber) => {
+                      setRfidInput(tagNumber)
+                      lookupAnimal(tagNumber)
+                    }}
+                    style={themed($scanTagBtn)}
+                  />
+                  <Button
+                    text={isSearching ? t("chuteScreen.scan.searching") : t("chuteScreen.scan.lookUp")}
+                    preset="reversed"
+                    style={themed($lookupButton)}
+                    onPress={handleScanSubmit}
+                  />
+                </View>
               </View>
             ) : (
-              /* No RFID hardware - show manual entry */
+              /* Not actively scanning - show regular entry with instruction */
               <>
                 <Text preset="subheading" text={t("chuteScreen.scan.title")} style={[themed($scanText), { color: modeColor }]} />
+                {hasRfidHardware && isInitialized && (
+                  <Text text={t("chuteScreen.scan.pullTrigger")} size="sm" style={[themed($dimText), { marginBottom: spacing.sm }]} />
+                )}
                 <TextField
                   ref={rfidInputRef}
                   value={rfidInput}
@@ -507,7 +572,7 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
                   placeholder={t("chuteScreen.scan.placeholder")}
                   containerStyle={themed($scanInput)}
                   autoCapitalize="characters"
-                  autoFocus
+                  autoFocus={!hasRfidHardware}
                   onSubmitEditing={handleScanSubmit}
                 />
                 <View style={themed($scanButtons)}>

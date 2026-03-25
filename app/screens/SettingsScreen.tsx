@@ -18,8 +18,8 @@ import { calculateScheduledVaccinations } from "@/services/vaccinationScheduler"
 import * as Sentry from "sentry-expo"
 
 const STORAGE_KEY_POWER = "rfid_reader_power"
-const POWER_MIN = 1
-const POWER_MAX = 30
+const POWER_MIN = 5   // Must match native Android MIN_POWER
+const POWER_MAX = 30  // Must match native Android MAX_POWER
 const POWER_DEFAULT = 18
 
 const LANGUAGES = [

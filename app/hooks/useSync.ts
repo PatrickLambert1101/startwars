@@ -109,11 +109,11 @@ export function useSync() {
 
       isSyncingRef.current = false
 
-      // If another sync was requested while we were syncing, do it now
+      // If another sync was requested while we were syncing, do it now (with longer delay to prevent tight loops)
       if (pendingSync) {
         pendingSync = false
-        console.log("[Sync] Processing queued sync request")
-        setTimeout(() => performSync(false), 1000)
+        console.log("[Sync] Processing queued sync request in 5 seconds...")
+        setTimeout(() => performSync(false), 5000) // Increased from 1s to 5s to prevent rapid syncing
       }
 
       // Reset to idle after a few seconds
@@ -165,10 +165,10 @@ export function useSync() {
       clearTimeout(syncTimeout)
     }
 
-    // Queue a sync to happen in 3 seconds (debounced)
+    // Queue a sync to happen in 5 seconds (debounced) - increased to prevent rapid syncing
     syncTimeout = setTimeout(() => {
       performSync(false)
-    }, 3000)
+    }, 5000)
   }, [performSync])
 
   return { sync, queueSync, status, progress, stage, lastSynced, error }

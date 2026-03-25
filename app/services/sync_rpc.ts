@@ -366,7 +366,61 @@ async function ensureOrganizationMemberships(userId?: string, userEmail?: string
     let updatedCount = 0
 
     for (const org of allOrgs) {
-      // Check if membership exists in Supabase (not just locally)
+      // First, check if we have a local membership
+      const existingMemberships = await database.get<any>("organization_members")
+        .query(
+          Q.where("organization_id", org.id),
+          Q.where("user_id", userId)
+        )
+        .fetch()
+
+      if (existingMemberships.length === 0) {
+        // No membership at all - this is unusual, but create one
+        await database.write(async () => {
+          await database.get<any>("organization_members").create((m: any) => {
+            m.organizationId = org.id
+            m.userId = userId
+            m.userEmail = userEmail
+            m.userDisplayName = userDisplayName
+            m.role = "admin"
+            m.invitedBy = null
+            m.invitedAt = null
+            m.joinedAt = new Date()
+            m.isActive = true
+            m.isDeleted = false
+          })
+        })
+        createdCount++
+        madeChanges = true
+        checkedCount++
+        continue
+      }
+
+      const localMembership = existingMemberships[0]
+
+      // If remote_id is already set, the membership was successfully synced - skip expensive Supabase check
+      if (localMembership.remoteId) {
+        // Already synced, just verify data is up to date
+        const needsUpdate =
+          localMembership.userEmail !== userEmail ||
+          (userDisplayName && localMembership.userDisplayName !== userDisplayName)
+
+        if (needsUpdate) {
+          await database.write(async () => {
+            await localMembership.update((m: any) => {
+              m.userEmail = userEmail
+              if (userDisplayName) m.userDisplayName = userDisplayName
+            })
+          })
+          updatedCount++
+          madeChanges = true
+        }
+        checkedCount++
+        continue
+      }
+
+      // No remote_id - this means it hasn't been pushed yet or the push failed
+      // Check if it exists in Supabase to be safe
       const { data: supabaseMembership, error: membershipError } = await supabase
         .from("memberships")
         .select("*")
@@ -380,65 +434,35 @@ async function ensureOrganizationMemberships(userId?: string, userEmail?: string
       }
 
       if (!supabaseMembership) {
-        // Membership doesn't exist in Supabase - check if we have it locally
-        const existingMemberships = await database.get<any>("organization_members")
-          .query(
-            Q.where("organization_id", org.id),
-            Q.where("user_id", userId)
-          )
-          .fetch()
+        // Not in Supabase and no remote_id - needs to be pushed
+        // Update data if needed and set remote_id to trigger sync
+        const needsUpdate =
+          localMembership.userEmail !== userEmail ||
+          (userDisplayName && localMembership.userDisplayName !== userDisplayName)
 
-        if (existingMemberships.length > 0) {
-          // We have a local membership but it's not in Supabase
-          // Check if it actually needs updating before marking as changed
-          const localMembership = existingMemberships[0]
-          const needsUpdate =
-            localMembership.userEmail !== userEmail ||
-            (userDisplayName && localMembership.userDisplayName !== userDisplayName)
-
-          if (needsUpdate) {
-            await database.write(async () => {
-              await localMembership.update((m: any) => {
-                m.userEmail = userEmail
-                if (userDisplayName) m.userDisplayName = userDisplayName
-              })
-            })
-            updatedCount++
-            madeChanges = true
-          } else {
-            // Mark as updated to push to Supabase, but only once
-            // Check if remote_id is null - if so, it hasn't been pushed yet
-            if (!localMembership.remoteId) {
-              await database.write(async () => {
-                await localMembership.update((m: any) => {
-                  // Just touch the record to trigger sync without changing content
-                  m.updatedAt = new Date()
-                })
-              })
-              updatedCount++
-              madeChanges = true
-            }
-          }
-        } else {
-          // No membership at all - create one
-          await database.write(async () => {
-            await database.get<any>("organization_members").create((m: any) => {
-              m.organizationId = org.id
-              m.userId = userId
+        await database.write(async () => {
+          await localMembership.update((m: any) => {
+            if (needsUpdate) {
               m.userEmail = userEmail
-              m.userDisplayName = userDisplayName
-              m.role = "admin"
-              m.invitedBy = null
-              m.invitedAt = null
-              m.joinedAt = new Date()
-              m.isActive = true
-              m.isDeleted = false
-            })
+              if (userDisplayName) m.userDisplayName = userDisplayName
+            }
+            // Set remote_id to prevent re-checking on every sync
+            m.remoteId = localMembership.id
           })
-          createdCount++
-          madeChanges = true
-        }
+        })
+        updatedCount++
+        madeChanges = true
+      } else {
+        // Exists in Supabase - just set remote_id locally to mark as synced
+        await database.write(async () => {
+          await localMembership.update((m: any) => {
+            m.remoteId = localMembership.id
+          })
+        })
+        updatedCount++
+        madeChanges = true
       }
+
       checkedCount++
     }
 

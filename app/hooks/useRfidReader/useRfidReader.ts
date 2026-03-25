@@ -55,9 +55,15 @@ export const useRfidReader = (): RfidReaderHook => {
       // Play error beep
       await SoundFeedback.error()
     }
-  }, [setOutputPower])
+  }, [])
 
   const setOutputPower = useCallback(async (power: number) => {
+    // Guard: Don't attempt to set power if not initialized
+    if (!isInitialized) {
+      console.warn(`[RFID] Cannot set power to ${power} - reader not initialized yet`)
+      return
+    }
+
     try {
       if (Platform.OS === "android" && UHFReader) {
         console.log(`[RFID] Setting power to ${power}...`)
@@ -69,7 +75,7 @@ export const useRfidReader = (): RfidReaderHook => {
       console.error(`[RFID] ❌ Failed to set power to ${power}:`, err)
       setError(`Power setting error: ${err}`)
     }
-  }, [])
+  }, [isInitialized])
 
   const startScanning = useCallback(async () => {
     console.log("[RFID] startScanning() called")
@@ -107,6 +113,11 @@ export const useRfidReader = (): RfidReaderHook => {
     }
   }, [])
 
+  const clearScannedTag = useCallback(() => {
+    console.log("[RFID] Manually clearing scanned tag")
+    setScannedTag(null)
+  }, [])
+
   useEffect(() => {
     console.log("[RFID] Setting up event listeners...")
     console.log("[RFID] Event emitters available:", {
@@ -123,23 +134,14 @@ export const useRfidReader = (): RfidReaderHook => {
 
     console.log("[RFID] Registering event listeners...")
 
-    // Use a flag to prevent duplicate scans from multiple listeners
-    let isScanning = false
-
     const keyDownSubscription = keyEventEmitter.addListener("onKeyDown", () => {
-      if (isScanning) {
-        console.log("[RFID] ⏭️  Ignoring KEY_DOWN - already scanning")
-        return
-      }
-      console.log("[RFID] 🔑 KEY DOWN EVENT - Starting scan...")
-      isScanning = true
-      setScannedTag(null)
+      console.log("[RFID] 🔑 KEY DOWN EVENT - Clearing previous tag and starting scan...")
+      setScannedTag(null)  // Clear previous tag state
       startScanning()
     })
 
     const keyUpSubscription = keyEventEmitter.addListener("onKeyUp", () => {
       console.log("[RFID] 🔑 KEY UP EVENT - Stopping scan...")
-      isScanning = false
       stopScanning()
     })
 
@@ -180,8 +182,8 @@ export const useRfidReader = (): RfidReaderHook => {
       volumeUpPressListenerForEmulator = volumeUpEventEmitter.addListener(
         "onVolumeUpPress",
         () => {
-          console.log("[RFID] 🔊 VOLUME UP PRESS - Starting scan...")
-          setScannedTag(null)
+          console.log("[RFID] 🔊 VOLUME UP PRESS - Clearing previous tag and starting scan...")
+          setScannedTag(null)  // Clear previous tag state
           startScanning()
         },
       )
@@ -213,6 +215,7 @@ export const useRfidReader = (): RfidReaderHook => {
     setOutputPower,
     startScanning,
     stopScanning,
+    clearScannedTag,
     isInitialized,
     isScanning,
     scannedTag,

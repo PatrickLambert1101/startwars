@@ -412,6 +412,9 @@ const en = {
       lookUp: "Look Up",
       searching: "Searching...",
       notFound: "No animal found with tag \"{{tag}}\". Add it first in the Herd tab.",
+      scanning: "Scanning...",
+      pullTrigger: "Pull trigger to scan tag",
+      orManualEntry: "Or enter manually below:",
     },
     animalInfo: {
       rfid: "RFID",

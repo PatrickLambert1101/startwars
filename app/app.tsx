@@ -16,6 +16,8 @@ import * as Linking from "expo-linking"
 import { KeyboardProvider } from "react-native-keyboard-controller"
 import { initialWindowMetrics, SafeAreaProvider } from "react-native-safe-area-context"
 
+import Toast from "react-native-toast-message"
+
 import { AuthProvider } from "./context/AuthContext"
 import { DatabaseProvider } from "./context/DatabaseContext"
 import { SubscriptionProvider } from "./context/SubscriptionContext"
@@ -101,6 +103,7 @@ export function App() {
                     initialState={initialNavigationState}
                     onStateChange={onNavigationStateChange}
                   />
+                  <Toast />
                 </ThemeProvider>
               </SubscriptionProvider>
             </SyncProvider>
