@@ -51,7 +51,19 @@ else
   echo "⚠️  Warning: Not a git repository, cannot restore JARs"
 fi
 
-# 4. Modify MainApplication.kt to register RFID packages
+# 4. Restore sound files from git
+echo "🔊 Restoring beep sound files..."
+mkdir -p android/app/src/main/res/raw
+if [ -d ".git" ]; then
+  git checkout HEAD -- android/app/src/main/res/raw/ 2>/dev/null || {
+    echo "⚠️  Warning: Could not restore sound files from git"
+    echo "   Make sure beep sound files are committed to android/app/src/main/res/raw/"
+  }
+else
+  echo "⚠️  Warning: Not a git repository, cannot restore sound files"
+fi
+
+# 5. Modify MainApplication.kt to register RFID packages
 echo "🔌 Registering RFID packages in MainApplication.kt..."
 MAIN_APP="android/app/src/main/java/com/herdtrackr/MainApplication.kt"
 
@@ -78,7 +90,7 @@ else
   exit 1
 fi
 
-# 5. Restore build.gradle with RFID dependencies
+# 6. Restore build.gradle with RFID dependencies
 echo "📝 Restoring build.gradle with RFID dependencies..."
 BUILD_GRADLE="android/app/build.gradle"
 
@@ -105,6 +117,7 @@ echo "📋 Summary:"
 echo "   - RFID Java sources: Restored from git"
 echo "   - Native libraries (jniLibs): Restored from git"
 echo "   - JAR files: Restored from git"
+echo "   - Sound files (res/raw): Restored from git"
 echo "   - build.gradle: Restored with RFID dependencies"
 echo "   - MainApplication.kt: RFID packages registered"
 echo ""

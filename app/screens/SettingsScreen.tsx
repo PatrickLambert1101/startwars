@@ -18,8 +18,8 @@ import { calculateScheduledVaccinations } from "@/services/vaccinationScheduler"
 import * as Sentry from "sentry-expo"
 
 const STORAGE_KEY_POWER = "rfid_reader_power"
-const POWER_MIN = 18
-const POWER_MAX = 27
+const POWER_MIN = 1
+const POWER_MAX = 30
 const POWER_DEFAULT = 18
 
 const LANGUAGES = [
@@ -486,10 +486,10 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
 
             <View style={themed($rfidPresetRow)}>
               {[
-                { label: t("settingsScreen.rfid.presets.low"), value: 18 },
-                { label: t("settingsScreen.rfid.presets.med"), value: 21 },
+                { label: t("settingsScreen.rfid.presets.low"), value: 10 },
+                { label: t("settingsScreen.rfid.presets.med"), value: 18 },
                 { label: t("settingsScreen.rfid.presets.high"), value: 24 },
-                { label: t("settingsScreen.rfid.presets.max"), value: 27 },
+                { label: t("settingsScreen.rfid.presets.max"), value: 30 },
               ].map((preset) => (
                 <Pressable
                   key={preset.label}
