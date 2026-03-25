@@ -1,7 +1,8 @@
 package com.herdtrackr.rfid;
 
 import android.util.Log;
-import com.android.hdhe.uhf.readerInterface.TagModel;
+import com.uhf.api.cls.Reader.TAGINFO;
+import cn.pda.serialport.Tools;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
@@ -9,9 +10,13 @@ import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.disposables.CompositeDisposable;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 
+/**
+ * RFID Scanning Service for Trigger Hand Scanner
+ * Based on working implementation from Rental-Scanner-v2
+ */
 public class ScanningService {
     private static final String TAG = "🟢 ScanningService";
-    private static final int SCAN_INTERVAL_MS = 100;
+    private static final short INVENTORY_TIMER = 150;  // 150ms timer for tagInventoryByTimer
     private static final int THROTTLE_MS = 500;
     private final RfidManager rfidManager;
     private final CompositeDisposable disposables = new CompositeDisposable();
@@ -22,27 +27,61 @@ public class ScanningService {
     }
 
     public Observable<Object> startScanning() {
-        Log.d(TAG, "🎯 START SCANNING");
+        Log.d(TAG, "🎯 START SCANNING (Using tagInventoryByTimer with 150ms timer)");
         return Observable.create(emitter -> {
             isScanning = true;
+
+            // Cancel any previous inventory filter before starting
+            try {
+                rfidManager.setCancelInventoryFilter();
+            } catch (Exception e) {
+                Log.w(TAG, "Could not cancel inventory filter: " + e.getMessage());
+            }
+
             while (isScanning && !emitter.isDisposed()) {
                 try {
-                    List<TagModel> tags = rfidManager.inventoryRealTime();
+                    // Use tagInventoryByTimer - THE CORRECT METHOD for trigger scanners
+                    List<TAGINFO> tags = rfidManager.tagInventoryByTimer(INVENTORY_TIMER);
+
+                    // Log exactly what the hardware returns
+                    Log.d(TAG, "📊 tagInventoryByTimer() returned: " + (tags == null ? "NULL" : "List with " + tags.size() + " items"));
+
                     if (tags != null && !tags.isEmpty()) {
-                        for (TagModel tag : tags) {
-                            byte[] epcData = tag.getmEpcBytes();
+                        Log.d(TAG, "📡 Found " + tags.size() + " tag(s)");
+                        for (int i = 0; i < tags.size(); i++) {
+                            TAGINFO tag = tags.get(i);
+                            Log.d(TAG, "  [" + i + "] Processing tag...");
+
+                            byte[] epcData = tag.EpcId;
+                            Log.d(TAG, "  [" + i + "] EPC data: " + (epcData == null ? "NULL" : "byte[" + epcData.length + "]"));
+
                             if (epcData != null && epcData.length > 0) {
-                                String epcHex = bytesToHex(epcData);
+                                String epcHex = Tools.Bytes2HexString(epcData, epcData.length);
+                                Log.d(TAG, "  [" + i + "] EPC hex: " + (epcHex == null || epcHex.isEmpty() ? "EMPTY" : epcHex));
+
                                 if (epcHex != null && !epcHex.isEmpty()) {
-                                    Log.d(TAG, "✅ Tag found: " + epcHex);
-                                    stopScanning();
-                                    emitter.onNext(epcHex);
-                                    break;
+                                    // Filter for tags starting with 'E' (like in working implementation)
+                                    if (epcHex.toLowerCase().startsWith("e")) {
+                                        Log.d(TAG, "✅ Tag found: " + epcHex);
+                                        stopScanning();
+                                        emitter.onNext(epcHex);
+                                        break;
+                                    } else {
+                                        Log.d(TAG, "  [" + i + "] ⏭️  Skipping tag (doesn't start with 'E'): " + epcHex);
+                                    }
+                                } else {
+                                    Log.w(TAG, "  [" + i + "] ⚠️ EPC converted to empty string");
                                 }
+                            } else {
+                                Log.w(TAG, "  [" + i + "] ⚠️ EPC data is null or empty");
                             }
                         }
+                    } else {
+                        Log.v(TAG, "🔍 No tags detected in this cycle (tags is " + (tags == null ? "null" : "empty list") + ")");
                     }
-                    Thread.sleep(SCAN_INTERVAL_MS);
+
+                    // Small delay between scans
+                    Thread.sleep(100);
                 } catch (RfidOperationException e) {
                     Log.e(TAG, "❌ Scan error: " + e.getMessage());
                     emitter.onError(e);
@@ -70,7 +109,7 @@ public class ScanningService {
             Log.d(TAG, "🛑 STOP SCANNING");
             isScanning = false;
             try {
-                rfidManager.stopInventoryMulti();
+                rfidManager.stopTagInventory();
             } catch (RfidOperationException e) {
                 Log.e(TAG, "Error stopping", e);
             }
@@ -84,14 +123,5 @@ public class ScanningService {
 
     public void cleanup() {
         stopScanning();
-    }
-
-    private static String bytesToHex(byte[] bytes) {
-        if (bytes == null || bytes.length == 0) return "";
-        StringBuilder sb = new StringBuilder(bytes.length * 2);
-        for (byte b : bytes) {
-            sb.append(String.format("%02X", b));
-        }
-        return sb.toString();
     }
 }

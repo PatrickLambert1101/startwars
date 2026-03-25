@@ -120,14 +120,23 @@ export const useRfidReader = (): RfidReaderHook => {
 
     console.log("[RFID] Registering event listeners...")
 
+    // Use a flag to prevent duplicate scans from multiple listeners
+    let isScanning = false
+
     const keyDownSubscription = keyEventEmitter.addListener("onKeyDown", () => {
+      if (isScanning) {
+        console.log("[RFID] ⏭️  Ignoring KEY_DOWN - already scanning")
+        return
+      }
       console.log("[RFID] 🔑 KEY DOWN EVENT - Starting scan...")
+      isScanning = true
       setScannedTag(null)
       startScanning()
     })
 
     const keyUpSubscription = keyEventEmitter.addListener("onKeyUp", () => {
       console.log("[RFID] 🔑 KEY UP EVENT - Stopping scan...")
+      isScanning = false
       stopScanning()
     })
 

@@ -178,6 +178,7 @@ dependencies {
       implementation 'io.reactivex.rxjava3:rxandroid:3.0.2'
 
       // UHF RFID Scanner JAR dependencies
+      implementation files('libs/UHF67_v1.0.9.jar')  // UHFRManager for trigger scanner
       implementation files('libs/uhfcom13_v15.jar')
       implementation files('libs/DeviceAPIver20150204.jar')
       implementation files('libs/IGLBarDecoder.jar')
