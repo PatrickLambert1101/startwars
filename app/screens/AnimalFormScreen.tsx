@@ -83,8 +83,8 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
 
   // Handle scanned RFID tag
   useEffect(() => {
-    if (scannedTag && scannedTag.data) {
-      setRfidTag(scannedTag.data)
+    if (scannedTag && scannedTag.epc) {
+      setRfidTag(scannedTag.epc)
     }
   }, [scannedTag])
 

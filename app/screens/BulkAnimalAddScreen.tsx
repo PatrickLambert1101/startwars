@@ -97,8 +97,8 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
 
   // Handle scanned RFID tag in entry phase
   useEffect(() => {
-    if (phase === "entry" && scannedTag && scannedTag.data) {
-      setCurrentRfidTag(scannedTag.data)
+    if (phase === "entry" && scannedTag && scannedTag.epc) {
+      setCurrentRfidTag(scannedTag.epc)
     }
   }, [scannedTag, phase])
 

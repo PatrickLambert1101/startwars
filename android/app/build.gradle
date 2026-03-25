@@ -96,10 +96,6 @@ android {
         versionName "1.0.0"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
-        // Enable verbose RFID logging in debug builds only
-        buildConfigField "boolean", "ENABLE_VERBOSE_RFID_LOGS", "false"
-        // Enable verbose RFID logging in debug builds only
-        buildConfigField "boolean", "ENABLE_VERBOSE_RFID_LOGS", "false"
     }
     signingConfigs {
         debug {
@@ -125,20 +121,6 @@ android {
             crunchPngs enablePngCrunchInRelease.toBoolean()
         }
     }
-    // Configure native library paths for UHF RFID scanner
-    sourceSets {
-        main {
-            jniLibs.srcDirs = ['src/main/jniLibs']
-        }
-    }
-
-    // Configure native library paths for UHF RFID scanner
-    sourceSets {
-        main {
-            jniLibs.srcDirs = ['src/main/jniLibs']
-        }
-    }
-
     packagingOptions {
         jniLibs {
             def enableLegacyPackaging = findProperty('expo.useLegacyPackaging') ?: 'false'
@@ -173,20 +155,21 @@ android {
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
-  // RxJava3 for RFID scanning service
-      implementation 'io.reactivex.rxjava3:rxjava:3.1.5'
-      implementation 'io.reactivex.rxjava3:rxandroid:3.0.2'
 
-      // UHF RFID Scanner JAR dependencies
-      implementation files('libs/UHF67_v1.0.9.jar')  // UHFRManager for trigger scanner
-      implementation files('libs/uhfcom13_v15.jar')
-      implementation files('libs/DeviceAPIver20150204.jar')
-      implementation files('libs/IGLBarDecoder.jar')
-      implementation files('libs/SerialPort.jar')
-      implementation files('libs/reader(1).jar')
-      implementation files('libs/logutil-1.5.1.1.jar')
-      implementation files('libs/ModuleAPI_J.jar')
-      implementation files('libs/jxl.jar')
+    // RxJava3 for RFID scanning service
+    implementation 'io.reactivex.rxjava3:rxjava:3.1.5'
+    implementation 'io.reactivex.rxjava3:rxandroid:3.0.2'
+
+    // UHF RFID Scanner JAR dependencies
+    implementation files('libs/UHF67_v1.0.9.jar')  // UHFRManager for trigger scanner
+    implementation files('libs/uhfcom13_v15.jar')
+    implementation files('libs/DeviceAPIver20150204.jar')
+    implementation files('libs/IGLBarDecoder.jar')
+    implementation files('libs/SerialPort.jar')
+    implementation files('libs/reader(1).jar')
+    implementation files('libs/logutil-1.5.1.1.jar')
+    implementation files('libs/ModuleAPI_J.jar')
+    implementation files('libs/jxl.jar')
 
     def isGifEnabled = (findProperty('expo.gif.enabled') ?: "") == "true";
     def isWebpEnabled = (findProperty('expo.webp.enabled') ?: "") == "true";
@@ -211,20 +194,4 @@ dependencies {
     } else {
         implementation jscFlavor
     }
-
-    // RxJava3 for RFID scanning service
-    implementation 'io.reactivex.rxjava3:rxjava:3.1.5'
-    implementation 'io.reactivex.rxjava3:rxandroid:3.0.2'
-
-    // UHF RFID Scanner JAR dependencies
-    implementation files('libs/uhfcom13_v15.jar')
-    implementation files('libs/DeviceAPIver20150204.jar')
-    implementation files('libs/IGLBarDecoder.jar')
-    implementation files('libs/SerialPort.jar')
-    implementation files('libs/reader(1).jar')
-    implementation files('libs/logutil-1.5.1.1.jar')
-    implementation files('libs/ModuleAPI_J.jar')
-    implementation files('libs/jxl.jar')
-
 }
-

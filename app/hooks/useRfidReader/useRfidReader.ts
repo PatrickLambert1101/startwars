@@ -17,7 +17,7 @@ const volumeUpEventEmitter = VolumeUpEventModule ? new NativeEventEmitter(Volume
 export const useRfidReader = (): RfidReaderHook => {
   const [isInitialized, setIsInitialized] = useState(false)
   const [isScanning, setIsScanning] = useState(false)
-  const [scannedTag, setScannedTag] = useState<{ data: string } | null>(null)
+  const [scannedTag, setScannedTag] = useState<{ epc: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   // Check if RFID hardware is available

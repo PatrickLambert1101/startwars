@@ -36,7 +36,7 @@ export const useScanner = ({
 
   useEffect(() => {
     if (scannedTag && navigation && destination) {
-      navigation.navigate(destination, { scannedData: scannedTag.data })
+      navigation.navigate(destination, { scannedData: scannedTag.epc })
     }
   }, [scannedTag, navigation, destination])
 

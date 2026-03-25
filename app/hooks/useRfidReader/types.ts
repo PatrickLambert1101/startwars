@@ -5,7 +5,7 @@ export type RfidReaderHook = {
   stopScanning: () => Promise<void>
   isInitialized: boolean
   isScanning: boolean
-  scannedTag: { data: string } | null
+  scannedTag: { epc: string } | null
   error: string | null
   hasRfidHardware: boolean
 }
