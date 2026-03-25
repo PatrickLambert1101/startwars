@@ -24,7 +24,6 @@ import { AutoSync, SyncIndicator } from "./components"
 import { initI18n } from "./i18n"
 import { AppNavigator } from "./navigators/AppNavigator"
 import { useNavigationPersistence } from "./navigators/navigationUtilities"
-import { initializeAudio, preloadAllSounds } from "./services"
 import { ThemeProvider } from "./theme/context"
 import { customFontsToLoad } from "./theme/typography"
 import { loadDateFnsLocale } from "./utils/formatDate"
@@ -74,14 +73,7 @@ export function App() {
     initI18n()
       .then(() => setIsI18nInitialized(true))
       .then(() => loadDateFnsLocale())
-
-    // Initialize sound service for RFID scanner feedback
-    initializeAudio()
-      .then(() => preloadAllSounds())
-      .catch((error) => {
-        console.warn("[App] Failed to initialize audio service:", error)
-        // Non-critical - app can continue without sounds
-      })
+    // Sound service (react-native-sound-player) doesn't need initialization
   }, [])
 
   if (!isNavigationStateRestored || !isI18nInitialized || (!areFontsLoaded && !fontLoadError)) {
