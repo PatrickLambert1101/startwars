@@ -1,13 +1,18 @@
 import { useCallback, useState, useEffect, useRef } from "react"
+import AsyncStorage from "@react-native-async-storage/async-storage"
 import { syncDatabase } from "@/services/sync_rpc"
 import { logSyncOperation, startTransaction, captureException } from "@/services/sentry"
 import * as Sentry from "@sentry/react-native"
+import { useDatabase } from "@/context/DatabaseContext"
+import { supabase } from "@/services/supabase"
 
 export type SyncStatus = "idle" | "syncing" | "success" | "error"
 export type SyncStage = "pulling" | "processing" | "pushing" | "complete"
 
 let pendingSync = false
 let syncTimeout: NodeJS.Timeout | null = null
+
+const SYNC_QUEUE_KEY = "sync_queue"
 
 export function useSync() {
   const [status, setStatus] = useState<SyncStatus>("idle")
@@ -16,6 +21,7 @@ export function useSync() {
   const [lastSynced, setLastSynced] = useState<Date | null>(null)
   const [error, setError] = useState<string | null>(null)
   const isSyncingRef = useRef(false)
+  const hasCheckedQueue = useRef(false)
 
   const performSync = useCallback(async (showStatus = true) => {
     // Prevent concurrent syncs
@@ -74,6 +80,14 @@ export function useSync() {
           setStatus("success")
         }
         setLastSynced(new Date())
+
+        // Clear sync queue from AsyncStorage after successful sync
+        try {
+          await AsyncStorage.removeItem(SYNC_QUEUE_KEY)
+          console.log("[Sync] Cleared sync queue from storage")
+        } catch (err) {
+          console.warn("[Sync] Failed to clear sync queue:", err)
+        }
 
         console.log(`[Sync] ✅ Sync completed successfully in ${duration}ms`)
         logSyncOperation("full-sync", {
@@ -165,11 +179,112 @@ export function useSync() {
       clearTimeout(syncTimeout)
     }
 
-    // Queue a sync to happen in 5 seconds (debounced) - increased to prevent rapid syncing
+    // Persist queue to AsyncStorage in case app closes
+    AsyncStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify({
+      queuedAt: Date.now()
+    })).catch(err => {
+      console.warn("[Sync] Failed to persist sync queue:", err)
+    })
+
+    // Queue a sync to happen in 10 seconds (debounced) - increased for better performance on low-end devices
     syncTimeout = setTimeout(() => {
       performSync(false)
-    }, 5000)
+    }, 10000)
   }, [performSync])
+
+  // Check for persisted sync queue on mount
+  useEffect(() => {
+    const checkPersistedQueue = async () => {
+      if (hasCheckedQueue.current) return
+      hasCheckedQueue.current = true
+
+      try {
+        const queueData = await AsyncStorage.getItem(SYNC_QUEUE_KEY)
+        if (queueData) {
+          const { queuedAt } = JSON.parse(queueData)
+          const age = Date.now() - queuedAt
+
+          // If queue is less than 5 minutes old, process it
+          if (age < 5 * 60 * 1000) {
+            console.log("[Sync] Found persisted sync queue, processing now...")
+            performSync(false)
+          } else {
+            console.log("[Sync] Persisted sync queue expired, clearing...")
+            await AsyncStorage.removeItem(SYNC_QUEUE_KEY)
+          }
+        }
+      } catch (err) {
+        console.warn("[Sync] Failed to check persisted queue:", err)
+      }
+    }
+
+    checkPersistedQueue()
+  }, [performSync])
+
+  // Set up real-time subscriptions for instant updates
+  const { currentOrg } = useDatabase()
+
+  useEffect(() => {
+    if (!currentOrg) return
+
+    console.log("[Sync] Setting up real-time subscriptions for org:", currentOrg.id)
+
+    // Subscribe to changes in tables for this organization
+    const channel = supabase
+      .channel(`org-${currentOrg.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // All events (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'animals',
+          filter: `organization_id=eq.${currentOrg.remoteId || currentOrg.id}`
+        },
+        (payload) => {
+          console.log("[Sync] Real-time change detected in animals:", payload.eventType)
+          queueSync() // Trigger sync when changes detected
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'health_records',
+          filter: `organization_id=eq.${currentOrg.remoteId || currentOrg.id}`
+        },
+        (payload) => {
+          console.log("[Sync] Real-time change detected in health_records:", payload.eventType)
+          queueSync()
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'weight_records',
+          filter: `organization_id=eq.${currentOrg.remoteId || currentOrg.id}`
+        },
+        (payload) => {
+          console.log("[Sync] Real-time change detected in weight_records:", payload.eventType)
+          queueSync()
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log("[Sync] ✅ Real-time subscriptions active")
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error("[Sync] ❌ Real-time subscription error")
+        }
+      })
+
+    // Cleanup subscription on unmount or org change
+    return () => {
+      console.log("[Sync] Cleaning up real-time subscriptions")
+      supabase.removeChannel(channel)
+    }
+  }, [currentOrg, queueSync])
 
   return { sync, queueSync, status, progress, stage, lastSynced, error }
 }

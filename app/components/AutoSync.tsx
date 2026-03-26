@@ -34,21 +34,16 @@ export function AutoSync() {
   }, [isAuthenticated, queueSync])
 
   // Watch for database changes (creates, updates, deletes)
+  // Only watch critical tables to reduce overhead on low-end devices
   useEffect(() => {
     if (!isAuthenticated) return
 
+    // Only watch the most critical tables that users interact with frequently
+    // This reduces from 11 tables (22 subscriptions) to 3 tables (6 subscriptions)
     const tables = [
-      "organizations",
-      "organization_members",
-      "pastures",
-      "pasture_movements",
-      "animals",
-      "health_records",
-      "weight_records",
-      "breeding_records",
-      "treatment_protocols",
-      "vaccination_schedules",
-      "scheduled_vaccinations",
+      "animals",         // User scans/creates animals
+      "health_records",  // User adds health records
+      "weight_records",  // User adds weight records
     ]
 
     const subscriptions = tables.flatMap((tableName) => {

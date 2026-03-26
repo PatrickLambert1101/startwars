@@ -18,6 +18,9 @@ import { syncDatabase } from "@/services/sync"
 
 const HERD_ONBOARDING_KEY = "herd_list_onboarding_seen"
 
+const INITIAL_PAGE_SIZE = 50
+const PAGE_SIZE = 50
+
 export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation }) => {
   const { t } = useTranslation()
   const { themed, theme } = useAppTheme()
@@ -29,6 +32,8 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation 
   const [onboardingStep, setOnboardingStep] = useState(0)
   const [showFilterModal, setShowFilterModal] = useState(false)
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTER_STATE)
+  const [displayedCount, setDisplayedCount] = useState(INITIAL_PAGE_SIZE)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
 
   // Check if first time visiting and show onboarding
   useEffect(() => {
@@ -118,8 +123,28 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation 
     setFilters(newFilters)
   }, [])
 
+  const handleLoadMore = useCallback(() => {
+    if (isLoadingMore || !hasMore) return
+
+    setIsLoadingMore(true)
+    // Simulate a small delay to show loading indicator
+    setTimeout(() => {
+      setDisplayedCount((prev) => prev + PAGE_SIZE)
+      setIsLoadingMore(false)
+    }, 100)
+  }, [isLoadingMore, hasMore])
+
   // Apply filters and sorting
   const filtered = useFilteredAnimals(animals, filters, search)
+
+  // Paginate the filtered results for better performance with large herds
+  const displayedAnimals = filtered.slice(0, displayedCount)
+  const hasMore = displayedCount < filtered.length
+
+  // Reset displayed count when filters or search changes
+  useEffect(() => {
+    setDisplayedCount(INITIAL_PAGE_SIZE)
+  }, [search, filters])
 
   // Count active filters (excluding sort)
   const activeFilterCount =
@@ -177,6 +202,28 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation 
     )
   }, [themed, theme, handleAnimalPress, t])
 
+  const renderFooter = useCallback(() => {
+    if (!hasMore) return null
+
+    return (
+      <View style={themed($footerContainer)}>
+        {isLoadingMore ? (
+          <Text text={t("herdListScreen.loadingMore", { defaultValue: "Loading more..." })} size="sm" style={themed($footerText)} />
+        ) : (
+          <Button
+            text={t("herdListScreen.loadMore", {
+              defaultValue: "Load more ({{remaining}} remaining)",
+              remaining: filtered.length - displayedCount
+            })}
+            preset="default"
+            onPress={handleLoadMore}
+            style={themed($loadMoreButton)}
+          />
+        )}
+      </View>
+    )
+  }, [hasMore, isLoadingMore, filtered.length, displayedCount, themed, t, handleLoadMore])
+
   return (
     <Screen preset="fixed" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
       <AppHeader title={t("herdListScreen.title")} showSettings={true} />
@@ -228,11 +275,14 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation 
             style={themed($countText)}
           />
           <FlatList
-            data={filtered}
+            data={displayedAnimals}
             keyExtractor={(item) => item.id}
             renderItem={renderAnimal}
             contentContainerStyle={themed($listContent)}
             showsVerticalScrollIndicator={false}
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={renderFooter}
             refreshControl={
               <RefreshControl
                 refreshing={isRefreshing}
@@ -241,6 +291,11 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation 
                 colors={[theme.colors.tint]}
               />
             }
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={10}
+            updateCellsBatchingPeriod={50}
+            initialNumToRender={20}
+            windowSize={10}
           />
         </>
       ) : (
@@ -804,4 +859,20 @@ const $skipButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 
 const $skipText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.textDim,
+})
+
+const $footerContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  paddingVertical: spacing.md,
+  alignItems: "center",
+  justifyContent: "center",
+})
+
+const $footerText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.textDim,
+  textAlign: "center",
+})
+
+const $loadMoreButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  minWidth: 200,
+  paddingHorizontal: spacing.md,
 })

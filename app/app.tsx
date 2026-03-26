@@ -22,7 +22,7 @@ import { AuthProvider } from "./context/AuthContext"
 import { DatabaseProvider } from "./context/DatabaseContext"
 import { SubscriptionProvider } from "./context/SubscriptionContext"
 import { SyncProvider } from "./context/SyncContext"
-import { AutoSync, SyncIndicator } from "./components"
+import { AutoSync, SyncIndicator, ErrorBoundary } from "./components"
 import { initI18n } from "./i18n"
 import { AppNavigator } from "./navigators/AppNavigator"
 import { useNavigationPersistence } from "./navigators/navigationUtilities"
@@ -71,10 +71,16 @@ export function App() {
   const [isI18nInitialized, setIsI18nInitialized] = useState(false)
 
   useEffect(() => {
-    // Initialize i18n and date formatting
-    initI18n()
+    // Initialize i18n and date formatting in parallel
+    Promise.all([
+      initI18n(),
+      loadDateFnsLocale()
+    ])
       .then(() => setIsI18nInitialized(true))
-      .then(() => loadDateFnsLocale())
+      .catch((err) => {
+        console.error("Failed to initialize i18n:", err)
+        setIsI18nInitialized(true) // Continue anyway
+      })
     // Sound service (react-native-sound-player) doesn't need initialization
   }, [])
 
@@ -91,24 +97,28 @@ export function App() {
   return (
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <KeyboardProvider>
-        <AuthProvider>
-          <DatabaseProvider>
-            <SyncProvider>
-              <SubscriptionProvider>
-                <ThemeProvider>
-                  <AutoSync />
-                  <SyncIndicator />
-                  <AppNavigator
-                    linking={linking}
-                    initialState={initialNavigationState}
-                    onStateChange={onNavigationStateChange}
-                  />
-                  <Toast />
-                </ThemeProvider>
-              </SubscriptionProvider>
-            </SyncProvider>
-          </DatabaseProvider>
-        </AuthProvider>
+        <ErrorBoundary>
+          <AuthProvider>
+            <DatabaseProvider>
+              <SyncProvider>
+                <SubscriptionProvider>
+                  <ThemeProvider>
+                    <ErrorBoundary>
+                      <AutoSync />
+                      <SyncIndicator />
+                      <AppNavigator
+                        linking={linking}
+                        initialState={initialNavigationState}
+                        onStateChange={onNavigationStateChange}
+                      />
+                      <Toast />
+                    </ErrorBoundary>
+                  </ThemeProvider>
+                </SubscriptionProvider>
+              </SyncProvider>
+            </DatabaseProvider>
+          </AuthProvider>
+        </ErrorBoundary>
       </KeyboardProvider>
     </SafeAreaProvider>
   )

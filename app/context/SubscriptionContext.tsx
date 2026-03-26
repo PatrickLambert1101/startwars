@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useState,
+  useMemo,
 } from "react"
 import { Alert, Platform } from "react-native"
 import Purchases, {
@@ -72,6 +73,7 @@ export const SubscriptionProvider: FC<PropsWithChildren> = ({ children }) => {
   const [packages, setPackages] = useState<PurchasesPackage[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isSuperUser, setIsSuperUser] = useState(false)
+  const [isRevenueCatConfigured, setIsRevenueCatConfigured] = useState(false)
 
   // Computed tier checks
   const isStarter = plan === "starter"
@@ -91,6 +93,7 @@ export const SubscriptionProvider: FC<PropsWithChildren> = ({ children }) => {
           console.warn("[Subscriptions] Please set EXPO_PUBLIC_REVENUECAT_IOS_KEY or EXPO_PUBLIC_REVENUECAT_ANDROID_KEY in your .env file")
           setPlan("starter")
           setIsLoading(false)
+          setIsRevenueCatConfigured(false)
           return
         }
 
@@ -100,6 +103,7 @@ export const SubscriptionProvider: FC<PropsWithChildren> = ({ children }) => {
           console.warn("[Subscriptions] Get your production key from: https://app.revenuecat.com/settings/api-keys")
           setPlan("starter")
           setIsLoading(false)
+          setIsRevenueCatConfigured(false)
           return
         }
 
@@ -114,6 +118,7 @@ export const SubscriptionProvider: FC<PropsWithChildren> = ({ children }) => {
         })
 
         console.log("[Subscriptions] RevenueCat initialized successfully")
+        setIsRevenueCatConfigured(true)
 
         // Fetch available offerings
         const offerings = await Purchases.getOfferings()
@@ -196,6 +201,12 @@ export const SubscriptionProvider: FC<PropsWithChildren> = ({ children }) => {
         return
       }
 
+      // Skip RevenueCat if not properly configured
+      if (!isRevenueCatConfigured) {
+        console.log("[Subscriptions] RevenueCat not configured, skipping identification")
+        return
+      }
+
       // Skip RevenueCat if user is a super user
       if (isSuperUser) {
         console.log("[Subscriptions] User is a super user, skipping RevenueCat")
@@ -220,7 +231,7 @@ export const SubscriptionProvider: FC<PropsWithChildren> = ({ children }) => {
     }
 
     identifyUser()
-  }, [user?.id, isSuperUser])
+  }, [user?.id, isSuperUser, isRevenueCatConfigured])
 
   // ── Helpers ───────────────────────────────────────────────
   const updatePlanFromCustomerInfo = (info: CustomerInfo) => {
@@ -300,21 +311,24 @@ export const SubscriptionProvider: FC<PropsWithChildren> = ({ children }) => {
     }
   }, [])
 
+  const contextValue = useMemo(
+    () => ({
+      plan,
+      isStarter,
+      isFarm,
+      isCommercial,
+      isPremium,
+      isLoading,
+      hasFeature,
+      packages,
+      purchasePackage,
+      restorePurchases,
+    }),
+    [plan, isStarter, isFarm, isCommercial, isPremium, isLoading, hasFeature, packages, purchasePackage, restorePurchases]
+  )
+
   return (
-    <SubscriptionContext.Provider
-      value={{
-        plan,
-        isStarter,
-        isFarm,
-        isCommercial,
-        isPremium,
-        isLoading,
-        hasFeature,
-        packages,
-        purchasePackage,
-        restorePurchases,
-      }}
-    >
+    <SubscriptionContext.Provider value={contextValue}>
       {children}
     </SubscriptionContext.Provider>
   )
