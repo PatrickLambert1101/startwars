@@ -28,14 +28,12 @@ export function useTeam() {
   const [members, setMembers] = useState<TeamMember[]>([])
   const [invites, setInvites] = useState<PendingInvite[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [needsSync, setNeedsSync] = useState(false)
   const { user } = useAuth()
   const { currentOrg } = useDatabase()
 
   useEffect(() => {
     if (!currentOrg || !user) {
       setIsLoading(false)
-      setNeedsSync(false)
       return
     }
 
@@ -50,7 +48,6 @@ export function useTeam() {
       return
     }
 
-    setNeedsSync(false)
     setIsLoading(true)
 
     try {
@@ -77,32 +74,28 @@ export function useTeam() {
         }))
       )
 
-      // Load pending invites from Supabase (only if org has been synced)
-      if (currentOrg.remoteId && currentOrg.remoteId !== "null") {
-        const { data: invitesData, error: invitesError } = await supabase
-          .from("invites")
-          .select("*")
-          .eq("organization_id", currentOrg.remoteId)
-          .gt("expires_at", new Date().toISOString())
+      // Load pending invites from Supabase
+      const { data: invitesData, error: invitesError } = await supabase
+        .from("invites")
+        .select("*")
+        .eq("organization_id", currentOrg.id)
+        .gt("expires_at", new Date().toISOString())
 
-        if (invitesError) {
-          console.error("[Team] Failed to load invites:", invitesError)
-          setInvites([])
-        } else {
-          console.log("[Team] Loaded invites:", invitesData?.length || 0)
-          setInvites(
-            (invitesData || []).map((i) => ({
-              id: i.id,
-              email: i.email,
-              role: i.role,
-              inviteCode: i.invite_code,
-              expiresAt: i.expires_at,
-              createdAt: i.created_at,
-            }))
-          )
-        }
-      } else {
+      if (invitesError) {
+        console.error("[Team] Failed to load invites:", invitesError)
         setInvites([])
+      } else {
+        if (__DEV__) console.log("[Team] Loaded invites:", invitesData?.length || 0)
+        setInvites(
+          (invitesData || []).map((i) => ({
+            id: i.id,
+            email: i.email,
+            role: i.role,
+            inviteCode: i.invite_code,
+            expiresAt: i.expires_at,
+            createdAt: i.created_at,
+          }))
+        )
       }
     } catch (error) {
       console.error("[Team] Failed to load team data:", error)
@@ -115,7 +108,6 @@ export function useTeam() {
     members,
     invites,
     isLoading,
-    needsSync, // True if organization hasn't synced to Supabase yet
     refetch: loadTeamData,
   }
 }
@@ -158,16 +150,9 @@ export function useTeamActions() {
       const expiresAt = new Date()
       expiresAt.setDate(expiresAt.getDate() + 7) // 7 days expiry
 
-      // Ensure organization exists in Supabase
-      // Use remoteId if available, otherwise use id (they should be the same after sync)
-      const orgId = currentOrg.remoteId || currentOrg.id
+      const orgId = currentOrg.id
 
-      console.log("[Team] Checking org in Supabase:", {
-        orgId,
-        orgName: currentOrg.name,
-        remoteId: currentOrg.remoteId,
-        localId: currentOrg.id
-      })
+      if (__DEV__) console.log("[Team] Checking org in Supabase:", { orgId, orgName: currentOrg.name })
 
       // Check if org exists in Supabase first
       const { data: orgCheck, error: orgError } = await supabase
@@ -294,7 +279,7 @@ export function useTeamActions() {
         .from("invites")
         .delete()
         .eq("id", inviteId)
-        .eq("organization_id", currentOrg.remoteId)
+        .eq("organization_id", currentOrg.id)
 
       if (error) {
         return { success: false, error: error.message }
@@ -317,7 +302,7 @@ export function useTeamActions() {
         .from("memberships")
         .update({ role: newRole })
         .eq("id", memberId)
-        .eq("organization_id", currentOrg.remoteId)
+        .eq("organization_id", currentOrg.id)
 
       if (error) {
         return { success: false, error: error.message }
@@ -340,7 +325,7 @@ export function useTeamActions() {
         .from("memberships")
         .delete()
         .eq("id", memberId)
-        .eq("organization_id", currentOrg.remoteId)
+        .eq("organization_id", currentOrg.id)
 
       if (error) {
         return { success: false, error: error.message }

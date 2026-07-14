@@ -10,7 +10,6 @@ export class Pasture extends Model {
     animals: { type: "has_many" as const, foreignKey: "current_pasture_id" },
   }
 
-  @field("remote_id") remoteId!: string | null
   @field("organization_id") organizationId!: string
   @field("name") name!: string
   @field("code") code!: string

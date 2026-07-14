@@ -21,7 +21,7 @@ import {
 } from "@/components/icons"
 import { useAppTheme } from "@/theme/context"
 
-const herdLogo = require("../../assets/images/herd-logo.png")
+const herdLogo = require("../../assets/images/herdtrackr-logo-mark.png")
 import type { ThemedStyle } from "@/theme/types"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 
@@ -147,7 +147,7 @@ export const LandingScreen: FC<AppStackScreenProps<"Landing">> = ({ navigation }
           accentColor={colors.palette.accent500}
         />
         <View style={themed($heroContent)}>
-          <Image source={herdLogo} style={[themed($logoImage), { tintColor: colors.tint }]} resizeMode="contain" />
+          <Image source={herdLogo} style={themed($logoImage)} resizeMode="contain" />
           <Text text="HerdTrackr" preset="heading" style={themed($heroTitle)} />
           <Text
             text="Cattle management that works where you do — offline-first, built for real ranchers."
@@ -438,7 +438,7 @@ export const LandingScreen: FC<AppStackScreenProps<"Landing">> = ({ navigation }
 
       {/* ─── BOTTOM CTA ────────────────────────────────────────── */}
       <View style={themed($bottomCta)}>
-        <Image source={herdLogo} style={[themed($logoImageSmall), { tintColor: colors.tint }]} resizeMode="contain" />
+        <Image source={herdLogo} style={themed($logoImageSmall)} resizeMode="contain" />
         <Text
           text="Join ranchers who trust HerdTrackr to run their operation."
           style={themed($bottomCtaText)}
@@ -943,9 +943,13 @@ const $bottomLink: ThemedStyle<TextStyle> = ({ colors }) => ({
 const $logoImage: ThemedStyle<ImageStyle> = () => ({
   width: 80,
   height: 80,
+  borderRadius: 18,
+  backgroundColor: "#FFFFFF",
 })
 
 const $logoImageSmall: ThemedStyle<ImageStyle> = () => ({
   width: 60,
   height: 60,
+  borderRadius: 14,
+  backgroundColor: "#FFFFFF",
 })

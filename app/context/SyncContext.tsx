@@ -1,21 +1,28 @@
 import React, { createContext, useContext, ReactNode } from "react"
-import { useSync, SyncStage } from "@/hooks/useSync"
+import { useSync, SyncStage, SyncStatus } from "@/hooks/useSync"
 
 interface SyncContextValue {
+  sync: () => Promise<{ success: boolean; error?: string }>
   queueSync: () => void
-  status: "idle" | "syncing" | "error"
+  status: SyncStatus
   progress: number
   stage: SyncStage | null
   lastSynced: Date | null
   error: string | null
+  retryCount: number
+  nextRetryAt: Date | null
 }
 
 const SyncContext = createContext<SyncContextValue | undefined>(undefined)
 
 export function SyncProvider({ children }: { children: ReactNode }) {
-  const { queueSync, status, progress, stage, lastSynced, error } = useSync()
+  const { sync, queueSync, status, progress, stage, lastSynced, error, retryCount, nextRetryAt } = useSync()
 
-  return <SyncContext.Provider value={{ queueSync, status, progress, stage, lastSynced, error }}>{children}</SyncContext.Provider>
+  return (
+    <SyncContext.Provider value={{ sync, queueSync, status, progress, stage, lastSynced, error, retryCount, nextRetryAt }}>
+      {children}
+    </SyncContext.Provider>
+  )
 }
 
 export function useSyncContext() {

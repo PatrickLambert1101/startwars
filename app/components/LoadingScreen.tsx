@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react"
-import { View, StyleSheet, ViewStyle, Image } from "react-native"
+import { View, StyleSheet, ViewStyle, ImageStyle, Image } from "react-native"
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, runOnJS } from "react-native-reanimated"
 import { Text } from "./Text"
 import { useAppTheme } from "@/theme/context"
@@ -48,7 +48,7 @@ export function LoadingScreen({ message, onComplete }: LoadingScreenProps) {
   return (
     <Animated.View style={[themed($container), animatedStyle]}>
       <Image
-        source={require("../../assets/images/splash-logo-all.png")}
+        source={require("../../assets/images/herdtrackr-logo-text.png")}
         style={themed($logo)}
         resizeMode="contain"
       />
@@ -66,9 +66,14 @@ const $container: ThemedStyle<ViewStyle> = ({ colors }) => ({
   backgroundColor: colors.background,
 })
 
-const $logo: ThemedStyle<ViewStyle> = () => ({
+// The logo art is a full-colour mark on an opaque white canvas, so it needs a
+// light backdrop. Rounding the image itself turns that canvas into a deliberate
+// badge that reads correctly on both the light and dark themes.
+const $logo: ThemedStyle<ImageStyle> = () => ({
   width: 280,
   height: 280,
+  borderRadius: 60,
+  backgroundColor: "#FFFFFF",
 })
 
 const $message: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({

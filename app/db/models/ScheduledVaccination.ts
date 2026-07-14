@@ -13,7 +13,6 @@ export class ScheduledVaccination extends Model {
     health_records: { type: "belongs_to" as const, key: "health_record_id" },
   }
 
-  @field("remote_id") remoteId!: string | null
   @field("organization_id") organizationId!: string
   @field("animal_id") animalId!: string
   @field("schedule_id") scheduleId!: string

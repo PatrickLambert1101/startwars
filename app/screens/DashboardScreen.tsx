@@ -25,9 +25,8 @@ export const DashboardScreen: FC<MainTabScreenProps<"Dashboard">> = ({ navigatio
   const { vaccinations: pendingVaccinations } = usePendingVaccinations()
   const [showFarmPicker, setShowFarmPicker] = useState(false)
   const [userOrgs, setUserOrgs] = useState<Organization[]>([])
-  const [userDisplayName, setUserDisplayName] = useState<string | null>(null)
 
-  // Load all organizations the user is a member of and user's display name
+  // Load all organizations the user is a member of
   useEffect(() => {
     if (!user) return
 
@@ -49,14 +48,6 @@ export const DashboardScreen: FC<MainTabScreenProps<"Dashboard">> = ({ navigatio
         .fetch()
 
       setUserOrgs(orgs)
-
-      // Get user's display name from current org membership
-      if (currentOrg && memberships.length > 0) {
-        const currentMembership = memberships.find(m => m.organizationId === currentOrg.id)
-        if (currentMembership?.userDisplayName) {
-          setUserDisplayName(currentMembership.userDisplayName)
-        }
-      }
     }
 
     loadUserOrgs()
@@ -100,16 +91,6 @@ export const DashboardScreen: FC<MainTabScreenProps<"Dashboard">> = ({ navigatio
   return (
     <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
       <AppHeader title={t("dashboardScreen.title")} showSettings={true} />
-      <View style={themed($headerSection)}>
-        <View>
-          {userDisplayName ? (
-            <Text text={t("dashboardScreen.welcomeBack", { name: userDisplayName })} size="md" style={themed($welcomeText)} />
-          ) : null}
-          {user?.email ? (
-            <Text text={user.email} size="xs" style={themed($emailText)} />
-          ) : null}
-        </View>
-      </View>
 
       {!currentOrg ? (
         <View style={themed($setupCard)}>
@@ -261,22 +242,6 @@ const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingBottom: spacing.lg,
 })
 
-const $headerSection: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  marginBottom: spacing.sm,
-})
-
-
-const $welcomeText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
-  color: colors.text,
-  fontWeight: "500",
-  marginBottom: spacing.xxs,
-})
-
-const $emailText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
-  color: colors.textDim,
-  marginBottom: spacing.sm,
-})
-
 const $setupCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
   borderRadius: 12,
@@ -294,13 +259,21 @@ const $statsRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $statCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flex: 1,
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 8,
+  borderRadius: 12,
   padding: spacing.sm,
   alignItems: "center",
+  shadowColor: "#000",
+  shadowOpacity: 0.05,
+  shadowRadius: 4,
+  shadowOffset: { width: 0, height: 1 },
+  elevation: 1,
 })
 
 const $statNumber: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.tint,
+  fontSize: 28,
+  fontWeight: "700",
+  lineHeight: 32,
 })
 
 const $section: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -310,7 +283,7 @@ const $section: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 
 const $recentItem: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 8,
+  borderRadius: 12,
   padding: spacing.xs,
 })
 
@@ -320,7 +293,7 @@ const $dimText: ThemedStyle<TextStyle> = ({ colors }) => ({
 
 const $farmSwitcher: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 8,
+  borderRadius: 12,
   padding: spacing.sm,
   marginBottom: spacing.sm,
   flexDirection: "row",
@@ -370,7 +343,7 @@ const $cancelButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 
 const $reportsCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.primary100,
-  borderRadius: 8,
+  borderRadius: 12,
   padding: spacing.sm,
   marginBottom: spacing.sm,
   borderLeftWidth: 3,
@@ -385,7 +358,7 @@ const $reportsHeader: ThemedStyle<ViewStyle> = () => ({
 
 const $vaccinationCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.accent100,
-  borderRadius: 8,
+  borderRadius: 12,
   padding: spacing.sm,
   marginBottom: spacing.sm,
   borderLeftWidth: 3,

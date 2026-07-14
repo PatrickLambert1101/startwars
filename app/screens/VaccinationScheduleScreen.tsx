@@ -355,8 +355,11 @@ const $filterCountActive: ThemedStyle<ViewStyle> = ({ colors }) => ({
 
 const $filterCountText: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 11,
+  lineHeight: 11,
   fontWeight: "700",
   color: colors.palette.neutral500,
+  textAlign: "center",
+  includeFontPadding: false,
 })
 
 const $filterCountTextActive: ThemedStyle<TextStyle> = ({ colors }) => ({

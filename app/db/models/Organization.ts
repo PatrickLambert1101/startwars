@@ -26,7 +26,6 @@ export class Organization extends Model {
     breeding_records: { type: "has_many" as const, foreignKey: "organization_id" },
   }
 
-  @field("remote_id") remoteId!: string | null
   @field("name") name!: string
   @json("livestock_types", sanitizeLivestockTypes) livestockTypes!: LivestockType[]
   @field("location") location!: string | null

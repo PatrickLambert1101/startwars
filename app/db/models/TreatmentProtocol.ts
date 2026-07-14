@@ -11,7 +11,6 @@ export class TreatmentProtocol extends Model {
     health_records: { type: "has_many" as const, foreignKey: "protocol_id" },
   }
 
-  @field("remote_id") remoteId!: string | null
   @field("organization_id") organizationId!: string
   @field("name") name!: string
   @field("description") description!: string | null

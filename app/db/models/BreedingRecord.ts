@@ -12,7 +12,6 @@ export class BreedingRecord extends Model {
     animals: { type: "belongs_to" as const, key: "animal_id" },
   }
 
-  @field("remote_id") remoteId!: string | null
   @field("organization_id") organizationId!: string
   @field("animal_id") animalId!: string
   @field("bull_id") bullId!: string | null

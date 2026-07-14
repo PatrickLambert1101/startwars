@@ -10,7 +10,6 @@ export class OrganizationMember extends Model {
     organizations: { type: "belongs_to" as const, key: "organization_id" },
   }
 
-  @field("remote_id") remoteId!: string | null
   @field("organization_id") organizationId!: string
   @field("user_id") userId!: string
   @field("user_email") userEmail!: string

@@ -1,30 +1,32 @@
-import { FC, useCallback, useState, useEffect } from "react"
-import { FlatList, Pressable, View, ViewStyle, TextStyle, Image, ImageStyle, RefreshControl, Modal, ScrollView } from "react-native"
+import { FC, useCallback, useState, useEffect, useRef } from "react"
+import { FlatList, Pressable, View, ViewStyle, TextStyle, Image, ImageStyle, RefreshControl, Modal, ScrollView, StyleSheet } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
 import * as Network from "expo-network"
 import AsyncStorage from "@react-native-async-storage/async-storage"
+import { useCameraDevice, useCameraPermission } from "react-native-vision-camera"
+import { Camera } from "react-native-vision-camera-ocr-plus"
+import type { Text as OCRText } from "react-native-vision-camera-ocr-plus"
 
 import { Screen, Text, Button, TextField, AppHeader, FilterModal, DEFAULT_FILTER_STATE } from "@/components"
 import type { FilterState } from "@/components"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import type { MainTabScreenProps } from "@/navigators/navigationTypes"
-import { useAnimals, useFilteredAnimals } from "@/hooks/useAnimals"
+import { useAnimalsQuery, useComputedAnimalFilters } from "@/hooks/useAnimals"
 import { Animal } from "@/db/models/Animal"
 import { STATUS_COLORS } from "@/theme/colors"
 import { parsePhotos } from "@/types/Photo"
-import { syncDatabase } from "@/services/sync"
+import { syncDatabase } from "@/services/sync_rpc"
+import { extractTagNumbers } from "@/hooks/useTagScanner/tagParser"
 
 const HERD_ONBOARDING_KEY = "herd_list_onboarding_seen"
 
-const INITIAL_PAGE_SIZE = 50
 const PAGE_SIZE = 50
 
 export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation }) => {
   const { t } = useTranslation()
   const { themed, theme } = useAppTheme()
-  const { animals, isLoading } = useAnimals()
   const [search, setSearch] = useState("")
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [isOffline, setIsOffline] = useState(false)
@@ -32,8 +34,14 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation 
   const [onboardingStep, setOnboardingStep] = useState(0)
   const [showFilterModal, setShowFilterModal] = useState(false)
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTER_STATE)
-  const [displayedCount, setDisplayedCount] = useState(INITIAL_PAGE_SIZE)
-  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  // DB-level paginated query handles search + breed/sex/status + sort
+  const { animals, isLoading, hasMore, loadMore } = useAnimalsQuery(filters, search, PAGE_SIZE)
+  const [showScanModal, setShowScanModal] = useState(false)
+  const [torch, setTorch] = useState<"off" | "on">("off")
+
+  const cameraRef = useRef<any>(null)
+  const device = useCameraDevice("back")
+  const { hasPermission, requestPermission } = useCameraPermission()
 
   // Check if first time visiting and show onboarding
   useEffect(() => {
@@ -123,30 +131,61 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation 
     setFilters(newFilters)
   }, [])
 
+  const handleOpenScan = useCallback(async () => {
+    if (!hasPermission) {
+      await requestPermission()
+    }
+    setShowScanModal(true)
+  }, [hasPermission, requestPermission])
+
+  const handleCloseScan = useCallback(() => {
+    setShowScanModal(false)
+    setTorch("off")
+  }, [])
+
+  const handleToggleTorch = useCallback(() => {
+    setTorch(prev => prev === "off" ? "on" : "off")
+  }, [])
+
+  const handleOCRResult = useCallback((data: OCRText) => {
+    if (!data || !data.blocks || data.blocks.length === 0) {
+      return
+    }
+
+    // Extract tags from OCR results
+    const ocrResults = data.blocks.map(block => ({
+      text: block.blockText,
+      confidence: 0.8,
+      boundingBox: block.blockFrame ? {
+        x: block.blockFrame.x,
+        y: block.blockFrame.y,
+        width: block.blockFrame.width,
+        height: block.blockFrame.height,
+      } : undefined,
+    }))
+
+    const tagResults = extractTagNumbers(ocrResults)
+
+    if (tagResults.length > 0) {
+      const bestTag = tagResults.sort((a, b) => b.confidence - a.confidence)[0]
+
+      // Update search field and close modal
+      setSearch(bestTag.tagNumber)
+      setShowScanModal(false)
+      setTorch("off")
+    }
+  }, [])
+
+  // Apply the remaining in-memory/computed filters (age, tag, parent).
+  // Cheap filters + sort were already pushed into the DB query above.
+  const filtered = useComputedAnimalFilters(animals, filters)
+
   const handleLoadMore = useCallback(() => {
-    if (isLoadingMore || !hasMore) return
+    if (!hasMore) return
+    loadMore()
+  }, [hasMore, loadMore])
 
-    setIsLoadingMore(true)
-    // Simulate a small delay to show loading indicator
-    setTimeout(() => {
-      setDisplayedCount((prev) => prev + PAGE_SIZE)
-      setIsLoadingMore(false)
-    }, 100)
-  }, [isLoadingMore, hasMore])
-
-  // Apply filters and sorting
-  const filtered = useFilteredAnimals(animals, filters, search)
-
-  // Paginate the filtered results for better performance with large herds
-  const displayedAnimals = filtered.slice(0, displayedCount)
-  const hasMore = displayedCount < filtered.length
-
-  // Reset displayed count when filters or search changes
-  useEffect(() => {
-    setDisplayedCount(INITIAL_PAGE_SIZE)
-  }, [search, filters])
-
-  // Count active filters (excluding sort)
+  // Count active filters (excluding sort, since sort is always set to something)
   const activeFilterCount =
     filters.breeds.length +
     filters.sexes.length +
@@ -158,6 +197,9 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation 
   const hasActiveFilters = activeFilterCount > 0 ||
     filters.sortBy !== "visualTag" ||
     filters.sortDirection !== "asc"
+
+  // Distinguish "no animals in herd at all" from "no results for current filter/search"
+  const isHerdEmpty = animals.length === 0 && !search.trim() && activeFilterCount === 0
 
   const renderAnimal = useCallback(({ item }: { item: Animal }) => {
     const statusColor = STATUS_COLORS[item.status] || theme.colors.textDim
@@ -207,22 +249,15 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation 
 
     return (
       <View style={themed($footerContainer)}>
-        {isLoadingMore ? (
-          <Text text={t("herdListScreen.loadingMore", { defaultValue: "Loading more..." })} size="sm" style={themed($footerText)} />
-        ) : (
-          <Button
-            text={t("herdListScreen.loadMore", {
-              defaultValue: "Load more ({{remaining}} remaining)",
-              remaining: filtered.length - displayedCount
-            })}
-            preset="default"
-            onPress={handleLoadMore}
-            style={themed($loadMoreButton)}
-          />
-        )}
+        <Button
+          text={t("herdListScreen.loadMore", { defaultValue: "Load more" })}
+          preset="default"
+          onPress={handleLoadMore}
+          style={themed($loadMoreButton)}
+        />
       </View>
     )
-  }, [hasMore, isLoadingMore, filtered.length, displayedCount, themed, t, handleLoadMore])
+  }, [hasMore, themed, t, handleLoadMore])
 
   return (
     <Screen preset="fixed" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
@@ -238,6 +273,9 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation 
 
       <View style={themed($header)}>
         <View style={themed($headerButtons)}>
+          <Pressable onPress={handleOpenScan} style={themed($scanButton)}>
+            <MaterialCommunityIcons name="barcode-scan" size={18} color={theme.colors.tint} />
+          </Pressable>
           <Pressable onPress={handleOpenFilters} style={themed($filterButton)}>
             <MaterialCommunityIcons name="filter-variant" size={18} color={hasActiveFilters ? theme.colors.palette.primary500 : theme.colors.tint} />
             {hasActiveFilters && (
@@ -253,7 +291,7 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation 
         </View>
       </View>
 
-      {animals.length > 0 && (
+      {!isHerdEmpty && (
         <TextField
           value={search}
           onChangeText={setSearch}
@@ -264,7 +302,7 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation 
         />
       )}
 
-      {animals.length > 0 ? (
+      {!isHerdEmpty ? (
         <>
           <Text
             text={t(
@@ -275,7 +313,7 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation 
             style={themed($countText)}
           />
           <FlatList
-            data={displayedAnimals}
+            data={filtered}
             keyExtractor={(item) => item.id}
             renderItem={renderAnimal}
             contentContainerStyle={themed($listContent)}
@@ -300,7 +338,9 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation 
         </>
       ) : (
         <View style={themed($emptyContainer)}>
-          <Text preset="heading" text={isLoading ? t("herdListScreen.empty.loading") : t("herdListScreen.empty.title")} style={themed($emptyHeading)} />
+          {isLoading && (
+            <Text preset="heading" text={t("herdListScreen.empty.loading")} style={themed($emptyHeading)} />
+          )}
           <Text
             text={t("herdListScreen.empty.description")}
             style={themed($emptyContent)}
@@ -460,13 +500,79 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation 
                   style={themed($nextButton)}
                 />
               </View>
-
-              {/* Skip Button */}
-              <Pressable onPress={handleDismissOnboarding} style={themed($skipButton)}>
-                <Text text="Skip tour" size="sm" style={themed($skipText)} />
-              </Pressable>
             </ScrollView>
+
+            {/* Skip Button — pinned outside ScrollView so it never gets clipped */}
+            <Pressable onPress={handleDismissOnboarding} style={themed($skipButton)}>
+              <Text text="Skip tour" size="sm" style={themed($skipText)} />
+            </Pressable>
           </View>
+        </View>
+      </Modal>
+
+      {/* Scan Modal */}
+      <Modal
+        visible={showScanModal}
+        transparent={false}
+        animationType="slide"
+        onRequestClose={handleCloseScan}
+      >
+        <View style={themed($scanModalContainer)}>
+          {device && hasPermission ? (
+            <>
+              <Camera
+                ref={cameraRef}
+                style={themed($camera)}
+                device={device}
+                isActive={showScanModal}
+                photo={false}
+                video={false}
+                audio={false}
+                torch={torch}
+                onOcrData={handleOCRResult}
+              />
+
+              {/* Overlay with instructions */}
+              <View style={themed($scanOverlay)}>
+                <View style={themed($scanHeader)}>
+                  <Pressable onPress={handleCloseScan} style={themed($closeButton)}>
+                    <MaterialCommunityIcons name="close" size={24} color="#FFF" />
+                  </Pressable>
+                  <Pressable onPress={handleToggleTorch} style={themed($torchButton)}>
+                    <MaterialCommunityIcons
+                      name={torch === "on" ? "flashlight" : "flashlight-off"}
+                      size={24}
+                      color="#FFF"
+                    />
+                  </Pressable>
+                </View>
+
+                <View style={themed($scanInstructions)}>
+                  <MaterialCommunityIcons name="barcode-scan" size={48} color="#FFF" />
+                  <Text
+                    text="Point camera at ear tag"
+                    size="lg"
+                    style={themed($scanInstructionText)}
+                  />
+                  <Text
+                    text="The tag number will be automatically detected"
+                    size="sm"
+                    style={themed($scanHintText)}
+                  />
+                </View>
+
+                {/* Scanning frame */}
+                <View style={themed($scanFrame)} />
+              </View>
+            </>
+          ) : (
+            <View style={themed($permissionContainer)}>
+              <MaterialCommunityIcons name="camera-off" size={64} color={theme.colors.textDim} />
+              <Text text="Camera permission required" preset="heading" style={themed($permissionText)} />
+              <Button text="Grant Permission" onPress={requestPermission} style={themed($permissionButton)} />
+              <Button text="Cancel" preset="default" onPress={handleCloseScan} style={themed($permissionButton)} />
+            </View>
+          )}
         </View>
       </Modal>
 
@@ -566,9 +672,14 @@ const $listContent: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 
 const $animalCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 8,
+  borderRadius: 12,
   padding: spacing.sm,
   marginBottom: spacing.xs,
+  shadowColor: "#000",
+  shadowOpacity: 0.04,
+  shadowRadius: 3,
+  shadowOffset: { width: 0, height: 1 },
+  elevation: 1,
 })
 
 const $animalCardRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -579,7 +690,7 @@ const $animalCardRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $animalPhoto: ImageStyle = {
   width: 50,
   height: 50,
-  borderRadius: 6,
+  borderRadius: 8,
 }
 
 const $animalCardContent: ThemedStyle<ViewStyle> = () => ({
@@ -875,4 +986,104 @@ const $footerText: ThemedStyle<TextStyle> = ({ colors }) => ({
 const $loadMoreButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   minWidth: 200,
   paddingHorizontal: spacing.md,
+})
+
+const $scanButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.palette.neutral100,
+  borderWidth: 1,
+  borderColor: colors.tint,
+  borderRadius: 8,
+  width: 36,
+  height: 36,
+  justifyContent: "center",
+  alignItems: "center",
+})
+
+const $scanModalContainer: ThemedStyle<ViewStyle> = () => ({
+  flex: 1,
+  backgroundColor: "#000",
+})
+
+const $camera: ThemedStyle<ViewStyle> = () => ({
+  flex: 1,
+})
+
+const $scanOverlay: ThemedStyle<ViewStyle> = () => ({
+  ...StyleSheet.absoluteFillObject,
+  justifyContent: "space-between",
+})
+
+const $scanHeader: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  justifyContent: "space-between",
+  padding: spacing.md,
+  paddingTop: spacing.xl,
+})
+
+const $closeButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  width: 44,
+  height: 44,
+  borderRadius: 22,
+  backgroundColor: "rgba(0,0,0,0.5)",
+  justifyContent: "center",
+  alignItems: "center",
+})
+
+const $torchButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  width: 44,
+  height: 44,
+  borderRadius: 22,
+  backgroundColor: "rgba(0,0,0,0.5)",
+  justifyContent: "center",
+  alignItems: "center",
+})
+
+const $scanInstructions: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  alignItems: "center",
+  padding: spacing.lg,
+})
+
+const $scanInstructionText: ThemedStyle<TextStyle> = () => ({
+  color: "#FFF",
+  textAlign: "center",
+  fontWeight: "700",
+  marginTop: 16,
+})
+
+const $scanHintText: ThemedStyle<TextStyle> = () => ({
+  color: "rgba(255,255,255,0.7)",
+  textAlign: "center",
+  marginTop: 8,
+})
+
+const $scanFrame: ThemedStyle<ViewStyle> = () => ({
+  position: "absolute",
+  top: "40%",
+  left: "10%",
+  right: "10%",
+  height: 200,
+  borderWidth: 2,
+  borderColor: "#FFF",
+  borderRadius: 12,
+  backgroundColor: "transparent",
+})
+
+const $permissionContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flex: 1,
+  justifyContent: "center",
+  alignItems: "center",
+  padding: spacing.lg,
+  backgroundColor: "#000",
+})
+
+const $permissionText: ThemedStyle<TextStyle> = ({ spacing }) => ({
+  color: "#FFF",
+  textAlign: "center",
+  marginTop: spacing.md,
+  marginBottom: spacing.lg,
+})
+
+const $permissionButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  minWidth: 200,
+  marginTop: spacing.sm,
 })

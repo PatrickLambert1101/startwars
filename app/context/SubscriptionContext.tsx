@@ -140,8 +140,16 @@ export const SubscriptionProvider: FC<PropsWithChildren> = ({ children }) => {
         })
         updatePlanFromCustomerInfo(customerInfo)
 
-      } catch (error) {
-        console.error("[Subscriptions] Failed to initialize RevenueCat:", error)
+      } catch (error: any) {
+        // "Offerings empty" is an expected state in dev (no StoreKit/App Store
+        // products yet) — log as warn rather than error to avoid spamming Sentry.
+        const message = String(error?.message || error)
+        const isOfferingsEmpty = message.includes("why-are-offerings-empty") || message.includes("None of the products")
+        if (isOfferingsEmpty) {
+          console.warn("[Subscriptions] RevenueCat offerings empty — products not yet linked. See https://rev.cat/why-are-offerings-empty")
+        } else {
+          console.error("[Subscriptions] Failed to initialize RevenueCat:", error)
+        }
         // Default to starter plan on error
         setPlan("starter")
       } finally {

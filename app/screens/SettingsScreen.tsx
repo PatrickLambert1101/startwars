@@ -11,7 +11,7 @@ import { useRfidReader } from "@/hooks/useRfidReader"
 import { useSync } from "@/hooks/useSync"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-import { loadString, saveString, remove } from "@/utils/storage"
+import { loadString, saveString } from "@/utils/storage"
 import { database } from "@/db"
 import { seedDefaultSchedules } from "@/services/defaultSchedules"
 import { calculateScheduledVaccinations } from "@/services/vaccinationScheduler"
@@ -180,11 +180,15 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
           onPress: async () => {
             try {
               // Clear the last sync timestamp to force a full sync
-              await remove("__watermelon_last_pulled_at")
-              console.log("[Settings] Cleared sync timestamp, triggering full sync...")
+              // Use the database adapter's removeLocal to clear WatermelonDB's sync timestamp
+              console.log("[Settings] Clearing WatermelonDB sync timestamp...")
+              await database.adapter.removeLocal("__watermelon_last_pulled_at")
+              console.log("[Settings] Sync timestamp cleared! Triggering full sync...")
 
               // Trigger sync
+              console.log("[Settings] Calling sync()...")
               const result = await sync()
+              console.log("[Settings] Sync result:", result)
 
               if (result.success) {
                 Alert.alert("Success", "Full sync completed successfully!")

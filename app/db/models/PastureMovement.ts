@@ -12,7 +12,6 @@ export class PastureMovement extends Model {
     animals: { type: "belongs_to" as const, key: "animal_id" },
   }
 
-  @field("remote_id") remoteId!: string | null
   @field("organization_id") organizationId!: string
   @field("pasture_id") pastureId!: string
   @field("animal_id") animalId!: string

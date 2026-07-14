@@ -56,6 +56,15 @@ export function PaywallScreen(props: PaywallScreenProps) {
   const [isLoading, setIsLoading] = useState(false)
 
   const handlePurchase = async (rcIdentifier: string) => {
+    if (packages.length === 0) {
+      Alert.alert(
+        "Subscriptions Unavailable",
+        "We couldn't load subscription options right now. Please check your internet connection and try again later.",
+      )
+      console.log("[Paywall] No packages returned from RevenueCat — check Offerings config in dashboard or App Store Connect products")
+      return
+    }
+
     // Find package by RevenueCat identifier
     const pkg = packages.find(p =>
       p.identifier.toLowerCase().includes(rcIdentifier.toLowerCase()) ||
@@ -63,8 +72,11 @@ export function PaywallScreen(props: PaywallScreenProps) {
     )
 
     if (!pkg) {
-      Alert.alert("Error", `Package "${rcIdentifier}" not found. Please try again.`)
-      console.log("[Paywall] Available packages:", packages.map(p => ({ id: p.identifier, productId: p.product.identifier })))
+      Alert.alert(
+        "Plan Unavailable",
+        "This plan isn't available right now. Please try a different plan or contact support.",
+      )
+      console.log("[Paywall] Package not found:", rcIdentifier, "Available:", packages.map(p => ({ id: p.identifier, productId: p.product.identifier })))
       return
     }
 
@@ -137,35 +149,48 @@ export function PaywallScreen(props: PaywallScreenProps) {
           />
         </View>
 
+        {packages.length === 0 && (
+          <View style={themed($unavailableBanner)}>
+            <Text
+              text="Subscription plans are temporarily unavailable. Please try again later."
+              size="xs"
+              style={themed($unavailableText)}
+            />
+          </View>
+        )}
+
         <View style={themed($pricingGrid)}>
-          {PRICING_TIERS.map((tier) => (
-            <View key={tier.id} style={themed($pricingCard)}>
-              <Text text={tier.name} preset="subheading" style={themed($planName)} />
-              <Text text={tier.description} size="xs" style={themed($planDescription)} />
+          {PRICING_TIERS.map((tier) => {
+            const subscribeDisabled = isLoading || packages.length === 0
+            return (
+              <View key={tier.id} style={themed($pricingCard)}>
+                <Text text={tier.name} preset="subheading" style={themed($planName)} />
+                <Text text={tier.description} size="xs" style={themed($planDescription)} />
 
-              <View style={themed($priceSection)}>
-                <Text text={tier.price} style={themed($price)} />
-                <Text text={tier.period} style={themed($period)} />
+                <View style={themed($priceSection)}>
+                  <Text text={tier.price} style={themed($price)} />
+                  <Text text={tier.period} style={themed($period)} />
+                </View>
+
+                <View style={themed($featuresContainer)}>
+                  {tier.features.map((feature, index) => (
+                    <View key={index} style={themed($featureRow)}>
+                      <CheckBadge size={18} color={theme.colors.tint} />
+                      <Text text={feature} style={themed($featureText)} />
+                    </View>
+                  ))}
+                </View>
+
+                <Button
+                  text={isLoading ? "Processing..." : `Subscribe to ${tier.name}`}
+                  preset="reversed"
+                  style={themed($actionButton)}
+                  onPress={() => handlePurchase(tier.rcIdentifier)}
+                  disabled={subscribeDisabled}
+                />
               </View>
-
-              <View style={themed($featuresContainer)}>
-                {tier.features.map((feature, index) => (
-                  <View key={index} style={themed($featureRow)}>
-                    <CheckBadge size={18} color={theme.colors.tint} />
-                    <Text text={feature} style={themed($featureText)} />
-                  </View>
-                ))}
-              </View>
-
-              <Button
-                text={isLoading ? "Processing..." : `Subscribe to ${tier.name}`}
-                preset="reversed"
-                style={themed($actionButton)}
-                onPress={() => handlePurchase(tier.rcIdentifier)}
-                disabled={isLoading}
-              />
-            </View>
-          ))}
+            )
+          })}
         </View>
 
         <View style={themed($restoreSection)}>
@@ -251,6 +276,21 @@ const $pricingGrid: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   gap: spacing.md,
   paddingHorizontal: spacing.lg,
   paddingBottom: spacing.md,
+})
+
+const $unavailableBanner: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  marginHorizontal: spacing.lg,
+  marginBottom: spacing.sm,
+  padding: spacing.sm,
+  borderRadius: 12,
+  backgroundColor: colors.palette.accent100,
+  borderLeftWidth: 3,
+  borderLeftColor: colors.palette.accent500,
+})
+
+const $unavailableText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.text,
+  textAlign: "center",
 })
 
 const $pricingCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({

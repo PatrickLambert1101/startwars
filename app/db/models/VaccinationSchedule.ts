@@ -14,7 +14,6 @@ export class VaccinationSchedule extends Model {
     scheduled_vaccinations: { type: "has_many" as const, foreignKey: "schedule_id" },
   }
 
-  @field("remote_id") remoteId!: string | null
   @field("organization_id") organizationId!: string
   @field("protocol_id") protocolId!: string
   @field("name") name!: string

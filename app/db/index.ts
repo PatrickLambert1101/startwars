@@ -11,6 +11,10 @@ import { logDatabaseOperation, captureException } from "@/services/sentry"
 const adapter = new SQLiteAdapter({
   schema,
   migrations,
+  // Any device DB below v3 (the lowest toVersion in migrations) cannot be
+  // migrated forward — WatermelonDB will wipe and recreate at the current
+  // schema version instead of throwing.
+  migrationsEnabledAtVersion: 3,
   jsi: false,
   onSetUpError: (error) => {
     console.error("[DB] Setup error:", error)

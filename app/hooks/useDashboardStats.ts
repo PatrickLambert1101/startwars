@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react"
 import { Q } from "@nozbe/watermelondb"
+import { combineLatest } from "rxjs"
 import { database } from "@/db"
 import { Animal } from "@/db/models/Animal"
 import { BreedingRecord } from "@/db/models/BreedingRecord"
 import { useDatabase } from "@/context/DatabaseContext"
+
+const RECENT_ANIMALS_LIMIT = 5
 
 export type DashboardStats = {
   totalHead: number
@@ -12,6 +15,11 @@ export type DashboardStats = {
   recentAnimals: Animal[]
 }
 
+/**
+ * Dashboard stats via independent count queries instead of pulling the
+ * whole herd into memory. Scales O(1) in the stat counts (indexed columns)
+ * and O(RECENT_ANIMALS_LIMIT) for the recent list, regardless of herd size.
+ */
 export function useDashboardStats() {
   const { currentOrg } = useDatabase()
   const [stats, setStats] = useState<DashboardStats>({
@@ -24,46 +32,34 @@ export function useDashboardStats() {
 
   useEffect(() => {
     if (!currentOrg) {
+      setStats({ totalHead: 0, activeCount: 0, dueToCalve: 0, recentAnimals: [] })
       setIsLoading(false)
       return
     }
 
-    const animalsQuery = database.get<Animal>("animals").query(
-      Q.where("organization_id", currentOrg.id),
-      Q.where("is_deleted", false),
+    const animals = database.get<Animal>("animals")
+    const breeding = database.get<BreedingRecord>("breeding_records")
+
+    const orgClause = Q.where("organization_id", currentOrg.id)
+    const notDeleted = Q.where("is_deleted", false)
+
+    const totalHead$ = animals.query(orgClause, notDeleted).observeCount()
+    const activeCount$ = animals
+      .query(orgClause, notDeleted, Q.where("status", "active"))
+      .observeCount()
+    const dueToCalve$ = breeding
+      .query(orgClause, notDeleted, Q.where("outcome", "pending"))
+      .observeCount()
+    const recent$ = animals
+      .query(orgClause, notDeleted, Q.sortBy("updated_at", Q.desc), Q.take(RECENT_ANIMALS_LIMIT))
+      .observe()
+
+    const sub = combineLatest([totalHead$, activeCount$, dueToCalve$, recent$]).subscribe(
+      ([totalHead, activeCount, dueToCalve, recentAnimals]) => {
+        setStats({ totalHead, activeCount, dueToCalve, recentAnimals })
+        setIsLoading(false)
+      },
     )
-
-    const sub = animalsQuery.observe().subscribe(async (allAnimals) => {
-      const activeCount = allAnimals.filter((a) => a.status === "active").length
-
-      // Count pending breeding records (due to calve)
-      let dueToCalve = 0
-      try {
-        const pendingBreedings = await database.get<BreedingRecord>("breeding_records")
-          .query(
-            Q.where("organization_id", currentOrg.id),
-            Q.where("is_deleted", false),
-            Q.where("outcome", "pending"),
-          )
-          .fetchCount()
-        dueToCalve = pendingBreedings
-      } catch {
-        // ignore
-      }
-
-      // Most recently updated animals
-      const recent = [...allAnimals]
-        .sort((a, b) => (b.updatedAt?.getTime() ?? 0) - (a.updatedAt?.getTime() ?? 0))
-        .slice(0, 5)
-
-      setStats({
-        totalHead: allAnimals.length,
-        activeCount,
-        dueToCalve,
-        recentAnimals: recent,
-      })
-      setIsLoading(false)
-    })
 
     return () => sub.unsubscribe()
   }, [currentOrg])

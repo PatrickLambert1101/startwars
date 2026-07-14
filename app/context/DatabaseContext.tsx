@@ -49,7 +49,7 @@ export const DatabaseProvider: FC<PropsWithChildren> = ({ children }) => {
         Q.where("user_id", user.id),
         Q.where("is_active", true)
       )
-      .observeWithColumns(["is_active"])
+      .observeWithColumns(["is_active", "is_deleted"])
       .subscribe(async (memberships) => {
         try {
           console.log("[DatabaseContext] Memberships changed, found", memberships.length, "active memberships for user:", user.email)

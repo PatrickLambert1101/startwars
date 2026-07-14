@@ -9,7 +9,6 @@ export class WeightRecord extends Model {
     animals: { type: "belongs_to" as const, key: "animal_id" },
   }
 
-  @field("remote_id") remoteId!: string | null
   @field("organization_id") organizationId!: string
   @field("animal_id") animalId!: string
   @date("record_date") recordDate!: Date

@@ -17,7 +17,7 @@ interface TeamScreenProps extends AppStackScreenProps<"Team"> {}
 export function TeamScreen({ navigation }: TeamScreenProps) {
   const { t } = useTranslation()
   const { themed, theme: { colors } } = useAppTheme()
-  const { members, invites, isLoading, needsSync, refetch } = useTeam()
+  const { members, invites, isLoading, refetch } = useTeam()
   const { inviteMember, cancelInvite, updateMemberRole, removeMember } = useTeamActions()
   const { user } = useAuth()
   const { sync, status: syncStatus, error: syncError } = useSync()
@@ -262,68 +262,13 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
 
   // Handle manual sync
   const handleManualSync = async () => {
-    console.log("[Team] Manual sync triggered")
     const result = await sync()
     if (result.success) {
-      console.log("[Team] Sync completed successfully")
-      // Wait a bit for data to propagate, then refetch
       setTimeout(() => refetch(), 1000)
     } else {
       console.error("[Team] Sync failed:", result.error)
       Alert.alert("Sync Failed", result.error || "Unable to sync. Please try again.")
     }
-  }
-
-  // Show syncing message if organization hasn't synced yet
-  if (needsSync) {
-    const isSyncing = syncStatus === "syncing"
-    const hasSyncError = syncStatus === "error"
-
-    return (
-      <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={themed($container)}>
-        {renderHeader()}
-        <View style={themed($content)}>
-          <View style={themed($syncNotice)}>
-            {isSyncing ? (
-              <>
-                <MaterialCommunityIcons name="cloud-sync" size={48} color={colors.palette.primary500} />
-                <Text style={themed($syncNoticeTitle)}>Syncing Organization...</Text>
-                <Text style={themed($syncNoticeText)}>
-                  Pushing your organization "{currentOrg?.name}" to the cloud. This usually takes just a few seconds.
-                </Text>
-              </>
-            ) : hasSyncError ? (
-              <>
-                <MaterialCommunityIcons name="cloud-alert" size={48} color={colors.error} />
-                <Text style={themed($syncNoticeTitle)}>Sync Error</Text>
-                <Text style={themed($syncNoticeText)}>
-                  {syncError || "Unable to sync organization to the cloud."}
-                </Text>
-                <Text style={themed($syncDebugText)}>
-                  Org: {currentOrg?.name} ({currentOrg?.id})
-                  {"\n"}Remote ID: {currentOrg?.remoteId || "null"}
-                </Text>
-              </>
-            ) : (
-              <>
-                <MaterialCommunityIcons name="cloud-off-outline" size={48} color={colors.palette.accent500} />
-                <Text style={themed($syncNoticeTitle)}>Organization Not Synced</Text>
-                <Text style={themed($syncNoticeText)}>
-                  Your organization "{currentOrg?.name}" needs to be synced to the cloud before you can use team features.
-                </Text>
-              </>
-            )}
-            <Button
-              text={isSyncing ? "Syncing..." : "Sync Now"}
-              preset="filled"
-              onPress={handleManualSync}
-              disabled={isSyncing}
-              style={themed($syncNoticeButton)}
-            />
-          </View>
-        </View>
-      </Screen>
-    )
   }
 
   if (!isAdmin) {
@@ -827,13 +772,3 @@ const $syncNoticeButton: ThemedStyle<ViewStyle> = () => ({
   minWidth: 200,
 })
 
-const $syncDebugText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
-  fontSize: 11,
-  color: colors.textDim,
-  fontFamily: "monospace",
-  marginTop: spacing.md,
-  textAlign: "center",
-  backgroundColor: colors.palette.neutral100,
-  padding: spacing.sm,
-  borderRadius: 8,
-})

@@ -8,7 +8,8 @@ import type { ThemedStyle } from "@/theme/types"
 import { useAuth } from "@/context/AuthContext"
 import { saveString } from "@/utils/storage"
 
-const DEV_SKIP_AUTH = process.env.EXPO_PUBLIC_DEV_SKIP_AUTH === "true"
+// Hard-gated behind __DEV__ so it can never be enabled in a release build.
+const DEV_SKIP_AUTH = __DEV__ && process.env.EXPO_PUBLIC_DEV_SKIP_AUTH === "true"
 
 const LANGUAGES = [
   { code: "en", flag: "🇬🇧", name: "English" },
@@ -96,7 +97,7 @@ export function AuthScreen() {
         <View style={themed($content)}>
           <View style={themed($logoContainer)}>
             <Image
-              source={require("../../../assets/images/splash-logo-all.png")}
+              source={require("../../../assets/images/herdtrackr-logo-mark.png")}
               style={themed($logoImage)}
               resizeMode="contain"
             />
@@ -206,7 +207,7 @@ export function AuthScreen() {
       <View style={themed($content)}>
         <View style={themed($logoContainer)}>
           <Image
-            source={require("../../../assets/images/splash-logo-all.png")}
+            source={require("../../../assets/images/herdtrackr-logo-mark.png")}
             style={themed($logoImage)}
             resizeMode="contain"
           />
@@ -305,6 +306,8 @@ const $logoContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $logoImage: ThemedStyle<ImageStyle> = () => ({
   width: 120,
   height: 120,
+  borderRadius: 26,
+  backgroundColor: "#FFFFFF",
   marginBottom: 16,
 })
 
@@ -362,13 +365,8 @@ const $benefitsTitle: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
 const $benefitRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
+  gap: spacing.sm,
   marginBottom: spacing.xs,
-})
-
-const $benefitIcon: ThemedStyle<TextStyle> = ({ spacing }) => ({
-  fontSize: 18,
-  marginRight: spacing.sm,
-  width: 24,
 })
 
 const $benefitText: ThemedStyle<TextStyle> = ({ colors }) => ({

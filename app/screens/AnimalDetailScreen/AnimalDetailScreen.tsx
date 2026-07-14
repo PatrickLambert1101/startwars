@@ -33,13 +33,24 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
   const { offspring, stats: offspringStats } = useOffspring(animalId)
 
   // Debug logging
-  if (__DEV__ && vaccinations.length > 0) {
-    console.log("[AnimalDetail] Vaccinations:", vaccinations.map(v => ({
-      id: v.id,
-      hasSchedule: !!v.schedule,
-      scheduleName: v.schedule?.name,
-      hasAnimal: !!v.animal,
-    })))
+  if (__DEV__) {
+    if (animal) {
+      console.log("[AnimalDetail] Animal data:", {
+        visualTag: animal.visualTag,
+        dateOfBirth: animal.dateOfBirth,
+        dateOfBirthType: typeof animal.dateOfBirth,
+        rawDateOfBirth: (animal as any)._raw?.date_of_birth,
+        rawDateOfBirthType: typeof (animal as any)._raw?.date_of_birth,
+      })
+    }
+    if (vaccinations.length > 0) {
+      console.log("[AnimalDetail] Vaccinations:", vaccinations.map(v => ({
+        id: v.id,
+        hasSchedule: !!v.schedule,
+        scheduleName: v.schedule?.name,
+        hasAnimal: !!v.animal,
+      })))
+    }
   }
   const [activeTab, setActiveTab] = useState<Tab>("overview")
   const [tags, setTags] = useState<string[]>(animal?.tagsList || [])
@@ -154,7 +165,17 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
     )
   }
 
-  const formatDate = (d: Date | null) => d ? format(d, "dd MMM yyyy") : t("animalDetailScreen.overview.noValue")
+  const formatDate = (d: Date | null) => {
+    if (__DEV__) {
+      console.log("[AnimalDetail] formatDate called with:", {
+        value: d,
+        type: typeof d,
+        isDate: d instanceof Date,
+        timestamp: d ? d.getTime() : null,
+      })
+    }
+    return d ? format(d, "dd MMM yyyy") : t("animalDetailScreen.overview.noValue")
+  }
 
   return (
     <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>

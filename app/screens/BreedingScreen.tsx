@@ -115,7 +115,7 @@ export const BreedingScreen: FC<MainTabScreenProps<"Breeding">> = ({ navigation 
   )
 
   return (
-    <Screen preset="fixed" safeAreaEdges={["top"]}>
+    <Screen preset="fixed" contentContainerStyle={themed($screenContent)} safeAreaEdges={["top"]}>
       <AppHeader title="Breeding" />
 
       {/* Quick Stats */}
@@ -148,15 +148,20 @@ export const BreedingScreen: FC<MainTabScreenProps<"Breeding">> = ({ navigation 
 // Styles
 // ────────────────────────────────────────────────────────────────────
 
+const $screenContent: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flex: 1,
+  paddingHorizontal: spacing.sm,
+})
+
 const $listContent: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  padding: spacing.sm,
+  paddingVertical: spacing.sm,
   paddingBottom: spacing.lg,
 })
 
 const $statsContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   gap: spacing.xs,
-  padding: spacing.sm,
+  paddingVertical: spacing.sm,
   paddingBottom: 0,
 })
 

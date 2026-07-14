@@ -7,7 +7,9 @@ import { logAuthOperation, setUserContext, captureException } from "@/services/s
 import { loadString, saveString } from "@/utils/storage"
 
 const AUTH_REDIRECT_URL = Linking.createURL("auth-callback")
-const DEV_SKIP_AUTH = process.env.EXPO_PUBLIC_DEV_SKIP_AUTH === "true"
+// Hard-gated behind __DEV__ so it can never be enabled in a release build,
+// even if EXPO_PUBLIC_DEV_SKIP_AUTH leaks into the production environment.
+const DEV_SKIP_AUTH = __DEV__ && process.env.EXPO_PUBLIC_DEV_SKIP_AUTH === "true"
 
 export type AuthContextType = {
   isAuthenticated: boolean

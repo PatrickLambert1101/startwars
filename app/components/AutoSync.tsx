@@ -4,6 +4,7 @@ import * as Network from "expo-network"
 import { database } from "@/db"
 import { useSyncContext } from "@/context/SyncContext"
 import { useAuth } from "@/context/AuthContext"
+import { useDatabase } from "@/context/DatabaseContext"
 import { Q } from "@nozbe/watermelondb"
 
 /**
@@ -19,6 +20,7 @@ import { Q } from "@nozbe/watermelondb"
 export function AutoSync() {
   const { queueSync } = useSyncContext()
   const { isAuthenticated } = useAuth()
+  const { currentOrg } = useDatabase()
   const lastCountsRef = useRef<Record<string, number>>({})
   const lastChangedRef = useRef<Record<string, number>>({})
   const hasRunInitialSync = useRef(false)
@@ -27,49 +29,41 @@ export function AutoSync() {
   // Run initial sync when user logs in
   useEffect(() => {
     if (isAuthenticated && !hasRunInitialSync.current) {
-      console.log("[AutoSync] Running initial sync on app load")
+      if (__DEV__) console.log("[AutoSync] Running initial sync on app load")
       queueSync()
       hasRunInitialSync.current = true
     }
   }, [isAuthenticated, queueSync])
 
-  // Watch for database changes (creates, updates, deletes)
-  // Only watch critical tables to reduce overhead on low-end devices
+  // Watch for local database changes (creates, updates, deletes) scoped to current org
   useEffect(() => {
-    if (!isAuthenticated) return
+    if (!isAuthenticated || !currentOrg) return
 
-    // Only watch the most critical tables that users interact with frequently
-    // This reduces from 11 tables (22 subscriptions) to 3 tables (6 subscriptions)
-    const tables = [
-      "animals",         // User scans/creates animals
-      "health_records",  // User adds health records
-      "weight_records",  // User adds weight records
-    ]
+    const tables = ["animals", "health_records", "weight_records"]
+    const orgClause = Q.where("organization_id", currentOrg.id)
 
     const subscriptions = tables.flatMap((tableName) => {
-      // Watch for count changes (creates/deletes)
       const countSub = database
         .get(tableName)
-        .query()
+        .query(orgClause)
         .observeCount()
         .subscribe((count) => {
           const lastCount = lastCountsRef.current[tableName]
           if (lastCount !== undefined && lastCount !== count) {
-            console.log(`[AutoSync] Detected create/delete in ${tableName}, queuing sync...`)
+            if (__DEV__) console.log(`[AutoSync] Detected create/delete in ${tableName}, queuing sync...`)
             queueSync()
           }
           lastCountsRef.current[tableName] = count
         })
 
-      // Watch for changed records (updates) using _changed column
       const changedSub = database
         .get(tableName)
-        .query(Q.where("_changed", Q.notEq("")))
+        .query(orgClause, Q.where("_changed", Q.notEq("")))
         .observeCount()
         .subscribe((changedCount) => {
           const lastChanged = lastChangedRef.current[tableName]
           if (lastChanged !== undefined && changedCount > 0 && lastChanged !== changedCount) {
-            console.log(`[AutoSync] Detected update in ${tableName}, queuing sync...`)
+            if (__DEV__) console.log(`[AutoSync] Detected update in ${tableName}, queuing sync...`)
             queueSync()
           }
           lastChangedRef.current[tableName] = changedCount
@@ -81,7 +75,7 @@ export function AutoSync() {
     return () => {
       subscriptions.forEach((sub) => sub.unsubscribe())
     }
-  }, [isAuthenticated, queueSync])
+  }, [isAuthenticated, currentOrg, queueSync])
 
   // Listen for network reconnection and sync (using polling approach with expo-network)
   useEffect(() => {
@@ -94,11 +88,11 @@ export function AutoSync() {
 
       // Only sync when we transition from offline to online (not on first check)
       if (isOnline && lastNetworkState === false) {
-        console.log("[AutoSync] Network reconnected, queuing sync...")
+        if (__DEV__) console.log("[AutoSync] Network reconnected, queuing sync...")
         queueSync()
       }
       lastNetworkState = isOnline
-    }, 10000) // Check every 10 seconds
+    }, 30_000) // expo-network has no event listener; poll every 30s
 
     return () => {
       clearInterval(checkInterval)
@@ -118,7 +112,7 @@ export function AutoSync() {
 
         // Only sync if it's been more than 30 seconds since last foreground sync
         if (timeSinceLastForeground > 30000) {
-          console.log("[AutoSync] App came to foreground, queuing sync...")
+          if (__DEV__) console.log("[AutoSync] App came to foreground, queuing sync...")
           lastForegroundTime.current = now
 
           // Debounce to avoid multiple rapid fires
@@ -140,9 +134,9 @@ export function AutoSync() {
   useEffect(() => {
     if (!isAuthenticated) return
 
-    console.log("[AutoSync] Starting periodic sync (every 5 minutes)")
+    if (__DEV__) console.log("[AutoSync] Starting periodic sync (every 5 minutes)")
     const interval = setInterval(() => {
-      console.log("[AutoSync] Periodic sync triggered")
+      if (__DEV__) console.log("[AutoSync] Periodic sync triggered")
       queueSync()
     }, 5 * 60 * 1000) // 5 minutes
 

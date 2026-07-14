@@ -42,7 +42,7 @@
         "EXPO_PUBLIC_SUPABASE_URL": "https://geczhyukynirvpdjnbel.supabase.co",
         "EXPO_PUBLIC_SENTRY_DSN": "https://364ccaa7eef56c43b13c24596e75dd66@o270219.ingest.us.sentry.io/4511059299729408",
         "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_hUJm43yhx2SGMF7sLdQ_pQ__cMYbKlQ",
-        "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "appl_efGEvCBIjkMPjdckzLYMkZbbFbS"
+        "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "appl_pYedWqOUJCZGNaNNxFwyPgpbZLV"
       }
     },
     "preview:device": {
@@ -58,11 +58,15 @@
         "EXPO_PUBLIC_SUPABASE_URL": "https://geczhyukynirvpdjnbel.supabase.co",
         "EXPO_PUBLIC_SENTRY_DSN": "https://364ccaa7eef56c43b13c24596e75dd66@o270219.ingest.us.sentry.io/4511059299729408",
         "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_hUJm43yhx2SGMF7sLdQ_pQ__cMYbKlQ",
-        "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "appl_efGEvCBIjkMPjdckzLYMkZbbFbS"
+        "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "appl_pYedWqOUJCZGNaNNxFwyPgpbZLV"
       }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "android": {
+        "releaseStatus": "draft"
+      }
+    }
   }
 }

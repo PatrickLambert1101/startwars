@@ -13,7 +13,7 @@ import { useSync } from "@/hooks/useSync"
 import type { LivestockType } from "@/db/models/Organization"
 import { loadString, saveString } from "@/utils/storage"
 
-const herdLogo = require("../../assets/images/herd-logo.png")
+const herdLogo = require("../../assets/images/herdtrackr-logo-mark.png")
 
 type LivestockOption = {
   type: LivestockType
@@ -188,7 +188,7 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
     <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top", "bottom"]}>
       {/* Header */}
       <View style={themed($hero)}>
-        <Image source={herdLogo} style={[themed($logoImage), { tintColor: colors.tint }]} resizeMode="contain" />
+        <Image source={herdLogo} style={themed($logoImage)} resizeMode="contain" />
         <Text text={t("orgSetupScreen.title")} preset="heading" style={themed($appName)} />
         <Text
           text={step <= 4 ? t("orgSetupScreen.subtitle") : t("orgSetupScreen.allSet")}
@@ -714,6 +714,8 @@ const $getStartedIcon: ThemedStyle<ViewStyle> = () => ({
 const $logoImage: ThemedStyle<ImageStyle> = () => ({
   width: 64,
   height: 64,
+  borderRadius: 14,
+  backgroundColor: "#FFFFFF",
 })
 
 // Step 3: Breed selection

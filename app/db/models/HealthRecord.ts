@@ -12,7 +12,6 @@ export class HealthRecord extends Model {
     treatment_protocols: { type: "belongs_to" as const, key: "protocol_id" },
   }
 
-  @field("remote_id") remoteId!: string | null
   @field("organization_id") organizationId!: string
   @field("animal_id") animalId!: string
   @field("protocol_id") protocolId!: string | null

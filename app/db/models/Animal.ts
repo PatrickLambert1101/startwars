@@ -48,7 +48,6 @@ export class Animal extends Model {
     breeding_records: { type: "has_many" as const, foreignKey: "animal_id" },
   }
 
-  @field("remote_id") remoteId!: string | null
   @field("organization_id") organizationId!: string
   @field("species") species!: AnimalSpecies
   @field("rfid_tag") rfidTag!: string

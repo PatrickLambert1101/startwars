@@ -63,31 +63,23 @@ async function processAgeBasedSchedule(schedule: VaccinationSchedule, organizati
     return
   }
 
-  const targetAgeMs = schedule.targetAgeMonths * 30.44 * 24 * 60 * 60 * 1000 // ~30.44 days per month
-  const windowMs = (schedule.ageWindowDays || 7) * 24 * 60 * 60 * 1000
-  const now = Date.now()
-
-  // Calculate age range
-  const minAgeMs = targetAgeMs - windowMs
-  const maxAgeMs = targetAgeMs + windowMs
-  const minBirthDate = new Date(now - maxAgeMs)
-  const maxBirthDate = new Date(now - minAgeMs)
-
   if (__DEV__) {
     console.log(
-      `[VaccinationScheduler] Age criteria: ${schedule.targetAgeMonths} months ± ${schedule.ageWindowDays || 7} days`,
-      `\n  Birth date range: ${minBirthDate.toISOString()} to ${maxBirthDate.toISOString()}`,
+      `[VaccinationScheduler] Target age: ${schedule.targetAgeMonths} months`,
       `\n  Target species: ${schedule.targetSpecies || "any"}`,
       `\n  Target sex: ${schedule.targetSex || "any"}`
     )
   }
 
-  // Query animals matching criteria
+  // Match all active animals (regardless of current age).
+  // calculateDueDate() will compute due date relative to each animal's DOB,
+  // so younger animals get future-dated vaccinations and older animals get
+  // overdue ones the user can mark as administered or skipped.
   const queryConditions = [
     Q.where("organization_id", organizationId),
     Q.where("is_deleted", false),
     Q.where("status", "active"),
-    Q.where("date_of_birth", Q.between(minBirthDate.getTime(), maxBirthDate.getTime())),
+    Q.where("date_of_birth", Q.notEq(null)),
   ]
 
   // Apply filters

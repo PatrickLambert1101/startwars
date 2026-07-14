@@ -246,7 +246,6 @@ export const migrations = schemaMigrations({
           schema: tableSchema({
             name: "vaccination_schedules",
             columns: [
-            { name: "remote_id", type: "string", isOptional: true },
             { name: "organization_id", type: "string", isIndexed: true },
             { name: "protocol_id", type: "string", isIndexed: true },
             { name: "name", type: "string" },
@@ -278,7 +277,6 @@ export const migrations = schemaMigrations({
           schema: tableSchema({
             name: "scheduled_vaccinations",
             columns: [
-            { name: "remote_id", type: "string", isOptional: true },
             { name: "organization_id", type: "string", isIndexed: true },
             { name: "animal_id", type: "string", isIndexed: true },
             { name: "schedule_id", type: "string", isIndexed: true },
@@ -335,16 +333,19 @@ export const migrations = schemaMigrations({
         },
       ],
     },
+    {
+      toVersion: 16,
+      steps: [], // version bump: remote_id column removed from all models
+    },
   ],
 })
 
 export const schema = appSchema({
-  version: 15,
+  version: 16,
   tables: [
     tableSchema({
       name: "organizations",
       columns: [
-        { name: "remote_id", type: "string", isOptional: true },
         { name: "name", type: "string" },
         { name: "livestock_types", type: "string" }, // JSON array: ["cattle","horses",...]
         { name: "location", type: "string", isOptional: true },
@@ -361,7 +362,6 @@ export const schema = appSchema({
     tableSchema({
       name: "animals",
       columns: [
-        { name: "remote_id", type: "string", isOptional: true },
         { name: "organization_id", type: "string", isIndexed: true },
         { name: "species", type: "string" }, // cattle | buffalo | horse | sheep | goat | game | pig
         { name: "rfid_tag", type: "string", isIndexed: true },
@@ -388,7 +388,6 @@ export const schema = appSchema({
     tableSchema({
       name: "health_records",
       columns: [
-        { name: "remote_id", type: "string", isOptional: true },
         { name: "organization_id", type: "string", isIndexed: true },
         { name: "animal_id", type: "string", isIndexed: true },
         { name: "protocol_id", type: "string", isOptional: true, isIndexed: true },
@@ -411,7 +410,6 @@ export const schema = appSchema({
     tableSchema({
       name: "weight_records",
       columns: [
-        { name: "remote_id", type: "string", isOptional: true },
         { name: "organization_id", type: "string", isIndexed: true },
         { name: "animal_id", type: "string", isIndexed: true },
         { name: "record_date", type: "number" },
@@ -429,7 +427,6 @@ export const schema = appSchema({
     tableSchema({
       name: "breeding_records",
       columns: [
-        { name: "remote_id", type: "string", isOptional: true },
         { name: "organization_id", type: "string", isIndexed: true },
         { name: "animal_id", type: "string", isIndexed: true }, // the cow/heifer
         { name: "bull_id", type: "string", isOptional: true },
@@ -451,7 +448,6 @@ export const schema = appSchema({
     tableSchema({
       name: "treatment_protocols",
       columns: [
-        { name: "remote_id", type: "string", isOptional: true },
         { name: "organization_id", type: "string", isIndexed: true },
         { name: "name", type: "string" },
         { name: "description", type: "string", isOptional: true },
@@ -472,7 +468,6 @@ export const schema = appSchema({
     tableSchema({
       name: "pastures",
       columns: [
-        { name: "remote_id", type: "string", isOptional: true },
         { name: "organization_id", type: "string", isIndexed: true },
         { name: "name", type: "string" },
         { name: "code", type: "string" },
@@ -500,7 +495,6 @@ export const schema = appSchema({
     tableSchema({
       name: "pasture_movements",
       columns: [
-        { name: "remote_id", type: "string", isOptional: true },
         { name: "organization_id", type: "string", isIndexed: true },
         { name: "pasture_id", type: "string", isIndexed: true },
         { name: "animal_id", type: "string", isIndexed: true },
@@ -518,7 +512,6 @@ export const schema = appSchema({
     tableSchema({
       name: "organization_members",
       columns: [
-        { name: "remote_id", type: "string", isOptional: true },
         { name: "organization_id", type: "string", isIndexed: true },
         { name: "user_id", type: "string", isIndexed: true },
         { name: "user_email", type: "string" },
@@ -536,7 +529,6 @@ export const schema = appSchema({
     tableSchema({
       name: "vaccination_schedules",
       columns: [
-        { name: "remote_id", type: "string", isOptional: true },
         { name: "organization_id", type: "string", isIndexed: true },
         { name: "protocol_id", type: "string", isIndexed: true },
         { name: "name", type: "string" },
@@ -565,7 +557,6 @@ export const schema = appSchema({
     tableSchema({
       name: "scheduled_vaccinations",
       columns: [
-        { name: "remote_id", type: "string", isOptional: true },
         { name: "organization_id", type: "string", isIndexed: true },
         { name: "animal_id", type: "string", isIndexed: true },
         { name: "schedule_id", type: "string", isIndexed: true },

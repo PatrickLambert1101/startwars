@@ -99,5 +99,10 @@
     "eas": {
       "projectId": "ce99f731-12da-4ab9-85a4-c706072b2e26"
     }
+  },
+  "expo": {
+    "android": {},
+    "ios": {},
+    "web": {}
   }
 }

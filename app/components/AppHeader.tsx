@@ -61,10 +61,15 @@ const $container: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   alignItems: "center",
   justifyContent: "space-between",
   paddingHorizontal: spacing.md,
-  paddingVertical: spacing.sm,
+  paddingVertical: spacing.md,
   backgroundColor: colors.background,
   borderBottomWidth: 1,
   borderBottomColor: colors.separator,
+  shadowColor: "#000",
+  shadowOpacity: 0.04,
+  shadowRadius: 3,
+  shadowOffset: { width: 0, height: 1 },
+  elevation: 1,
 })
 
 const $title: ThemedStyle<TextStyle> = () => ({

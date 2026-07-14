@@ -4,7 +4,16 @@ import { database } from "@/db"
 import { Animal, AnimalSex, AnimalStatus } from "@/db/models/Animal"
 import { useDatabase } from "@/context/DatabaseContext"
 import { calculateScheduledVaccinations } from "@/services/vaccinationScheduler"
-import type { FilterState, SortField } from "@/components/FilterModal"
+import type { FilterState } from "@/components/FilterModal"
+
+// Columns we can sort on at the DB level. Anything else falls back to visual_tag.
+const DB_SORT_COLUMNS: Record<string, string> = {
+  visualTag: "visual_tag",
+  breed: "breed",
+  sex: "sex",
+  status: "status",
+  dateOfBirth: "date_of_birth",
+}
 
 export type AnimalFormData = {
   rfidTag: string
@@ -50,6 +59,118 @@ export function useAnimals() {
   }, [currentOrg])
 
   return { animals, isLoading }
+}
+
+/**
+ * DB-level filtered/paginated animals query.
+ *
+ * Pushes cheap filters (search, breed, sex, status, sort) into WatermelonDB so we
+ * don't pull the entire herd into JS memory. Expensive/computed filters
+ * (age, tag search, parent) run in-memory via useComputedAnimalFilters.
+ *
+ * If `pageSize` is provided, only that many rows are loaded (plus 1 extra to
+ * detect `hasMore`). Call `loadMore()` to grow the window.
+ */
+export function useAnimalsQuery(
+  filters: FilterState,
+  searchQuery: string,
+  pageSize?: number,
+) {
+  const { currentOrg } = useDatabase()
+  const [animals, setAnimals] = useState<Animal[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [limit, setLimit] = useState(pageSize ?? 0)
+  const [hasMore, setHasMore] = useState(false)
+
+  // Reset the window whenever filters/search/org change
+  useEffect(() => {
+    setLimit(pageSize ?? 0)
+  }, [pageSize, searchQuery, filters.breeds, filters.sexes, filters.statuses, filters.sortBy, filters.sortDirection, currentOrg?.id])
+
+  useEffect(() => {
+    if (!currentOrg) {
+      setAnimals([])
+      setIsLoading(false)
+      return
+    }
+
+    const clauses: Q.Clause[] = [
+      Q.where("organization_id", currentOrg.id),
+      Q.where("is_deleted", false),
+    ]
+
+    // Text search across visual_tag / rfid_tag / name / breed
+    const trimmed = searchQuery.trim()
+    if (trimmed) {
+      const like = Q.like(`%${Q.sanitizeLikeString(trimmed)}%`)
+      clauses.push(
+        Q.or(
+          Q.where("visual_tag", like),
+          Q.where("rfid_tag", like),
+          Q.where("name", like),
+          Q.where("breed", like),
+        ),
+      )
+    }
+
+    if (filters.breeds.length > 0) {
+      clauses.push(Q.where("breed", Q.oneOf(filters.breeds)))
+    }
+    if (filters.sexes.length > 0) {
+      clauses.push(Q.where("sex", Q.oneOf(filters.sexes)))
+    }
+    if (filters.statuses.length > 0) {
+      clauses.push(Q.where("status", Q.oneOf(filters.statuses)))
+    }
+
+    // Sort: push to DB when possible, otherwise default to updated_at desc
+    const sortColumn = DB_SORT_COLUMNS[filters.sortBy as string]
+    if (sortColumn) {
+      const direction = filters.sortDirection === "asc" ? Q.asc : Q.desc
+      clauses.push(Q.sortBy(sortColumn, direction))
+    } else {
+      clauses.push(Q.sortBy("updated_at", Q.desc))
+    }
+
+    // Fetch one extra row so we can tell if there are more pages
+    if (limit > 0) {
+      clauses.push(Q.take(limit + 1))
+    }
+
+    setIsLoading(true)
+    const subscription = database
+      .get<Animal>("animals")
+      .query(...clauses)
+      .observe()
+      .subscribe((result) => {
+        if (limit > 0 && result.length > limit) {
+          setAnimals(result.slice(0, limit))
+          setHasMore(true)
+        } else {
+          setAnimals(result)
+          setHasMore(false)
+        }
+        setIsLoading(false)
+      })
+
+    return () => subscription.unsubscribe()
+  }, [
+    currentOrg,
+    searchQuery,
+    filters.breeds,
+    filters.sexes,
+    filters.statuses,
+    filters.sortBy,
+    filters.sortDirection,
+    limit,
+  ])
+
+  const loadMore = () => {
+    if (!hasMore || !pageSize) return
+    setLimit((prev) => prev + pageSize)
+  }
+
+  return { animals, isLoading, hasMore, loadMore }
 }
 
 export function useAnimal(animalId: string) {
@@ -173,108 +294,45 @@ export function useAnimalActions() {
 }
 
 /**
- * Apply filters and sorting to a list of animals
- * Uses a combination of WatermelonDB queries (for efficient filtering) and in-memory processing (for calculated fields)
+ * Apply the subset of filters that require in-memory/computed access:
+ * age range (needs dateOfBirth math), tag search (JSON field), parent filter.
+ *
+ * Use this alongside `useAnimalsQuery`, which already handles
+ * search/breed/sex/status/sort at the DB level.
  */
-export function useFilteredAnimals(animals: Animal[], filters: FilterState, searchQuery: string = "") {
+export function useComputedAnimalFilters(animals: Animal[], filters: FilterState) {
   return useMemo(() => {
-    let filtered = [...animals]
+    let filtered = animals
 
-    // 1. Apply search filter (text search)
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase()
-      filtered = filtered.filter(
-        (a) =>
-          a.visualTag.toLowerCase().includes(q) ||
-          a.rfidTag.toLowerCase().includes(q) ||
-          (a.name && a.name.toLowerCase().includes(q)) ||
-          a.breed.toLowerCase().includes(q)
-      )
-    }
-
-    // 2. Apply breed filter
-    if (filters.breeds.length > 0) {
-      filtered = filtered.filter((a) => filters.breeds.includes(a.breed))
-    }
-
-    // 3. Apply sex filter
-    if (filters.sexes.length > 0) {
-      filtered = filtered.filter((a) => filters.sexes.includes(a.sex))
-    }
-
-    // 4. Apply status filter
-    if (filters.statuses.length > 0) {
-      filtered = filtered.filter((a) => filters.statuses.includes(a.status))
-    }
-
-    // 5. Apply age range filter (in months)
+    // Age range (in months) - requires dateOfBirth math
     if (filters.ageFrom !== null || filters.ageTo !== null) {
       filtered = filtered.filter((a) => {
         if (!a.dateOfBirth) return false
-
         const ageInMonths = Math.floor(
-          (Date.now() - a.dateOfBirth.getTime()) / (1000 * 60 * 60 * 24 * 30.44)
+          (Date.now() - a.dateOfBirth.getTime()) / (1000 * 60 * 60 * 24 * 30.44),
         )
-
         if (filters.ageFrom !== null && ageInMonths < filters.ageFrom) return false
         if (filters.ageTo !== null && ageInMonths > filters.ageTo) return false
-
         return true
       })
     }
 
-    // 6. Apply tag search filter
+    // Tag search - tags are stored as JSON, can't query directly
     if (filters.tagSearch.trim()) {
       const tagQuery = filters.tagSearch.toLowerCase()
-      filtered = filtered.filter((a) => {
-        return a.tagsList.some((tag) => tag.toLowerCase().includes(tagQuery))
-      })
-    }
-
-    // 7. Apply parent filter (children of a specific animal)
-    if (filters.parentAnimalId) {
-      filtered = filtered.filter(
-        (a) => a.sireId === filters.parentAnimalId || a.damId === filters.parentAnimalId
+      filtered = filtered.filter((a) =>
+        a.tagsList.some((tag) => tag.toLowerCase().includes(tagQuery)),
       )
     }
 
-    // 8. Apply sorting
-    const sortMultiplier = filters.sortDirection === "asc" ? 1 : -1
-
-    filtered.sort((a, b) => {
-      let compareResult = 0
-
-      switch (filters.sortBy) {
-        case "visualTag":
-          compareResult = a.visualTag.localeCompare(b.visualTag)
-          break
-
-        case "dateOfBirth":
-          // Sort by age (newer = younger, older = older)
-          const aDate = a.dateOfBirth?.getTime() || 0
-          const bDate = b.dateOfBirth?.getTime() || 0
-          compareResult = bDate - aDate // Descending by default (youngest first)
-          break
-
-        case "breed":
-          compareResult = a.breed.localeCompare(b.breed)
-          break
-
-        case "sex":
-          compareResult = a.sex.localeCompare(b.sex)
-          break
-
-        case "status":
-          compareResult = a.status.localeCompare(b.status)
-          break
-
-        default:
-          compareResult = 0
-      }
-
-      return compareResult * sortMultiplier
-    })
+    // Parent filter (matches either sire or dam)
+    if (filters.parentAnimalId) {
+      filtered = filtered.filter(
+        (a) => a.sireId === filters.parentAnimalId || a.damId === filters.parentAnimalId,
+      )
+    }
 
     return filtered
-  }, [animals, filters, searchQuery])
+  }, [animals, filters.ageFrom, filters.ageTo, filters.tagSearch, filters.parentAnimalId])
 }
+
