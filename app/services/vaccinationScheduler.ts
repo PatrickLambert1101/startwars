@@ -262,33 +262,11 @@ async function ensureScheduledVaccination(schedule: VaccinationSchedule, animal:
 }
 
 /**
- * Update overdue status for pending vaccinations
- * Run this daily to mark vaccinations that have passed their due date
+ * NOTE: there is deliberately no `updateOverdueVaccinations` here. Overdue is a
+ * derived state — see `ScheduledVaccination.isOverdue`, which compares dueDate
+ * against now. Writing a persisted "overdue" status would actually *hide* those
+ * rows, because that getter only reports true while status is still "pending".
  */
-export async function updateOverdueVaccinations(organizationId: string) {
-  console.log("[VaccinationScheduler] Updating overdue status")
-
-  const now = new Date()
-  const pending = await database
-    .get<ScheduledVaccination>("scheduled_vaccinations")
-    .query(
-      Q.where("organization_id", organizationId),
-      Q.where("is_deleted", false),
-      Q.where("status", "pending"),
-      Q.where("due_date", Q.lt(now.getTime())),
-    )
-    .fetch()
-
-  console.log("[VaccinationScheduler] Found", pending.length, "overdue vaccinations")
-
-  await database.write(async () => {
-    for (const vaccination of pending) {
-      await vaccination.update((v) => {
-        v.status = "overdue"
-      })
-    }
-  })
-}
 
 /**
  * Recalculate vaccinations for a specific schedule

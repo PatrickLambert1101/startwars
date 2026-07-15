@@ -410,7 +410,7 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
                   purpose === p.key && themed($purposeCardSelected),
                 ]}
               >
-                <MaterialCommunityIcons name={p.icon as any} size={22} color={purpose === p.key ? "#FFF" : "#4A8C3F"} />
+                <MaterialCommunityIcons name={p.icon as any} size={22} color={purpose === p.key ? "#FFF" : "#739134"} />
                 <Text
                   text={p.label}
                   size="xs"
@@ -453,7 +453,7 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
 
           <Pressable onPress={handleGoToAddAnimals} style={themed($getStartedCard)}>
             <View style={themed($getStartedIcon)}>
-              <MaterialCommunityIcons name="cow" size={28} color="#4A8C3F" />
+              <MaterialCommunityIcons name="cow" size={28} color="#739134" />
             </View>
             <View style={{ flex: 1 }}>
               <Text text={t("orgSetupScreen.step5.options.addAnimals.title")} preset="bold" />
@@ -714,8 +714,6 @@ const $getStartedIcon: ThemedStyle<ViewStyle> = () => ({
 const $logoImage: ThemedStyle<ImageStyle> = () => ({
   width: 64,
   height: 64,
-  borderRadius: 14,
-  backgroundColor: "#FFFFFF",
 })
 
 // Step 3: Breed selection

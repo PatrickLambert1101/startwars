@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react"
 import { View, ViewStyle, TextStyle, ScrollView, Pressable, Alert, Modal, FlatList } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
+import { useFocusEffect } from "@react-navigation/native"
 import { useTranslation } from "react-i18next"
 
 import { Screen, Text, TextField, Button } from "@/components"
@@ -14,18 +15,25 @@ import { usePastures } from "@/hooks/usePastures"
 import { ScheduleType } from "@/db/models"
 import { recalculateSchedule } from "@/services/vaccinationScheduler"
 
-const SCHEDULE_TYPES: { value: ScheduleType; label: string; icon: string }[] = [
-  { value: "age_based", label: "Age-Based", icon: "calendar-clock" },
-  { value: "date_based", label: "Date-Based", icon: "calendar" },
-  { value: "group_based", label: "Group-Based", icon: "map-marker" },
+const SCHEDULE_TYPE_META: { value: ScheduleType; key: string; icon: string }[] = [
+  { value: "age_based", key: "ageBased", icon: "calendar-clock" },
+  { value: "date_based", key: "dateBased", icon: "calendar" },
+  { value: "group_based", key: "groupBased", icon: "map-marker" },
 ]
 
-const SEX_OPTIONS = [
-  { value: "", label: "All" },
-  { value: "male", label: "Bulls" },
-  { value: "female", label: "Cows" },
-  { value: "castrated", label: "Steers" },
-]
+/**
+ * Sex labels are species-specific — a sheep farmer should not be filtering by
+ * "Bulls". Falls back to the cattle wording for species we have no terms for.
+ */
+const SEX_LABELS_BY_SPECIES: Record<string, { male: string; female: string; castrated: string }> = {
+  cattle: { male: "Bulls", female: "Cows", castrated: "Steers" },
+  buffalo: { male: "Bulls", female: "Cows", castrated: "Steers" },
+  sheep: { male: "Rams", female: "Ewes", castrated: "Wethers" },
+  goats: { male: "Bucks", female: "Does", castrated: "Wethers" },
+  horses: { male: "Stallions", female: "Mares", castrated: "Geldings" },
+  pigs: { male: "Boars", female: "Sows", castrated: "Barrows" },
+  game: { male: "Males", female: "Females", castrated: "Castrated" },
+}
 
 export function VaccinationScheduleFormScreen({ route, navigation }: AppStackScreenProps<"VaccinationScheduleForm">) {
   const { mode, scheduleId } = route.params
@@ -67,10 +75,23 @@ export function VaccinationScheduleFormScreen({ route, navigation }: AppStackScr
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showProtocolModal, setShowProtocolModal] = useState(false)
   const [protocolSearch, setProtocolSearch] = useState("")
+  // Set when we leave to create a protocol, so we can reopen the picker and
+  // auto-select whatever the farmer just created instead of making them hunt.
+  const [awaitingNewProtocol, setAwaitingNewProtocol] = useState<string[] | null>(null)
 
   const vaccinationProtocols = useMemo(() => {
     return protocols.filter(p => p.protocolType === "vaccination" && p.isActive)
   }, [protocols])
+
+  const sexOptions = useMemo(() => {
+    const labels = SEX_LABELS_BY_SPECIES[targetSpecies] ?? SEX_LABELS_BY_SPECIES.cattle
+    return [
+      { value: "", label: t("vaccinationScheduleForm.sex.all") },
+      { value: "male", label: labels.male },
+      { value: "female", label: labels.female },
+      { value: "castrated", label: labels.castrated },
+    ]
+  }, [targetSpecies, t])
 
   const filteredProtocols = useMemo(() => {
     if (!protocolSearch.trim()) return vaccinationProtocols
@@ -80,6 +101,31 @@ export function VaccinationScheduleFormScreen({ route, navigation }: AppStackScr
       p.productName.toLowerCase().includes(search)
     )
   }, [vaccinationProtocols, protocolSearch])
+
+  // A RN Modal is a native overlay and would float above the pushed screen, so
+  // close it before navigating and reopen it once we're focused again.
+  const handleCreateProtocol = useCallback(() => {
+    setAwaitingNewProtocol(vaccinationProtocols.map((p) => p.id))
+    setShowProtocolModal(false)
+    setProtocolSearch("")
+    navigation.navigate("ProtocolForm", {})
+  }, [vaccinationProtocols, navigation])
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!awaitingNewProtocol) return
+      const created = vaccinationProtocols.find((p) => !awaitingNewProtocol.includes(p.id))
+      if (created) {
+        // Came back with a new protocol — select it and skip the picker entirely.
+        setSelectedProtocolId(created.id)
+        setAwaitingNewProtocol(null)
+      } else if (vaccinationProtocols.length > 0) {
+        // Came back without creating anything — reopen the picker where they left off.
+        setShowProtocolModal(true)
+        setAwaitingNewProtocol(null)
+      }
+    }, [awaitingNewProtocol, vaccinationProtocols]),
+  )
 
   // Load existing schedule data
   useEffect(() => {
@@ -107,25 +153,25 @@ export function VaccinationScheduleFormScreen({ route, navigation }: AppStackScr
   const handleSave = useCallback(async () => {
     // Validation
     if (!name.trim()) {
-      Alert.alert(t("common.error"), "Schedule name is required")
+      Alert.alert(t("common.error"), t("vaccinationScheduleForm.errors.nameRequired"))
       return
     }
     if (!selectedProtocolId) {
-      Alert.alert(t("common.error"), "Please select a vaccination protocol")
+      Alert.alert(t("common.error"), t("vaccinationScheduleForm.errors.protocolRequired"))
       return
     }
 
     // Schedule type specific validation
     if (scheduleType === "age_based" && !targetAgeMonths) {
-      Alert.alert(t("common.error"), "Target age is required for age-based schedules")
+      Alert.alert(t("common.error"), t("vaccinationScheduleForm.errors.targetAgeRequired"))
       return
     }
     if (scheduleType === "date_based" && !scheduledDate) {
-      Alert.alert(t("common.error"), "Scheduled date is required for date-based schedules")
+      Alert.alert(t("common.error"), t("vaccinationScheduleForm.errors.dateRequired"))
       return
     }
     if (scheduleType === "group_based" && (!selectedPastureId || !intervalMonths)) {
-      Alert.alert(t("common.error"), "Pasture and interval are required for group-based schedules")
+      Alert.alert(t("common.error"), t("vaccinationScheduleForm.errors.groupRequired"))
       return
     }
 
@@ -238,7 +284,7 @@ export function VaccinationScheduleFormScreen({ route, navigation }: AppStackScr
         <View style={themed($section)}>
           <Text preset="subheading" text="Schedule Type *" style={themed($sectionTitle)} />
           <View style={themed($typeRow)}>
-            {SCHEDULE_TYPES.map(type => {
+            {SCHEDULE_TYPE_META.map(type => {
               const isActive = scheduleType === type.value
               return (
                 <Pressable
@@ -252,7 +298,10 @@ export function VaccinationScheduleFormScreen({ route, navigation }: AppStackScr
                     color={isActive ? colors.tint : colors.textDim}
                   />
                   <Text style={[themed($typeText), isActive && themed($typeTextActive)]}>
-                    {type.label}
+                    {t(`vaccinationScheduleForm.scheduleTypes.${type.key}`)}
+                  </Text>
+                  <Text style={themed($typeHelpText)}>
+                    {t(`vaccinationScheduleForm.scheduleTypes.${type.key}Help`)}
                   </Text>
                 </Pressable>
               )
@@ -348,7 +397,7 @@ export function VaccinationScheduleFormScreen({ route, navigation }: AppStackScr
           <View>
             <Text preset="formLabel" text="Sex" style={themed($fieldLabel)} />
             <View style={themed($sexRow)}>
-              {SEX_OPTIONS.map(option => {
+              {sexOptions.map(option => {
                 const isActive = targetSex === option.value
                 return (
                   <Pressable
@@ -434,7 +483,11 @@ export function VaccinationScheduleFormScreen({ route, navigation }: AppStackScr
         <View style={themed($modalOverlay)}>
           <View style={themed($modalContent)}>
             <View style={themed($modalHeader)}>
-              <Text preset="heading" text="Select Vaccination Protocol" size="md" />
+              <Text
+                preset="heading"
+                text={t("vaccinationScheduleForm.protocolPicker.title")}
+                size="md"
+              />
               <Pressable onPress={() => setShowProtocolModal(false)}>
                 <MaterialCommunityIcons name="close" size={24} color={colors.text} />
               </Pressable>
@@ -443,7 +496,7 @@ export function VaccinationScheduleFormScreen({ route, navigation }: AppStackScr
             <TextField
               value={protocolSearch}
               onChangeText={setProtocolSearch}
-              placeholder="Search protocols..."
+              placeholder={t("vaccinationScheduleForm.protocolPicker.search")}
               containerStyle={themed($searchContainer)}
             />
 
@@ -473,10 +526,29 @@ export function VaccinationScheduleFormScreen({ route, navigation }: AppStackScr
               )}
               ListEmptyComponent={
                 <View style={themed($emptyProtocols)}>
-                  <Text text="No protocols found" style={themed($dimText)} />
+                  <Text
+                    text={
+                      protocolSearch.trim()
+                        ? t("vaccinationScheduleForm.protocolPicker.noMatches")
+                        : t("vaccinationScheduleForm.protocolPicker.emptyTitle")
+                    }
+                    preset="bold"
+                  />
+                  <Text
+                    text={t("vaccinationScheduleForm.protocolPicker.emptyHelp")}
+                    style={themed($emptyHelpText)}
+                  />
                 </View>
               }
               style={themed($protocolFlatList)}
+            />
+
+            {/* Without this, a farm with no protocols yet dead-ends here. */}
+            <Button
+              text={t("vaccinationScheduleForm.protocolPicker.createNew")}
+              preset="filled"
+              onPress={handleCreateProtocol}
+              style={themed($createProtocolButton)}
             />
 
             <Button text={t("common.cancel")} onPress={() => {
@@ -586,18 +658,31 @@ const $emptyProtocols: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   alignItems: "center",
 })
 
+const $emptyHelpText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  color: colors.textDim,
+  textAlign: "center",
+  marginTop: spacing.xs,
+})
+
+const $createProtocolButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  marginBottom: spacing.xs,
+})
+
+// Stacked vertically rather than three-across: each option now carries a plain
+// language example, which needs the full width to read as a sentence.
 const $typeRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flexDirection: "row",
+  flexDirection: "column",
   gap: spacing.sm,
 })
 
 const $typeCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  flex: 1,
+  flexDirection: "row",
+  flexWrap: "wrap",
   backgroundColor: colors.palette.neutral100,
   borderRadius: 12,
   padding: spacing.md,
   alignItems: "center",
-  gap: spacing.xs,
+  gap: spacing.sm,
   borderWidth: 2,
   borderColor: "transparent",
 })
@@ -608,9 +693,15 @@ const $typeCardActive: ThemedStyle<ViewStyle> = ({ colors }) => ({
 })
 
 const $typeText: ThemedStyle<TextStyle> = ({ colors }) => ({
-  fontSize: 13,
-  color: colors.textDim,
+  fontSize: 15,
+  color: colors.text,
   fontWeight: "500",
+})
+
+const $typeHelpText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 12,
+  color: colors.textDim,
+  width: "100%",
 })
 
 const $typeTextActive: ThemedStyle<TextStyle> = ({ colors }) => ({

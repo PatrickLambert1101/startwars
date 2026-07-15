@@ -297,7 +297,7 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
             <Switch
               value={isDarkMode}
               onValueChange={handleToggleDarkMode}
-              trackColor={{ false: "#D1D5DB", true: "#4A8C3F" }}
+              trackColor={{ false: "#D1D5DB", true: "#739134" }}
               thumbColor="#FFFFFF"
             />
           </View>
@@ -662,7 +662,7 @@ const $rfidStatusDot: ThemedStyle<ViewStyle> = () => ({
   width: 10,
   height: 10,
   borderRadius: 5,
-  backgroundColor: "#4A8C3F",
+  backgroundColor: "#739134",
 })
 
 const $rfidStatusText: ThemedStyle<TextStyle> = ({ colors }) => ({

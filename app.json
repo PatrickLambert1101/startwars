@@ -101,8 +101,22 @@
     }
   },
   "expo": {
-    "android": {},
-    "ios": {},
+    "android": {
+      "package": "com.lambertpatrick091.herdtrackr"
+    },
+    "ios": {
+      "privacyManifests": {
+        "NSPrivacyAccessedAPITypes": [
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "CA92.1"
+            ]
+          }
+        ]
+      },
+      "bundleIdentifier": "com.lambertpatrick091.herdtrackr"
+    },
     "web": {}
   }
 }

@@ -943,13 +943,9 @@ const $bottomLink: ThemedStyle<TextStyle> = ({ colors }) => ({
 const $logoImage: ThemedStyle<ImageStyle> = () => ({
   width: 80,
   height: 80,
-  borderRadius: 18,
-  backgroundColor: "#FFFFFF",
 })
 
 const $logoImageSmall: ThemedStyle<ImageStyle> = () => ({
   width: 60,
   height: 60,
-  borderRadius: 14,
-  backgroundColor: "#FFFFFF",
 })

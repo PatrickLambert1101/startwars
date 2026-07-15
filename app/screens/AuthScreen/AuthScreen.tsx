@@ -207,14 +207,10 @@ export function AuthScreen() {
       <View style={themed($content)}>
         <View style={themed($logoContainer)}>
           <Image
-            source={require("../../../assets/images/herdtrackr-logo-mark.png")}
-            style={themed($logoImage)}
+            source={require("../../../assets/images/herdtrackr-logo-text.png")}
+            style={themed($loginLogoImage)}
             resizeMode="contain"
           />
-          <Text preset="heading" style={themed($title)}>{t("authScreen.title")}</Text>
-          <Text style={themed($subtitle)}>
-            {t("authScreen.subtitle")}
-          </Text>
         </View>
 
         <View style={themed($form)}>
@@ -261,19 +257,19 @@ export function AuthScreen() {
           <View style={themed($benefitsContainer)}>
             <Text style={themed($benefitsTitle)}>{t("authScreen.benefits.title")}</Text>
             <View style={themed($benefitRow)}>
-              <MaterialCommunityIcons name="cellphone" size={20} color="#4A8C3F" />
+              <MaterialCommunityIcons name="cellphone" size={20} color="#739134" />
               <Text style={themed($benefitText)}>{t("authScreen.benefits.animals")}</Text>
             </View>
             <View style={themed($benefitRow)}>
-              <MaterialCommunityIcons name="grass" size={20} color="#4A8C3F" />
+              <MaterialCommunityIcons name="grass" size={20} color="#739134" />
               <Text style={themed($benefitText)}>{t("authScreen.benefits.pastures")}</Text>
             </View>
             <View style={themed($benefitRow)}>
-              <MaterialCommunityIcons name="account-multiple" size={20} color="#4A8C3F" />
+              <MaterialCommunityIcons name="account-multiple" size={20} color="#739134" />
               <Text style={themed($benefitText)}>{t("authScreen.benefits.team")}</Text>
             </View>
             <View style={themed($benefitRow)}>
-              <MaterialCommunityIcons name="cloud-sync" size={20} color="#4A8C3F" />
+              <MaterialCommunityIcons name="cloud-sync" size={20} color="#739134" />
               <Text style={themed($benefitText)}>{t("authScreen.benefits.sync")}</Text>
             </View>
           </View>
@@ -306,8 +302,14 @@ const $logoContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $logoImage: ThemedStyle<ImageStyle> = () => ({
   width: 120,
   height: 120,
-  borderRadius: 26,
-  backgroundColor: "#FFFFFF",
+  marginBottom: 16,
+})
+
+// Login screen only: the wordmark logo, sized up and dropped down the page.
+const $loginLogoImage: ThemedStyle<ImageStyle> = ({ spacing }) => ({
+  width: 275,
+  height: 275,
+  marginTop: spacing.xxl,
   marginBottom: 16,
 })
 

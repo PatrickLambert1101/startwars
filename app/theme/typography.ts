@@ -3,29 +3,30 @@
 
 import { Platform } from "react-native"
 import {
-  SpaceGrotesk_300Light as spaceGroteskLight,
-  SpaceGrotesk_400Regular as spaceGroteskRegular,
-  SpaceGrotesk_500Medium as spaceGroteskMedium,
-  SpaceGrotesk_600SemiBold as spaceGroteskSemiBold,
-  SpaceGrotesk_700Bold as spaceGroteskBold,
-} from "@expo-google-fonts/space-grotesk"
+  Manrope_300Light as manropeLight,
+  Manrope_400Regular as manropeRegular,
+  Manrope_500Medium as manropeMedium,
+  Manrope_600SemiBold as manropeSemiBold,
+  Manrope_700Bold as manropeBold,
+} from "@expo-google-fonts/manrope"
 
 export const customFontsToLoad = {
-  spaceGroteskLight,
-  spaceGroteskRegular,
-  spaceGroteskMedium,
-  spaceGroteskSemiBold,
-  spaceGroteskBold,
+  manropeLight,
+  manropeRegular,
+  manropeMedium,
+  manropeSemiBold,
+  manropeBold,
 }
 
 const fonts = {
-  spaceGrotesk: {
+  manrope: {
     // Cross-platform Google font.
-    light: "spaceGroteskLight",
-    normal: "spaceGroteskRegular",
-    medium: "spaceGroteskMedium",
-    semiBold: "spaceGroteskSemiBold",
-    bold: "spaceGroteskBold",
+    light: "manropeLight",
+    normal: "manropeRegular",
+    medium: "manropeMedium",
+    // Titles use semiBold; body copy uses normal (Manrope Regular).
+    semiBold: "manropeSemiBold",
+    bold: "manropeBold",
   },
   helveticaNeue: {
     // iOS only font.
@@ -59,7 +60,7 @@ export const typography = {
   /**
    * The primary font. Used in most places.
    */
-  primary: fonts.spaceGrotesk,
+  primary: fonts.manrope,
   /**
    * An alternate font used for perhaps titles and stuff.
    */

@@ -82,7 +82,7 @@ export function OrgSetupScreen({ navigation }: OrgSetupScreenProps) {
     <Screen preset="fixed" safeAreaEdges={["top", "bottom"]} contentContainerStyle={themed($container)}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={themed($scrollContent)}>
         <View style={themed($header)}>
-          <MaterialCommunityIcons name="grass" size={48} color="#4A8C3F" />
+          <MaterialCommunityIcons name="grass" size={48} color="#739134" />
           <Text preset="heading" style={themed($title)}>Set up your farm</Text>
           <Text style={themed($subtitle)}>
             Let's get started with some basic information
@@ -126,7 +126,7 @@ export function OrgSetupScreen({ navigation }: OrgSetupScreenProps) {
                     style={[themed($livestockCard), isSelected && themed($livestockCardSelected)]}
                     onPress={() => toggleLivestockType(option.type)}
                   >
-                    <MaterialCommunityIcons name={option.icon as any} size={32} color={isSelected ? "#FFF" : "#4A8C3F"} />
+                    <MaterialCommunityIcons name={option.icon as any} size={32} color={isSelected ? "#FFF" : "#739134"} />
                     <Text style={[themed($livestockLabel), isSelected && themed($livestockLabelSelected)]}>
                       {option.label}
                     </Text>

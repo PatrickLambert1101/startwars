@@ -994,6 +994,34 @@ const en = {
       },
     },
     },
+  vaccinationScheduleForm: {
+    protocolPicker: {
+      title: "Select Vaccine",
+      search: "Search vaccines...",
+      createNew: "+ Create New Vaccine",
+      emptyTitle: "No vaccines yet",
+      emptyHelp: "Add the vaccine you use — the product name, dose and withdrawal period — then you can schedule it.",
+      noMatches: "No vaccines match your search",
+    },
+    scheduleTypes: {
+      ageBased: "At a certain age",
+      ageBasedHelp: "e.g. first FMD shot at 4 months old",
+      dateBased: "On a set date",
+      dateBasedHelp: "e.g. every August, before the rains",
+      groupBased: "By camp or pasture",
+      groupBasedHelp: "e.g. everything in the north camp, every 6 months",
+    },
+    sex: {
+      all: "All",
+    },
+    errors: {
+      nameRequired: "Schedule name is required",
+      protocolRequired: "Please select a vaccine",
+      targetAgeRequired: "Target age is required when scheduling by age",
+      dateRequired: "A date is required when scheduling by date",
+      groupRequired: "Pasture and interval are required when scheduling by group",
+    },
+  },
   vaccinationScheduleScreen: {
     title: "Vaccination Schedules",
     createButton: "+ New",

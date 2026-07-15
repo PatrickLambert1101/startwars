@@ -154,7 +154,7 @@ export function SettingsIcon({ size = 24, color = "#333" }: IconProps) {
 /**
  * Cattle silhouette — used as decorative illustration
  */
-export function CattleSilhouette({ size = 200, color = "#2D5A27" }: IconProps) {
+export function CattleSilhouette({ size = 200, color = "#576E28" }: IconProps) {
   return (
     <Svg width={size} height={size * 0.55} viewBox="0 0 200 110" fill="none">
       {/* Cow body silhouette */}

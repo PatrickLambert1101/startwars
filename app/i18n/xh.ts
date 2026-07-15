@@ -994,6 +994,34 @@ const xh = {
       },
     },
     },
+  vaccinationScheduleForm: {
+    protocolPicker: {
+      title: "Khetha Isitofu",
+      search: "Khangela izitofu...",
+      createNew: "+ Yenza Isitofu Esitsha",
+      emptyTitle: "Azikho izitofu okwangoku",
+      emptyHelp: "Yongeza isitofu osisebenzisayo — igama lemveliso, umlinganiselo kunye nexesha lokuyeka — uze ukwazi ukusicwangcisa.",
+      noMatches: "Azikho izitofu ezihambelana nokhangelo lwakho",
+    },
+    scheduleTypes: {
+      ageBased: "Kwiminyaka ethile",
+      ageBasedHelp: "umz. inaliti yokuqala ye-FMD kwiinyanga ezi-4",
+      dateBased: "Ngomhla omiselweyo",
+      dateBasedHelp: "umz. rhoqo ngo-Agasti, phambi kwemvula",
+      groupBased: "Ngenkampu okanye idlelo",
+      groupBasedHelp: "umz. yonke into esenkampini esemantla, rhoqo kwiinyanga ezi-6",
+    },
+    sex: {
+      all: "Zonke",
+    },
+    errors: {
+      nameRequired: "Igama leshedyuli liyafuneka",
+      protocolRequired: "Nceda khetha isitofu",
+      targetAgeRequired: "Iminyaka ekujoliswe kuyo iyafuneka xa ucwangcisa ngeminyaka",
+      dateRequired: "Umhla uyafuneka xa ucwangcisa ngomhla",
+      groupRequired: "Idlelo kunye nesithuba kuyafuneka xa ucwangcisa ngeqela",
+    },
+  },
   vaccinationScheduleScreen: {
     title: "Amaxesha oGonyo",
     createButton: "+ Entsha",

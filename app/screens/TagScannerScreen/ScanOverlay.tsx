@@ -151,7 +151,7 @@ const $corner: ThemedStyle<ViewStyle> = () => ({
   position: "absolute",
   width: 40,
   height: 40,
-  borderColor: "#4A8C3F",
+  borderColor: "#739134",
   borderWidth: 4,
 })
 
@@ -188,7 +188,7 @@ const $cornerBottomRight: ThemedStyle<ViewStyle> = () => ({
 })
 
 const $detectedBadge: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  backgroundColor: "#4A8C3F",
+  backgroundColor: "#739134",
   borderRadius: 16,
   paddingHorizontal: spacing.lg,
   paddingVertical: spacing.md,
@@ -231,7 +231,7 @@ const $subInstruction: ThemedStyle<TextStyle> = () => ({
 })
 
 const $successText: ThemedStyle<TextStyle> = () => ({
-  color: "#4A8C3F",
+  color: "#739134",
   textAlign: "center",
 })
 

@@ -16,7 +16,7 @@ type IllustrationProps = {
 export function PhoneMockup({
   width = 180,
   height = 340,
-  primaryColor = "#4A8C3F",
+  primaryColor = "#739134",
   accentColor = "#F5AD1C",
 }: IllustrationProps) {
   const scale = width / 180
@@ -29,7 +29,7 @@ export function PhoneMockup({
         </LinearGradient>
         <LinearGradient id="screenGrad" x1="0" y1="0" x2="0" y2="1">
           <Stop offset="0" stopColor="#F5F3F0" />
-          <Stop offset="1" stopColor="#E2EDDF" />
+          <Stop offset="1" stopColor="#EEF2E7" />
         </LinearGradient>
       </Defs>
       {/* Phone body */}
@@ -97,7 +97,7 @@ export function PhoneMockup({
 export function ScannerDevice({
   width = 160,
   height = 200,
-  primaryColor = "#4A8C3F",
+  primaryColor = "#739134",
   accentColor = "#F5AD1C",
 }: IllustrationProps) {
   return (
@@ -148,7 +148,7 @@ export function ScannerDevice({
 export function OfflineSyncIcon({
   width = 64,
   height = 64,
-  primaryColor = "#4A8C3F",
+  primaryColor = "#739134",
 }: IllustrationProps) {
   return (
     <Svg width={width} height={height} viewBox="0 0 64 64">
@@ -176,7 +176,7 @@ export function OfflineSyncIcon({
 export function TrustShieldIcon({
   width = 64,
   height = 64,
-  primaryColor = "#4A8C3F",
+  primaryColor = "#739134",
 }: IllustrationProps) {
   return (
     <Svg width={width} height={height} viewBox="0 0 64 64">
@@ -205,13 +205,13 @@ export function TrustShieldIcon({
 export function RanchLandscape({
   width = 400,
   height = 200,
-  primaryColor = "#4A8C3F",
+  primaryColor = "#739134",
   accentColor = "#F5AD1C",
 }: IllustrationProps) {
   return (
     <Svg width={width} height={height} viewBox="0 0 400 200">
       {/* Sky gradient via layered rects */}
-      <Rect x="0" y="0" width="400" height="200" fill="#E2EDDF" opacity={0.3} />
+      <Rect x="0" y="0" width="400" height="200" fill="#EEF2E7" opacity={0.3} />
 
       {/* Sun */}
       <Circle cx="320" cy="40" r="24" fill={accentColor} opacity={0.2} />
@@ -250,7 +250,7 @@ export function RanchLandscape({
 export function VsBadge({
   width = 48,
   height = 48,
-  primaryColor = "#4A8C3F",
+  primaryColor = "#739134",
 }: IllustrationProps) {
   return (
     <Svg width={width} height={height} viewBox="0 0 48 48">
@@ -268,7 +268,7 @@ export function VsBadge({
  */
 export function CheckBadge({
   size = 24,
-  color = "#4A8C3F",
+  color = "#739134",
   variant = "filled",
 }: {
   size?: number

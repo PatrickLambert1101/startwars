@@ -1,4 +1,4 @@
-package com.herdtrackr
+package com.lambertpatrick091.herdtrackr
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

@@ -9,13 +9,13 @@ const palette = {
   neutral800: "#1E1A16",
   neutral900: "#000000",
 
-  // Earthy green — primary brand color (pasture/ranch)
-  primary100: "#E2EDDF",
-  primary200: "#C5DBBF",
-  primary300: "#9DC393",
-  primary400: "#6FA862",
-  primary500: "#4A8C3F",
-  primary600: "#36712D",
+  // Earthy green — primary brand color, anchored on the logo green (#739134)
+  primary100: "#EEF2E7",
+  primary200: "#D8E0C6",
+  primary300: "#B6C695",
+  primary400: "#95AB65",
+  primary500: "#739134",
+  primary600: "#576E28",
 
   // Warm brown — secondary (leather/earth)
   secondary100: "#EDE5DA",

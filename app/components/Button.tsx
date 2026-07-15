@@ -191,7 +191,7 @@ const $baseViewStyle: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $baseTextStyle: ThemedStyle<TextStyle> = ({ typography }) => ({
   fontSize: 16,
   lineHeight: 20,
-  fontFamily: typography.primary.medium,
+  fontFamily: typography.primary.semiBold,
   textAlign: "center",
   flexShrink: 1,
   flexGrow: 0,
@@ -220,7 +220,7 @@ const $viewPresets: Record<Presets, ThemedStyleArray<ViewStyle>> = {
   filled: [
     $styles.row,
     $baseViewStyle,
-    ({ colors }) => ({ backgroundColor: colors.palette.neutral300 }),
+    ({ colors }) => ({ backgroundColor: colors.palette.primary500 }),
   ],
   reversed: [
     $styles.row,
@@ -231,13 +231,14 @@ const $viewPresets: Record<Presets, ThemedStyleArray<ViewStyle>> = {
 
 const $textPresets: Record<Presets, ThemedStyleArray<TextStyle>> = {
   default: [$baseTextStyle],
-  filled: [$baseTextStyle],
+  // White label on the brand green fill.
+  filled: [$baseTextStyle, ({ colors }) => ({ color: colors.palette.neutral100 })],
   reversed: [$baseTextStyle, ({ colors }) => ({ color: colors.palette.neutral100 })],
 }
 
 const $pressedViewPresets: Record<Presets, ThemedStyle<ViewStyle>> = {
   default: ({ colors }) => ({ backgroundColor: colors.palette.neutral200 }),
-  filled: ({ colors }) => ({ backgroundColor: colors.palette.neutral400 }),
+  filled: ({ colors }) => ({ backgroundColor: colors.palette.primary600 }),
   reversed: ({ colors }) => ({ backgroundColor: colors.palette.neutral700 }),
 }
 

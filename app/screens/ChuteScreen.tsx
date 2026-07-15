@@ -446,11 +446,11 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
         <View style={themed($modePickerArea)}>
           <Pressable
             onPress={() => setSessionMode("weight")}
-            style={[themed($modeCard), { borderColor: "#4A8C3F" }]}
+            style={[themed($modeCard), { borderColor: "#739134" }]}
           >
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              <MaterialCommunityIcons name="scale" size={20} color="#4A8C3F" />
-              <Text preset="subheading" text={t("chuteScreen.modes.weight.title")} style={{ color: "#4A8C3F" }} />
+              <MaterialCommunityIcons name="scale" size={20} color="#739134" />
+              <Text preset="subheading" text={t("chuteScreen.modes.weight.title")} style={{ color: "#739134" }} />
             </View>
             <Text size="xs" text={t("chuteScreen.modes.weight.description")} style={themed($dimText)} />
           </Pressable>
@@ -487,7 +487,7 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
     )
   }
 
-  const modeColor = activeMode === "weight" ? "#4A8C3F" : activeMode === "weight_and_treatment" ? "#8B5CF6" : activeMode === "protocol" ? "#10B981" : "#F59E0B"
+  const modeColor = activeMode === "weight" ? "#739134" : activeMode === "weight_and_treatment" ? "#8B5CF6" : activeMode === "protocol" ? "#10B981" : "#F59E0B"
   const modeLabel = activeMode === "weight" ? t("chuteScreen.modes.weight.sessionTitle") : activeMode === "weight_and_treatment" ? t("chuteScreen.modes.weightAndTreatment.sessionTitle") : activeMode === "protocol" ? t("chuteScreen.modes.protocol.sessionTitle") : t("chuteScreen.modes.condition.sessionTitle")
 
   return (
@@ -691,7 +691,7 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
                 <WeightChart records={weightHistory} />
               )}
               <View style={themed($formCard)}>
-                <Text preset="bold" text={t("chuteScreen.weightAndTreatment.step1")} size="md" style={{ color: "#4A8C3F" }} />
+                <Text preset="bold" text={t("chuteScreen.weightAndTreatment.step1")} size="md" style={{ color: "#739134" }} />
                 <TextField
                   label={t("chuteScreen.weightAndTreatment.weightLabel")}
                   value={weightValue}

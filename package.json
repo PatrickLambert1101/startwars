@@ -35,6 +35,7 @@
     "demo:generate": "tsx scripts/generate-demo-data.ts"
   },
   "dependencies": {
+    "@expo-google-fonts/manrope": "^0.4.2",
     "@expo-google-fonts/space-grotesk": "^0.4.0",
     "@expo/metro-runtime": "~6.1.2",
     "@nozbe/watermelondb": "^0.28.0",

@@ -87,13 +87,13 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.herdtrackr'
+    namespace 'com.lambertpatrick091.herdtrackr'
     defaultConfig {
-        applicationId 'com.herdtrackr'
+        applicationId 'com.lambertpatrick091.herdtrackr'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName "1.0.0"
+        versionName "0.0.1"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
@@ -155,21 +155,6 @@ android {
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
-
-    // RxJava3 for RFID scanning service
-    implementation 'io.reactivex.rxjava3:rxjava:3.1.5'
-    implementation 'io.reactivex.rxjava3:rxandroid:3.0.2'
-
-    // UHF RFID Scanner JAR dependencies
-    implementation files('libs/UHF67_v1.0.9.jar')  // UHFRManager for trigger scanner
-    implementation files('libs/uhfcom13_v15.jar')
-    implementation files('libs/DeviceAPIver20150204.jar')
-    implementation files('libs/IGLBarDecoder.jar')
-    implementation files('libs/SerialPort.jar')
-    implementation files('libs/reader(1).jar')
-    implementation files('libs/logutil-1.5.1.1.jar')
-    implementation files('libs/ModuleAPI_J.jar')
-    implementation files('libs/jxl.jar')
 
     def isGifEnabled = (findProperty('expo.gif.enabled') ?: "") == "true";
     def isWebpEnabled = (findProperty('expo.webp.enabled') ?: "") == "true";

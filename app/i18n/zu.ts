@@ -994,6 +994,34 @@ const zu = {
       },
     },
     },
+  vaccinationScheduleForm: {
+    protocolPicker: {
+      title: "Khetha Umuthi Wokugoma",
+      search: "Sesha imithi yokugoma...",
+      createNew: "+ Dala Umuthi Omusha",
+      emptyTitle: "Ayikho imithi yokugoma okwamanje",
+      emptyHelp: "Faka umuthi wokugoma owusebenzisayo — igama lomkhiqizo, umthamo nesikhathi sokuyeka — bese ungawuhlela.",
+      noMatches: "Ayikho imithi ehambisana nosesho lwakho",
+    },
+    scheduleTypes: {
+      ageBased: "Ngeminyaka ethile",
+      ageBasedHelp: "isb. umjovo wokuqala we-FMD ezinyangeni ezingu-4",
+      dateBased: "Ngosuku olumisiwe",
+      dateBasedHelp: "isb. njalo ngo-Agasti, ngaphambi kwemvula",
+      groupBased: "Ngekamu noma idlelo",
+      groupBasedHelp: "isb. konke okusekamu elisenyakatho, njalo ezinyangeni ezingu-6",
+    },
+    sex: {
+      all: "Konke",
+    },
+    errors: {
+      nameRequired: "Igama leshejuli liyadingeka",
+      protocolRequired: "Sicela ukhethe umuthi wokugoma",
+      targetAgeRequired: "Iminyaka okuhlosiwe iyadingeka uma uhlela ngeminyaka",
+      dateRequired: "Usuku luyadingeka uma uhlela ngosuku",
+      groupRequired: "Idlelo nesikhawu kuyadingeka uma uhlela ngeqembu",
+    },
+  },
   vaccinationScheduleScreen: {
     title: "Imihlelo Yemigomo",
     createButton: "+ Okusha",

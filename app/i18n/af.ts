@@ -994,6 +994,34 @@ const af = {
       },
     },
     },
+  vaccinationScheduleForm: {
+    protocolPicker: {
+      title: "Kies Entstof",
+      search: "Soek entstowwe...",
+      createNew: "+ Skep Nuwe Entstof",
+      emptyTitle: "Nog geen entstowwe nie",
+      emptyHelp: "Voeg die entstof by wat jy gebruik — die produknaam, dosis en onttrekkingstydperk — dan kan jy dit skeduleer.",
+      noMatches: "Geen entstowwe pas by jou soektog nie",
+    },
+    scheduleTypes: {
+      ageBased: "Op \'n sekere ouderdom",
+      ageBasedHelp: "bv. eerste BSM-inspuiting op 4 maande oud",
+      dateBased: "Op \'n vasgestelde datum",
+      dateBasedHelp: "bv. elke Augustus, voor die reën",
+      groupBased: "Per kamp of weiding",
+      groupBasedHelp: "bv. alles in die noordkamp, elke 6 maande",
+    },
+    sex: {
+      all: "Almal",
+    },
+    errors: {
+      nameRequired: "Skedulenaam word vereis",
+      protocolRequired: "Kies asseblief \'n entstof",
+      targetAgeRequired: "Teikenouderdom word vereis wanneer jy volgens ouderdom skeduleer",
+      dateRequired: "\'n Datum word vereis wanneer jy volgens datum skeduleer",
+      groupRequired: "Weiding en interval word vereis wanneer jy volgens groep skeduleer",
+    },
+  },
   vaccinationScheduleScreen: {
     title: "Inentingskedules",
     createButton: "+ Nuut",

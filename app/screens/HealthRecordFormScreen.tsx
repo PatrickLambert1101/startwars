@@ -239,7 +239,7 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
             {selectedProtocol ? (
               <View style={themed($selectedProtocol)}>
                 <View style={themed($selectedProtocolInfo)}>
-                  <Icon icon="check" size={20} color="#4A8C3F" />
+                  <Icon icon="check" size={20} color="#739134" />
                   <View style={themed($selectedProtocolText)}>
                     <Text style={themed($selectedProtocolName)}>{selectedProtocol.name}</Text>
                     <Text style={themed($selectedProtocolDetail)}>{t("healthRecordFormScreen.protocol.selectedDetail", { productName: selectedProtocol.productName, dosage: selectedProtocol.dosage })}</Text>
@@ -438,11 +438,11 @@ const $selectedProtocol: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
   justifyContent: "space-between",
-  backgroundColor: "#E2EDDF",
+  backgroundColor: "#EEF2E7",
   borderRadius: 12,
   padding: spacing.md,
   borderWidth: 2,
-  borderColor: "#4A8C3F",
+  borderColor: "#739134",
 })
 
 const $selectedProtocolInfo: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -459,7 +459,7 @@ const $selectedProtocolText: ThemedStyle<ViewStyle> = () => ({
 const $selectedProtocolName: ThemedStyle<TextStyle> = () => ({
   fontSize: 16,
   fontWeight: "600",
-  color: "#36712D",
+  color: "#576E28",
   marginBottom: 2,
 })
 

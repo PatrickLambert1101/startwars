@@ -66,14 +66,11 @@ const $container: ThemedStyle<ViewStyle> = ({ colors }) => ({
   backgroundColor: colors.background,
 })
 
-// The logo art is a full-colour mark on an opaque white canvas, so it needs a
-// light backdrop. Rounding the image itself turns that canvas into a deliberate
-// badge that reads correctly on both the light and dark themes.
+// The logo art ships on an opaque canvas recoloured to the light-theme
+// background (#F5F3F0), so it blends seamlessly with no visible edge.
 const $logo: ThemedStyle<ImageStyle> = () => ({
   width: 280,
   height: 280,
-  borderRadius: 60,
-  backgroundColor: "#FFFFFF",
 })
 
 const $message: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({

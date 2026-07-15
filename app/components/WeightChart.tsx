@@ -40,7 +40,7 @@ export function WeightChart({ records }: WeightChartProps) {
           text={changeLabel}
           size="sm"
           preset="bold"
-          style={{ color: change >= 0 ? "#4A8C3F" : "#D64220" }}
+          style={{ color: change >= 0 ? "#739134" : "#D64220" }}
         />
       </View>
 
@@ -62,14 +62,14 @@ export function WeightChart({ records }: WeightChartProps) {
                   text={`${r.weightKg}`}
                   size="xxs"
                   preset={isLatest ? "bold" : "default"}
-                  style={isLatest ? { color: "#4A8C3F" } : themed($dimText)}
+                  style={isLatest ? { color: "#739134" } : themed($dimText)}
                 />
                 <View
                   style={[
                     themed($bar),
                     {
                       height: `${height}%`,
-                      backgroundColor: isLatest ? "#4A8C3F" : theme.colors.tint + "88",
+                      backgroundColor: isLatest ? "#739134" : theme.colors.tint + "88",
                     },
                   ]}
                 />
@@ -87,7 +87,7 @@ export function WeightChart({ records }: WeightChartProps) {
         </View>
         <View style={themed($statItem)}>
           <Text text="Latest" size="xxs" style={themed($dimText)} />
-          <Text text={`${latest.toFixed(0)} kg`} size="xs" preset="bold" style={{ color: "#4A8C3F" }} />
+          <Text text={`${latest.toFixed(0)} kg`} size="xs" preset="bold" style={{ color: "#739134" }} />
         </View>
         {adg && (
           <View style={themed($statItem)}>

@@ -166,7 +166,7 @@ export function TreatmentProtocolsScreen({ navigation }: TreatmentProtocolsScree
             }}
             style={[themed($toggleButton), item.isActive && themed($toggleButtonActive)]}
           >
-            <Icon icon={item.isActive ? "check" : "x"} size={18} color={item.isActive ? "#4A8C3F" : "#999"} />
+            <Icon icon={item.isActive ? "check" : "x"} size={18} color={item.isActive ? "#739134" : "#999"} />
           </Pressable>
           <Pressable onPress={() => handleEditProtocol(item.id)} style={themed($editButton)}>
             <Icon icon="settings" size={20} />
@@ -442,11 +442,11 @@ const $toggleButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
 })
 
 const $toggleButtonActive: ThemedStyle<ViewStyle> = () => ({
-  backgroundColor: "#E2EDDF",
+  backgroundColor: "#EEF2E7",
 })
 
 const TYPE_BADGE_COLORS: Record<string, { bg: string; text: string }> = {
-  vaccination: { bg: "#E2EDDF", text: "#36712D" },
+  vaccination: { bg: "#EEF2E7", text: "#576E28" },
   treatment: { bg: "#FFF3DB", text: "#96660A" },
   deworming: { bg: "#E0E8F0", text: "#3A5A7C" },
   other: { bg: "#F0E8F0", text: "#6A4A6A" },

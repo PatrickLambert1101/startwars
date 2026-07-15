@@ -102,14 +102,15 @@ const $baseStyle: ThemedStyle<TextStyle> = (theme) => ({
 const $presets: Record<Presets, ThemedStyleArray<TextStyle>> = {
   default: [$baseStyle],
   bold: [$baseStyle, { ...$fontWeightStyles.bold }],
+  // Titles: Manrope SemiBold. Body copy inherits $baseStyle's `normal` (Manrope Regular).
   heading: [
     $baseStyle,
     {
       ...$sizeStyles.xxl,
-      ...$fontWeightStyles.bold,
+      ...$fontWeightStyles.semiBold,
     },
   ],
-  subheading: [$baseStyle, { ...$sizeStyles.lg, ...$fontWeightStyles.medium }],
+  subheading: [$baseStyle, { ...$sizeStyles.lg, ...$fontWeightStyles.semiBold }],
   formLabel: [$baseStyle, { ...$fontWeightStyles.medium }],
   formHelper: [$baseStyle, { ...$sizeStyles.sm, ...$fontWeightStyles.normal }],
 }
