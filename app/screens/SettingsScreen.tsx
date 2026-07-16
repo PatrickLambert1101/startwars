@@ -255,12 +255,6 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
 
   const powerPercent = Math.round(((readerPower - POWER_MIN) / (POWER_MAX - POWER_MIN)) * 100)
 
-  const isDarkMode = themeContext === "dark"
-
-  const handleToggleDarkMode = useCallback(() => {
-    setThemeContextOverride(isDarkMode ? "light" : "dark")
-  }, [isDarkMode, setThemeContextOverride])
-
   const handleChangeLanguage = useCallback(
     (languageCode: string) => {
       i18n.changeLanguage(languageCode)
@@ -281,28 +275,9 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
         <View style={themed($backButtonPlaceholder)} />
       </View>
 
-      <View style={themed($section)}>
-        <Text preset="formLabel" text={t("settingsScreen.sections.appearance")} style={themed($sectionLabel)} />
-        <View style={themed($themeCard)}>
-          <View style={themed($themeRow)}>
-            <View style={themed($themeContent)}>
-              <Icon icon={isDarkMode ? "view" : "hidden"} size={24} color={themed($themeIcon).color} />
-              <View>
-                <Text style={themed($themeTitle)}>{t("settingsScreen.appearance.darkMode")}</Text>
-                <Text style={themed($themeSubtext)}>
-                  {isDarkMode ? t("settingsScreen.appearance.darkThemeEnabled") : t("settingsScreen.appearance.lightThemeEnabled")}
-                </Text>
-              </View>
-            </View>
-            <Switch
-              value={isDarkMode}
-              onValueChange={handleToggleDarkMode}
-              trackColor={{ false: "#D1D5DB", true: "#739134" }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
-        </View>
-      </View>
+      {/* APPEARANCE / dark mode toggle intentionally hidden — the app is
+          light-only for now and the theme is pinned to light in
+          app/theme/context.tsx. Re-enable both together. */}
 
       <View style={themed($section)}>
         <Text preset="formLabel" text={t("settingsScreen.sections.language")} style={themed($sectionLabel)} />

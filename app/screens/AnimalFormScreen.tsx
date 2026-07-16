@@ -1,5 +1,5 @@
 import { FC, useCallback, useEffect, useState } from "react"
-import { Alert, Pressable, View, ViewStyle, TextStyle, ActivityIndicator, Modal, FlatList, Platform } from "react-native"
+import { Alert, Pressable, View, ViewStyle, TextStyle, ActivityIndicator, Modal, FlatList, Platform, Switch } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
 
@@ -55,6 +55,9 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
   const [breed, setBreed] = useState("")
   const [sex, setSex] = useState<AnimalSex>("female")
   const [status, setStatus] = useState<AnimalStatus>("active")
+  // Defaults true: most animals joining an established herd are already current,
+  // and back-filling their history as overdue shots is noise, not information.
+  const [vaccinationsUpToDate, setVaccinationsUpToDate] = useState(true)
   const [dateOfBirth, setDateOfBirth] = useState<Date | null>(null)
   const [registrationNumber, setRegistrationNumber] = useState("")
   const [herdTag, setHerdTag] = useState("")
@@ -97,6 +100,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
       setBreed(animal.breed)
       setSex(animal.sex)
       setStatus(animal.status)
+      setVaccinationsUpToDate(animal.vaccinationsUpToDate)
       setDateOfBirth(animal.dateOfBirth || null)
       setRegistrationNumber(animal.registrationNumber || "")
       setNotes(animal.notes || "")
@@ -221,6 +225,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
         sex,
         dateOfBirth: dateOfBirth || undefined,
         status,
+        vaccinationsUpToDate,
         registrationNumber: registrationNumber.trim() || undefined,
         notes: notes.trim() || undefined,
         tags: tagsJson,
@@ -251,7 +256,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
       )
     }
     setIsSubmitting(false)
-  }, [rfidTag, visualTag, name, breed, sex, dateOfBirth, status, registrationNumber, notes, photos, tags, currentOrg, isEditing, animalId, createAnimal, updateAnimal, navigation, t, hasRfidHardware, animals])
+  }, [rfidTag, visualTag, name, breed, sex, dateOfBirth, status, vaccinationsUpToDate, registrationNumber, notes, photos, tags, currentOrg, isEditing, animalId, createAnimal, updateAnimal, navigation, t, hasRfidHardware, animals])
 
   const uploadPhotosInBackground = async (savedAnimalId: string, photosToUpload: PhotoWithMetadata[]) => {
     try {
@@ -421,6 +426,29 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
               placeholder={t("animalFormScreen.fields.dateOfBirth.placeholder")}
             />
           </View>
+        </View>
+
+        {/* Sits under date of birth: that's the moment the farmer has this
+            animal's history in mind, and it's what drives the back-fill. */}
+        <View style={themed($vaccStatusRow)}>
+          <View style={themed($vaccStatusText)}>
+            <Text preset="formLabel" text={t("animalFormScreen.fields.vaccinationsUpToDate.label")} />
+            <Text
+              size="xxs"
+              style={themed($vaccStatusHelp)}
+              text={
+                vaccinationsUpToDate
+                  ? t("animalFormScreen.fields.vaccinationsUpToDate.helpOn")
+                  : t("animalFormScreen.fields.vaccinationsUpToDate.helpOff")
+              }
+            />
+          </View>
+          <Switch
+            value={vaccinationsUpToDate}
+            onValueChange={setVaccinationsUpToDate}
+            trackColor={{ false: "#D1D5DB", true: colors.palette.primary500 }}
+            thumbColor="#FFFFFF"
+          />
         </View>
 
         {/* Lineage Section */}
@@ -640,6 +668,24 @@ const $form: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $row: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   gap: spacing.sm,
+})
+
+const $vaccStatusRow: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.md,
+  backgroundColor: colors.palette.neutral100,
+  borderRadius: 12,
+  padding: spacing.md,
+})
+
+const $vaccStatusText: ThemedStyle<ViewStyle> = () => ({
+  flex: 1,
+})
+
+const $vaccStatusHelp: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  color: colors.textDim,
+  marginTop: spacing.xxs,
 })
 
 const $halfField: ThemedStyle<ViewStyle> = () => ({

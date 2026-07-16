@@ -7,6 +7,7 @@ import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { useAuth } from "@/context/AuthContext"
 import { saveString } from "@/utils/storage"
+import { navigationRef } from "@/navigators/navigationUtilities"
 
 // Hard-gated behind __DEV__ so it can never be enabled in a release build.
 const DEV_SKIP_AUTH = __DEV__ && process.env.EXPO_PUBLIC_DEV_SKIP_AUTH === "true"
@@ -254,6 +255,14 @@ export function AuthScreen() {
             style={themed($button)}
           />
 
+          <Button
+            text="Browse icon library"
+            preset="default"
+            onPress={() => navigationRef.navigate("IconGallery")}
+            style={themed($iconGalleryButton)}
+            textStyle={themed($iconGalleryButtonText)}
+          />
+
           <View style={themed($benefitsContainer)}>
             <Text style={themed($benefitsTitle)}>{t("authScreen.benefits.title")}</Text>
             <View style={themed($benefitRow)}>
@@ -351,6 +360,16 @@ const $field: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 
 const $button: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   marginBottom: spacing.lg,
+})
+
+const $iconGalleryButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  alignSelf: "center",
+  marginTop: -spacing.md,
+  marginBottom: spacing.md,
+})
+
+const $iconGalleryButtonText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.tint,
 })
 
 const $benefitsContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({

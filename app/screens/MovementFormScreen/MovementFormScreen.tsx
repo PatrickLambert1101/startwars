@@ -11,6 +11,7 @@ import { database } from "@/db"
 import { Animal } from "@/db/models"
 import { Q } from "@nozbe/watermelondb"
 import { useDatabase } from "@/context/DatabaseContext"
+import { calculateScheduledVaccinations } from "@/services/vaccinationScheduler"
 import { useRfidReader } from "@/hooks/useRfidReader"
 
 interface MovementFormScreenProps extends AppStackScreenProps<"MovementForm"> {}
@@ -258,6 +259,17 @@ export function MovementFormScreen({ navigation, route }: MovementFormScreenProp
       } else {
         await moveAnimalsOut(selectedPastureId, selectedAnimalIds, notes || undefined)
       }
+
+      // Group-based schedules select animals by current_pasture_id, so moving a
+      // mob changes who is eligible. Without this their group vaccinations stay
+      // attached to where they used to be. Fire-and-forget: the move already
+      // succeeded and must not fail on a recalc error.
+      if (currentOrg) {
+        calculateScheduledVaccinations(currentOrg.id).catch((err) => {
+          console.error("[MovementForm] Failed to recalculate vaccinations after move:", err)
+        })
+      }
+
       navigation.goBack()
     } catch (error) {
       console.error("Failed to move animals:", error)

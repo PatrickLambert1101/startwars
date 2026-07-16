@@ -26,6 +26,12 @@ export type AnimalFormData = {
   damId?: string
   registrationNumber?: string
   status: AnimalStatus
+  /**
+   * True = already current on its shots, so the scheduler skips anything that
+   * fell due before now. Defaults to true — most animals being added to an
+   * established herd are already vaccinated.
+   */
+  vaccinationsUpToDate?: boolean
   herdTag?: string
   notes?: string
 }
@@ -224,6 +230,7 @@ export function useAnimalActions() {
         animal.damId = data.damId ?? null
         animal.registrationNumber = data.registrationNumber ?? null
         animal.status = data.status
+        animal.vaccinationsUpToDate = data.vaccinationsUpToDate ?? true
         animal.herdTag = data.herdTag ?? null
         animal.notes = data.notes ?? null
         animal.isDeleted = false
@@ -249,7 +256,11 @@ export function useAnimalActions() {
   const updateAnimal = async (animalId: string, data: Partial<AnimalFormData>): Promise<void> => {
     if (!currentOrg) throw new Error("No organization selected")
 
-    const shouldRecalculate = data.dateOfBirth !== undefined || data.sex !== undefined || data.status !== undefined
+    const shouldRecalculate =
+      data.dateOfBirth !== undefined ||
+      data.sex !== undefined ||
+      data.status !== undefined ||
+      data.vaccinationsUpToDate !== undefined
 
     await database.write(async () => {
       const animal = await database.get<Animal>("animals").find(animalId)
@@ -264,6 +275,7 @@ export function useAnimalActions() {
         if (data.damId !== undefined) a.damId = data.damId ?? null
         if (data.registrationNumber !== undefined) a.registrationNumber = data.registrationNumber ?? null
         if (data.status !== undefined) a.status = data.status
+        if (data.vaccinationsUpToDate !== undefined) a.vaccinationsUpToDate = data.vaccinationsUpToDate
         if (data.herdTag !== undefined) a.herdTag = data.herdTag ?? null
         if (data.notes !== undefined) a.notes = data.notes ?? null
         if (data.tags !== undefined) a.tags = data.tags ?? null

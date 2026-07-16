@@ -1,4 +1,5 @@
 export { AppIcon } from "./AppIcon"
+export * from "./HerdTrackrIcons"
 export { HerdTrackrLogo } from "./HerdTrackrLogo"
 export {
   BarnIcon,

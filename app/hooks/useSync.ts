@@ -5,6 +5,7 @@ import { logSyncOperation, startTransaction, captureException } from "@/services
 import * as Sentry from "@sentry/react-native"
 import { useDatabase } from "@/context/DatabaseContext"
 import { supabase } from "@/services/supabase"
+import { calculateScheduledVaccinations } from "@/services/vaccinationScheduler"
 
 export type SyncStatus = "idle" | "syncing" | "success" | "error"
 export type SyncStage = "pulling" | "processing" | "pushing" | "complete"
@@ -36,6 +37,17 @@ const REALTIME_TABLES = [
 ]
 
 export function useSync() {
+  const { currentOrg } = useDatabase()
+
+  // performSync is memoised on [scheduleRetry] only, so reading currentOrg
+  // directly from its closure would pin it to the first render (null, before
+  // the org loads). Mirror it into a ref instead of widening the deps, which
+  // would change performSync's identity and re-fire the effects keyed on it.
+  const currentOrgRef = useRef(currentOrg)
+  useEffect(() => {
+    currentOrgRef.current = currentOrg
+  }, [currentOrg])
+
   const [status, setStatus] = useState<SyncStatus>("idle")
   const [progress, setProgress] = useState<number>(0)
   const [stage, setStage] = useState<SyncStage | null>(null)
@@ -143,6 +155,21 @@ export function useSync() {
           duration,
           lastPulledAt: new Date(),
         })
+
+        // A pull can bring in animals created on someone else's device. Those
+        // animals have no scheduled vaccinations here, and nothing else would
+        // ever generate them — so they would silently never come due.
+        //
+        // This deliberately does not gate on a pulled-record count: syncDatabase
+        // resolves to { success, error } only, so any such check would be
+        // permanently false. Runs once per successful sync, not per record, and
+        // is fire-and-forget so a slow recalc never blocks the sync UI.
+        const orgForRecalc = currentOrgRef.current
+        if (orgForRecalc) {
+          calculateScheduledVaccinations(orgForRecalc.id).catch((err) => {
+            console.error("[Sync] Failed to recalculate vaccinations after pull:", err)
+          })
+        }
 
         transaction?.setStatus({ code: 1 })
         transaction?.finish()
@@ -263,8 +290,6 @@ export function useSync() {
   }, [performSync])
 
   // Real-time subscriptions — triggers queueSync when server data changes
-  const { currentOrg } = useDatabase()
-
   useEffect(() => {
     if (!currentOrg) return
 

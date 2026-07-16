@@ -505,6 +505,11 @@ const zu = {
     },
   },
   animalDetailScreen: {
+    rescan: {
+      scanning: "Iyaskena...",
+      rfidLabel: "Skena kabusha ithegi ye-RFID",
+      saveFailed: "Ayikwazanga ukulondoloza ithegi eskeniwe. Sicela uzame futhi.",
+    },
     loading: "Iyalayisha...",
     notFound: "Isilwane asitholakali",
     backButton: "Emuva",
@@ -585,6 +590,11 @@ const zu = {
           castrated: "Inkabi",
           unknown: "Akwaziwa",
         },
+      },
+      vaccinationsUpToDate: {
+        label: "Ukugoma kusesikhathini",
+        helpOn: "Kuzohlelwa kuphela ukugoma kwesikhathi esizayo. Vala uma lesi silwane sisadinga imijovo yaso yangaphambilini.",
+        helpOff: "Noma yikuphi ukugoma lesi silwane esesikuphuthelwe kuzofakwa njengokudlulelwe yisikhathi.",
       },
       dateOfBirth: {
         label: "Usuku Lokuzalwa",
@@ -994,6 +1004,36 @@ const zu = {
       },
     },
     },
+  calendarScreen: {
+    badges: {
+      overdue: "Kudlule isikhathi",
+      soon: "Maduze",
+    },
+    tagPrefix: "Ithegi: {{tag}}",
+    title: "Ikhalenda",
+    unknownVaccination: "Ukugoma Okungaziwa",
+    filters: {
+      all: "Konke",
+      today: "Namuhla",
+      week: "Leli Sonto",
+      month: "Le Nyanga",
+    },
+    empty: {
+      title: "Azikho Izehlakalo Ezizayo",
+      allCaughtUp: "Usuqedile konke!",
+      today: "Azikho izehlakalo namuhla",
+      week: "Azikho izehlakalo kuleli sonto",
+      month: "Azikho izehlakalo kule nyanga",
+    },
+    manage: {
+      action: "Phatha",
+      title: "Phatha",
+      schedules: "Amashejuli Okugoma",
+      schedulesHelp: "Setha izikhumbuzi zokugoma ezizenzakalelayo zomhlambi wakho",
+      protocols: "Imithi Yokugoma",
+      protocolsHelp: "Imikhiqizo oyisebenzisayo — umthamo, indlela nesikhathi sokuyeka",
+    },
+  },
   vaccinationScheduleForm: {
     protocolPicker: {
       title: "Khetha Umuthi Wokugoma",

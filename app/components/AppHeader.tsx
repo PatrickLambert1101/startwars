@@ -1,4 +1,4 @@
-import { FC } from "react"
+import { FC, ReactNode } from "react"
 import { View, Pressable, ViewStyle, TextStyle } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useNavigation } from "@react-navigation/native"
@@ -10,12 +10,15 @@ export interface AppHeaderProps {
   title?: string
   showSettings?: boolean
   showSync?: boolean
+  /** Screen-specific action(s), rendered to the left of the settings cog. */
+  actions?: ReactNode
 }
 
 export const AppHeader: FC<AppHeaderProps> = ({
   title = "HerdTrackr",
   showSettings = true,
   showSync = false,
+  actions,
 }) => {
   const navigation = useNavigation<any>()
   const { themed, theme: { colors } } = useAppTheme()
@@ -37,6 +40,8 @@ export const AppHeader: FC<AppHeaderProps> = ({
             />
           </View>
         )}
+
+        {actions}
 
         {/* Settings button */}
         {showSettings && (

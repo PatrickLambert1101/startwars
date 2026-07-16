@@ -244,6 +244,27 @@ async function ensureScheduledVaccination(schedule: VaccinationSchedule, animal:
     return
   }
 
+  // The farmer marked this animal as already current on its shots when they
+  // added it, so don't back-fill doses that fell due before it existed here.
+  // Without this, adding a 3-year-old cow instantly manufactures every shot she
+  // has ever been due for, all of them overdue.
+  //
+  // The cutoff is deliberately the animal's createdAt, NOT `now`. With `now`,
+  // every later recalculation would move the cutoff forward and silently swallow
+  // genuinely-due future vaccinations as they matured — the flag would quietly
+  // become "never vaccinate this animal again".
+  if (animal.vaccinationsUpToDate && dueDate < animal.createdAt) {
+    if (__DEV__) {
+      console.log(
+        "[VaccinationScheduler] Skipping back-dated dose for up-to-date animal:",
+        animal.displayName,
+        "would have been due:",
+        dueDate.toLocaleDateString(),
+      )
+    }
+    return
+  }
+
   // Create new scheduled vaccination
   await database.write(async () => {
     await database.get<ScheduledVaccination>("scheduled_vaccinations").create((v) => {

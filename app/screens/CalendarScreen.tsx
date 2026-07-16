@@ -1,5 +1,5 @@
 import { FC, useState, useMemo } from "react"
-import { View, ViewStyle, TextStyle, FlatList, Pressable } from "react-native"
+import { View, ViewStyle, TextStyle, FlatList, Pressable, Modal } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
 
@@ -30,12 +30,37 @@ export const CalendarScreen: FC<MainTabScreenProps<"Calendar">> = ({ navigation 
   const { themed, theme: { colors } } = useAppTheme()
   const { vaccinations } = usePendingVaccinations()
   const [activeFilter, setActiveFilter] = useState<CalendarFilter>("all")
+  const [showManageMenu, setShowManageMenu] = useState(false)
+
+  // These used to live only in the empty state, which meant they vanished the
+  // moment a farm had a single event — i.e. exactly when they became useful.
+  const manageDestinations = [
+    {
+      route: "VaccinationSchedules" as const,
+      icon: "calendar-clock",
+      color: colors.palette.accent500,
+      title: t("calendarScreen.manage.schedules"),
+      help: t("calendarScreen.manage.schedulesHelp"),
+    },
+    {
+      route: "TreatmentProtocols" as const,
+      icon: "medical-bag",
+      color: colors.tint,
+      title: t("calendarScreen.manage.protocols"),
+      help: t("calendarScreen.manage.protocolsHelp"),
+    },
+  ]
+
+  const goManage = (route: "VaccinationSchedules" | "TreatmentProtocols") => {
+    setShowManageMenu(false)
+    navigation.navigate(route)
+  }
 
   const FILTER_OPTIONS: { value: CalendarFilter; label: string }[] = [
-    { value: "all", label: "All" },
-    { value: "today", label: "Today" },
-    { value: "week", label: "This Week" },
-    { value: "month", label: "This Month" },
+    { value: "all", label: t("calendarScreen.filters.all") },
+    { value: "today", label: t("calendarScreen.filters.today") },
+    { value: "week", label: t("calendarScreen.filters.week") },
+    { value: "month", label: t("calendarScreen.filters.month") },
   ]
 
   // Convert vaccinations to calendar events
@@ -44,7 +69,7 @@ export const CalendarScreen: FC<MainTabScreenProps<"Calendar">> = ({ navigation 
       .filter((v: any) => v.dueDate) // Only include vaccinations with valid dates
       .map((v: any) => ({
         id: v.id,
-        title: v.schedule?.name || 'Unknown Vaccination',
+        title: v.schedule?.name || t("calendarScreen.unknownVaccination"),
         description: v.schedule?.protocol?.productName,
         date: v.dueDate,
         type: "vaccination" as const,
@@ -54,7 +79,7 @@ export const CalendarScreen: FC<MainTabScreenProps<"Calendar">> = ({ navigation 
         animalTag: v.animal?.visualTag,
         icon: "needle",
       }))
-  }, [vaccinations])
+  }, [vaccinations, t])
 
   // Combine all events
   const allEvents = useMemo(() => {
@@ -164,7 +189,7 @@ export const CalendarScreen: FC<MainTabScreenProps<"Calendar">> = ({ navigation 
         <Text preset="bold" text={event.title} size="sm" />
         {(event.animalName || event.animalTag) && (
           <Text
-            text={event.animalName || `Tag: ${event.animalTag}`}
+            text={event.animalName || t("calendarScreen.tagPrefix", { tag: event.animalTag })}
             size="xs"
             style={themed($eventAnimal)}
           />
@@ -176,7 +201,11 @@ export const CalendarScreen: FC<MainTabScreenProps<"Calendar">> = ({ navigation 
       {event.urgency !== "ok" && (
         <View style={themed($urgencyBadge)}>
           <Text
-            text={event.urgency === "critical" || event.urgency === "overdue" ? "Overdue" : "Soon"}
+            text={
+              event.urgency === "critical" || event.urgency === "overdue"
+                ? t("calendarScreen.badges.overdue")
+                : t("calendarScreen.badges.soon")
+            }
             size="xxs"
             style={[themed($urgencyText), { color: getUrgencyColor(event.urgency) }]}
           />
@@ -202,9 +231,13 @@ export const CalendarScreen: FC<MainTabScreenProps<"Calendar">> = ({ navigation 
   const renderEmpty = () => (
     <View style={themed($emptyState)}>
       <MaterialCommunityIcons name="calendar-check" size={64} color={colors.palette.neutral300} />
-      <Text preset="heading" text="No Upcoming Events" size="md" style={themed($emptyTitle)} />
+      <Text preset="heading" text={t("calendarScreen.empty.title")} size="md" style={themed($emptyTitle)} />
       <Text
-        text={activeFilter !== "all" ? `No events ${activeFilter === "today" ? "today" : `this ${activeFilter}`}` : "You're all caught up!"}
+        text={
+          activeFilter !== "all"
+            ? t(`calendarScreen.empty.${activeFilter}`)
+            : t("calendarScreen.empty.allCaughtUp")
+        }
         style={themed($emptyText)}
       />
 
@@ -215,8 +248,8 @@ export const CalendarScreen: FC<MainTabScreenProps<"Calendar">> = ({ navigation 
             style={themed($emptyActionCard)}
           >
             <MaterialCommunityIcons name="calendar-clock" size={32} color={colors.palette.accent500} />
-            <Text preset="bold" text="Vaccination Schedules" style={themed($emptyActionTitle)} />
-            <Text text="Set up vaccination schedules for your herd" size="xs" style={themed($emptyActionText)} />
+            <Text preset="bold" text={t("calendarScreen.manage.schedules")} style={themed($emptyActionTitle)} />
+            <Text text={t("calendarScreen.manage.schedulesHelp")} size="xs" style={themed($emptyActionText)} />
           </Pressable>
 
           <Pressable
@@ -224,8 +257,8 @@ export const CalendarScreen: FC<MainTabScreenProps<"Calendar">> = ({ navigation 
             style={themed($emptyActionCard)}
           >
             <MaterialCommunityIcons name="medical-bag" size={32} color={colors.tint} />
-            <Text preset="bold" text="Treatment Protocols" style={themed($emptyActionTitle)} />
-            <Text text="Create treatment and vaccination protocols" size="xs" style={themed($emptyActionText)} />
+            <Text preset="bold" text={t("calendarScreen.manage.protocols")} style={themed($emptyActionTitle)} />
+            <Text text={t("calendarScreen.manage.protocolsHelp")} size="xs" style={themed($emptyActionText)} />
           </Pressable>
         </View>
       )}
@@ -234,7 +267,20 @@ export const CalendarScreen: FC<MainTabScreenProps<"Calendar">> = ({ navigation 
 
   return (
     <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={themed($container)}>
-      <AppHeader title="Calendar" showSettings={true} />
+      <AppHeader
+        title={t("calendarScreen.title")}
+        showSettings={true}
+        actions={
+          <Pressable
+            onPress={() => setShowManageMenu(true)}
+            style={themed($manageButton)}
+            accessibilityRole="button"
+            accessibilityLabel={t("calendarScreen.manage.action")}
+          >
+            <MaterialCommunityIcons name="tune-variant" size={22} color={colors.text} />
+          </Pressable>
+        }
+      />
       <View style={themed($header)}>
         <View style={themed($headerStats)}>
           <MaterialCommunityIcons name="bell-outline" size={20} color={colors.textDim} />
@@ -253,9 +299,94 @@ export const CalendarScreen: FC<MainTabScreenProps<"Calendar">> = ({ navigation 
         ListEmptyComponent={renderEmpty}
         showsVerticalScrollIndicator={false}
       />
+
+      <Modal
+        visible={showManageMenu}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowManageMenu(false)}
+      >
+        <Pressable style={themed($manageOverlay)} onPress={() => setShowManageMenu(false)}>
+          <Pressable style={themed($manageSheet)} onPress={(e) => e.stopPropagation()}>
+            <View style={themed($manageHeader)}>
+              <Text preset="heading" text={t("calendarScreen.manage.title")} size="md" />
+              <Pressable
+                onPress={() => setShowManageMenu(false)}
+                accessibilityRole="button"
+                accessibilityLabel={t("common.cancel")}
+              >
+                <MaterialCommunityIcons name="close" size={24} color={colors.text} />
+              </Pressable>
+            </View>
+
+            {manageDestinations.map((d) => (
+              <Pressable
+                key={d.route}
+                onPress={() => goManage(d.route)}
+                style={themed($manageItem)}
+                accessibilityRole="button"
+              >
+                <MaterialCommunityIcons name={d.icon as any} size={28} color={d.color} />
+                <View style={themed($manageItemText)}>
+                  <Text preset="bold" text={d.title} />
+                  <Text text={d.help} size="xs" style={themed($manageItemHelp)} />
+                </View>
+                <MaterialCommunityIcons
+                  name="chevron-right"
+                  size={22}
+                  color={colors.textDim}
+                />
+              </Pressable>
+            ))}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </Screen>
   )
 }
+
+const $manageButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  padding: spacing.xs,
+})
+
+const $manageOverlay: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  flex: 1,
+  backgroundColor: colors.palette.overlay50,
+  justifyContent: "flex-end",
+})
+
+const $manageSheet: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.background,
+  borderTopLeftRadius: 20,
+  borderTopRightRadius: 20,
+  padding: spacing.lg,
+  paddingBottom: spacing.xxl,
+  gap: spacing.sm,
+})
+
+const $manageHeader: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+  marginBottom: spacing.xs,
+})
+
+const $manageItem: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.md,
+  backgroundColor: colors.palette.neutral100,
+  borderRadius: 12,
+  padding: spacing.md,
+})
+
+const $manageItemText: ThemedStyle<ViewStyle> = () => ({
+  flex: 1,
+})
+
+const $manageItemHelp: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.textDim,
+})
 
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flex: 1,

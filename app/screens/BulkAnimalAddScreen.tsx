@@ -1,5 +1,5 @@
 import { FC, useCallback, useEffect, useRef, useState } from "react"
-import { Alert, FlatList, Pressable, TextInput, View, ViewStyle, TextStyle, Modal, ScrollView } from "react-native"
+import { Alert, FlatList, Pressable, TextInput, View, ViewStyle, TextStyle, Modal, ScrollView, Switch } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
 
@@ -65,6 +65,9 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
   const [selectedPastureId, setSelectedPastureId] = useState<string | null>(null)
   const [tags, setTags] = useState<string[]>([])
   const [notesTemplate, setNotesTemplate] = useState("")
+  // Batch-wide, like the other template fields: a bulk intake is normally one
+  // mob with the same vaccination history. Defaults true, as on the single form.
+  const [vaccinationsUpToDate, setVaccinationsUpToDate] = useState(true)
   const [tagType, setTagType] = useState<"visual" | "rfid">("visual")
 
   // Entry phase
@@ -175,6 +178,7 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
         sex: currentSex || sex, // Use current sex override if set, otherwise use default
         dateOfBirth: dateOfBirth || undefined,
         status: "active" as AnimalStatus,
+        vaccinationsUpToDate,
         notes: notesTemplate.trim() || undefined,
         tags: tags.length > 0 ? JSON.stringify(tags) : null,
       }
@@ -211,7 +215,7 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
       )
     }
     setIsSubmitting(false)
-  }, [currentTag, currentRfidTag, tagType, tags, breed, sex, dateOfBirth, notesTemplate, currentOrg, createAnimal, t])
+  }, [currentTag, currentRfidTag, tagType, tags, breed, sex, dateOfBirth, vaccinationsUpToDate, notesTemplate, currentOrg, createAnimal, t])
 
   const handleFinish = useCallback(() => {
     if (addedAnimals.length === 0) {
@@ -332,6 +336,28 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
             placeholder={t("bulkAnimalAddScreen.setup.notesPlaceholder")}
             multiline
           />
+
+          {/* Applies to every animal in this batch. */}
+          <View style={themed($vaccStatusRow)}>
+            <View style={themed($vaccStatusText)}>
+              <Text preset="formLabel" text={t("animalFormScreen.fields.vaccinationsUpToDate.label")} />
+              <Text
+                size="xxs"
+                style={themed($vaccStatusHelp)}
+                text={
+                  vaccinationsUpToDate
+                    ? t("animalFormScreen.fields.vaccinationsUpToDate.helpOn")
+                    : t("animalFormScreen.fields.vaccinationsUpToDate.helpOff")
+                }
+              />
+            </View>
+            <Switch
+              value={vaccinationsUpToDate}
+              onValueChange={setVaccinationsUpToDate}
+              trackColor={{ false: "#D1D5DB", true: colors.palette.primary500 }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
 
           <Button
             text={t("bulkAnimalAddScreen.setup.startButton")}
@@ -684,6 +710,24 @@ const $pickerButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
 
 const $placeholderText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.textDim,
+})
+
+const $vaccStatusRow: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.md,
+  backgroundColor: colors.palette.neutral100,
+  borderRadius: 12,
+  padding: spacing.md,
+})
+
+const $vaccStatusText: ThemedStyle<ViewStyle> = () => ({
+  flex: 1,
+})
+
+const $vaccStatusHelp: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  color: colors.textDim,
+  marginTop: spacing.xxs,
 })
 
 const $startButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({

@@ -1,9 +1,10 @@
 import { FC, useCallback, useState, useEffect } from "react"
-import { Pressable, View, ViewStyle, TextStyle } from "react-native"
+import { Alert, Pressable, View, ViewStyle, TextStyle } from "react-native"
 import { format } from "date-fns"
 import { useTranslation } from "react-i18next"
 
-import { Screen, Text, Button, TagInput, AnimalPicker } from "@/components"
+import { Screen, Text, Button, TagInput, AnimalPicker, ScanTagButton } from "@/components"
+import { useRfidReader } from "@/hooks/useRfidReader"
 import { WeightChart } from "@/components/WeightChart"
 import { PhotoGallery } from "@/components/PhotoGallery"
 import { useAppTheme } from "@/theme/context"
@@ -25,12 +26,72 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
   const { themed, theme } = useAppTheme()
   const { animalId } = route.params
   const { animal, isLoading } = useAnimal(animalId)
-  const { deleteAnimal } = useAnimalActions()
+  const { deleteAnimal, updateAnimal } = useAnimalActions()
+  const {
+    isScanning,
+    scannedTag,
+    startScanning,
+    stopScanning,
+    initialize,
+    isInitialized,
+    hasRfidHardware,
+  } = useRfidReader()
+  // Only apply an inbound EPC when the farmer explicitly asked to re-scan, so a
+  // stray trigger pull elsewhere can't silently retag the animal they're viewing.
+  const [isRescanningRfid, setIsRescanningRfid] = useState(false)
   const { records: healthRecords } = useHealthRecords(animalId)
   const { records: weightRecords } = useWeightRecords(animalId)
   const { records: breedingRecords } = useBreedingRecords(animalId)
   const { vaccinations } = useScheduledVaccinations(animalId)
   const { offspring, stats: offspringStats } = useOffspring(animalId)
+
+  // Same bring-up as the add/edit form: the reader is inert until initialised.
+  useEffect(() => {
+    if (hasRfidHardware && !isInitialized) {
+      initialize()
+    }
+  }, [hasRfidHardware, isInitialized, initialize])
+
+  const handleRescanRfid = useCallback(() => {
+    setIsRescanningRfid(true)
+    startScanning()
+  }, [startScanning])
+
+  const handleCancelRescanRfid = useCallback(() => {
+    setIsRescanningRfid(false)
+    stopScanning()
+  }, [stopScanning])
+
+  // Persist an EPC that arrived while a re-scan was in flight.
+  useEffect(() => {
+    if (!isRescanningRfid || !scannedTag?.epc) return
+    const epc = scannedTag.epc
+    setIsRescanningRfid(false)
+    stopScanning()
+    if (epc === animal?.rfidTag) return // already this tag; nothing to write
+    updateAnimal(animalId, { rfidTag: epc }).catch((err) => {
+      console.error("[AnimalDetail] Failed to save re-scanned RFID tag:", err)
+      Alert.alert(t("common.error"), t("animalDetailScreen.rescan.saveFailed"))
+    })
+  }, [isRescanningRfid, scannedTag, animal?.rfidTag, animalId, updateAnimal, stopScanning, t])
+
+  const handleVisualTagScanned = useCallback(
+    (tagNumber: string) => {
+      if (!tagNumber || tagNumber === animal?.visualTag) return
+      updateAnimal(animalId, { visualTag: tagNumber }).catch((err) => {
+        console.error("[AnimalDetail] Failed to save re-scanned visual tag:", err)
+        Alert.alert(t("common.error"), t("animalDetailScreen.rescan.saveFailed"))
+      })
+    },
+    [animal?.visualTag, animalId, updateAnimal, t],
+  )
+
+  // Stop the reader if we leave mid-scan, so it isn't left powered on.
+  useEffect(() => {
+    return () => {
+      if (isRescanningRfid) stopScanning()
+    }
+  }, [isRescanningRfid, stopScanning])
 
   // Debug logging
   if (__DEV__) {
@@ -230,8 +291,44 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
       {activeTab === "overview" && (
         <View style={themed($section)}>
           <PhotoGallery photosJson={animal.photos} />
-          <DetailRow label={t("animalDetailScreen.overview.rfidTag")} value={animal.rfidTag} themed={themed} />
-          <DetailRow label={t("animalDetailScreen.overview.visualTag")} value={animal.visualTag} themed={themed} />
+          {/* RFID row only offers a re-scan when this device actually has a
+              reader; on a plain phone it stays a read-only row. */}
+          <View style={themed($detailRow)}>
+            <Text text={t("animalDetailScreen.overview.rfidTag")} size="sm" style={themed($detailLabel)} />
+            <View style={themed($tagValueRow)}>
+              {isRescanningRfid ? (
+                <>
+                  <Text text={t("animalDetailScreen.rescan.scanning")} size="sm" style={{ color: theme.colors.tint }} />
+                  <Pressable onPress={handleCancelRescanRfid} style={themed($rescanButton)} accessibilityRole="button">
+                    <Text text={t("common.cancel")} size="xs" style={{ color: theme.colors.textDim }} />
+                  </Pressable>
+                </>
+              ) : (
+                <>
+                  <Text text={animal.rfidTag || t("animalDetailScreen.overview.noValue")} size="sm" />
+                  {hasRfidHardware && (
+                    <Pressable
+                      onPress={handleRescanRfid}
+                      style={themed($rescanButton)}
+                      accessibilityRole="button"
+                      accessibilityLabel={t("animalDetailScreen.rescan.rfidLabel")}
+                    >
+                      <MaterialCommunityIcons name="radio-tower" size={18} color={theme.colors.tint} />
+                    </Pressable>
+                  )}
+                </>
+              )}
+            </View>
+          </View>
+
+          <View style={themed($detailRow)}>
+            <Text text={t("animalDetailScreen.overview.visualTag")} size="sm" style={themed($detailLabel)} />
+            <View style={themed($tagValueRow)}>
+              <Text text={animal.visualTag || t("animalDetailScreen.overview.noValue")} size="sm" />
+              {/* Camera OCR — available on every device, no reader required. */}
+              <ScanTagButton compact onTagScanned={handleVisualTagScanned} style={themed($rescanScanButton)} />
+            </View>
+          </View>
           <DetailRow label={t("animalDetailScreen.overview.dateOfBirth")} value={formatDate(animal.dateOfBirth)} themed={themed} />
           <DetailRow label={t("animalDetailScreen.overview.registrationNumber")} value={animal.registrationNumber || t("animalDetailScreen.overview.noValue")} themed={themed} />
 
@@ -809,6 +906,24 @@ const $detailRow: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
 
 const $detailLabel: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.textDim,
+})
+
+// Right-hand side of a tag row: the value plus its re-scan affordance. The row
+// itself is space-between, so this group stays flush right like a plain value.
+const $tagValueRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.sm,
+})
+
+const $rescanButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  paddingVertical: spacing.xxs,
+  paddingHorizontal: spacing.xs,
+})
+
+const $rescanScanButton: ThemedStyle<ViewStyle> = () => ({
+  width: 32,
+  height: 32,
 })
 
 const $recordCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({

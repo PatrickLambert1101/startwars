@@ -15,7 +15,7 @@ import { useAppTheme } from "@/theme/context"
 
 interface LoginScreenProps extends AppStackScreenProps<"Login"> {}
 
-export const LoginScreen: FC<LoginScreenProps> = () => {
+export const LoginScreen: FC<LoginScreenProps> = ({ navigation }) => {
   const authPasswordInput = useRef<TextInput>(null)
 
   const [email, setEmail] = useState("")
@@ -174,6 +174,14 @@ export const LoginScreen: FC<LoginScreenProps> = () => {
         />
       </View>
 
+      <Button
+        text="Browse icon library"
+        preset="default"
+        style={themed($iconGalleryButton)}
+        textStyle={themed($toggleButtonText)}
+        onPress={() => navigation.navigate("IconGallery")}
+      />
+
       <View style={themed($silhouetteContainer)}>
         <CattleSilhouette size={280} color={colors.tint} />
       </View>
@@ -239,6 +247,11 @@ const $toggleButton: ThemedStyle<ViewStyle> = () => ({
 
 const $toggleButtonText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.tint,
+})
+
+const $iconGalleryButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  alignSelf: "center",
+  marginTop: spacing.md,
 })
 
 const $silhouetteContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({

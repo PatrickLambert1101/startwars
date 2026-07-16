@@ -505,6 +505,11 @@ const en = {
     },
   },
   animalDetailScreen: {
+    rescan: {
+      scanning: "Scanning...",
+      rfidLabel: "Re-scan RFID tag",
+      saveFailed: "Could not save the scanned tag. Please try again.",
+    },
     loading: "Loading...",
     notFound: "Animal not found",
     backButton: "Back",
@@ -585,6 +590,11 @@ const en = {
           castrated: "Steer/Ox",
           unknown: "Unknown",
         },
+      },
+      vaccinationsUpToDate: {
+        label: "Vaccinations up to date",
+        helpOn: "Only future vaccinations will be scheduled. Turn off if this animal still needs its earlier shots.",
+        helpOff: "Any vaccinations this animal has already missed will be added as overdue.",
       },
       dateOfBirth: {
         label: "Date of Birth",
@@ -994,6 +1004,36 @@ const en = {
       },
     },
     },
+  calendarScreen: {
+    badges: {
+      overdue: "Overdue",
+      soon: "Soon",
+    },
+    tagPrefix: "Tag: {{tag}}",
+    title: "Calendar",
+    unknownVaccination: "Unknown Vaccination",
+    filters: {
+      all: "All",
+      today: "Today",
+      week: "This Week",
+      month: "This Month",
+    },
+    empty: {
+      title: "No Upcoming Events",
+      allCaughtUp: "You're all caught up!",
+      today: "No events today",
+      week: "No events this week",
+      month: "No events this month",
+    },
+    manage: {
+      action: "Manage",
+      title: "Manage",
+      schedules: "Vaccination Schedules",
+      schedulesHelp: "Set up automatic vaccination reminders for your herd",
+      protocols: "Vaccines",
+      protocolsHelp: "The products you use — dose, method and withdrawal period",
+    },
+  },
   vaccinationScheduleForm: {
     protocolPicker: {
       title: "Select Vaccine",

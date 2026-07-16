@@ -61,6 +61,11 @@ export class Animal extends Model {
   @field("registration_number") registrationNumber!: string | null
   @field("current_pasture_id") currentPastureId!: string | null
   @field("status") status!: AnimalStatus
+  /**
+   * True = the animal was already current on its shots when it was added, so
+   * the scheduler must not back-fill vaccinations that fell due before then.
+   */
+  @field("vaccinations_up_to_date") vaccinationsUpToDate!: boolean
   @field("herd_tag") herdTag!: string | null
   @field("notes") notes!: string | null
   @field("photos") photos!: string | null // JSON array of photo objects

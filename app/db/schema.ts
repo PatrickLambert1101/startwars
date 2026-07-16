@@ -337,11 +337,29 @@ export const migrations = schemaMigrations({
       toVersion: 16,
       steps: [], // version bump: remote_id column removed from all models
     },
+    {
+      toVersion: 17,
+      steps: [
+        {
+          type: "add_columns",
+          table: "animals",
+          columns: [
+            // Existing rows get `false` from WatermelonDB (it backfills booleans
+            // as false, not as the Postgres DEFAULT TRUE). That is intentional:
+            // animals already on the device have had their schedules calculated
+            // under the old behaviour, so flipping them to "up to date" now
+            // would retroactively drop vaccinations the farmer can already see.
+            // Only newly-added animals default to true, via the form.
+            { name: "vaccinations_up_to_date", type: "boolean" },
+          ],
+        },
+      ],
+    },
   ],
 })
 
 export const schema = appSchema({
-  version: 16,
+  version: 17,
   tables: [
     tableSchema({
       name: "organizations",
@@ -375,6 +393,7 @@ export const schema = appSchema({
         { name: "registration_number", type: "string", isOptional: true },
         { name: "current_pasture_id", type: "string", isOptional: true, isIndexed: true },
         { name: "status", type: "string" }, // active | sold | deceased | transferred
+        { name: "vaccinations_up_to_date", type: "boolean" }, // true = don't back-fill past-due shots
         { name: "herd_tag", type: "string", isOptional: true, isIndexed: true }, // Group/herd identifier like "23-C", "XYZ"
         { name: "notes", type: "string", isOptional: true },
         { name: "photos", type: "string", isOptional: true }, // JSON array of photo objects

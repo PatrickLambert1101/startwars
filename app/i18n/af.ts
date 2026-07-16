@@ -505,6 +505,11 @@ const af = {
     },
   },
   animalDetailScreen: {
+    rescan: {
+      scanning: "Besig om te skandeer...",
+      rfidLabel: "Herskandeer RFID-etiket",
+      saveFailed: "Kon nie die geskandeerde etiket stoor nie. Probeer asseblief weer.",
+    },
     loading: "Laai...",
     notFound: "Dier nie gevind nie",
     backButton: "Terug",
@@ -585,6 +590,11 @@ const af = {
           castrated: "Os",
           unknown: "Onbekend",
         },
+      },
+      vaccinationsUpToDate: {
+        label: "Inentings op datum",
+        helpOn: "Slegs toekomstige inentings sal geskeduleer word. Skakel af as hierdie dier nog sy vroeëre inspuitings benodig.",
+        helpOff: "Enige inentings wat hierdie dier reeds gemis het, sal as agterstallig bygevoeg word.",
       },
       dateOfBirth: {
         label: "Geboortedatum",
@@ -994,6 +1004,36 @@ const af = {
       },
     },
     },
+  calendarScreen: {
+    badges: {
+      overdue: "Agterstallig",
+      soon: "Binnekort",
+    },
+    tagPrefix: "Etiket: {{tag}}",
+    title: "Kalender",
+    unknownVaccination: "Onbekende Inenting",
+    filters: {
+      all: "Alles",
+      today: "Vandag",
+      week: "Hierdie Week",
+      month: "Hierdie Maand",
+    },
+    empty: {
+      title: "Geen Komende Gebeure",
+      allCaughtUp: "Jy is op datum!",
+      today: "Geen gebeure vandag nie",
+      week: "Geen gebeure hierdie week nie",
+      month: "Geen gebeure hierdie maand nie",
+    },
+    manage: {
+      action: "Bestuur",
+      title: "Bestuur",
+      schedules: "Entingskedules",
+      schedulesHelp: "Stel outomatiese entingherinneringe vir jou kudde op",
+      protocols: "Entstowwe",
+      protocolsHelp: "Die produkte wat jy gebruik — dosis, metode en onttrekkingstydperk",
+    },
+  },
   vaccinationScheduleForm: {
     protocolPicker: {
       title: "Kies Entstof",

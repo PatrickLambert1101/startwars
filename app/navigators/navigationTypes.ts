@@ -52,6 +52,7 @@ export type AppStackParamList = {
   Upgrade: undefined
   Paywall: undefined
   CustomerCenter: undefined
+  IconGallery: undefined
 }
 
 export type AppStackScreenProps<T extends keyof AppStackParamList> = NativeStackScreenProps<

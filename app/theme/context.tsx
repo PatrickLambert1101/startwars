@@ -74,15 +74,25 @@ export const ThemeProvider: FC<PropsWithChildren<ThemeProviderProps>> = ({
   )
 
   /**
-   * initialContext is the theme context passed in from the app.tsx file and always takes precedence.
-   * themeScheme is the value from MMKV. If undefined, we fall back to the system theme
-   * systemColorScheme is the value from the device. If undefined, we fall back to "light"
+   * LIGHT-ONLY FOR NOW.
+   *
+   * The dark theme is disabled and its toggle is hidden in Settings. This is
+   * pinned here rather than only hiding the toggle because `themeScheme`
+   * persists in MMKV: anyone who had already switched to dark would otherwise
+   * stay dark forever, with no control left to switch back.
+   *
+   * `setThemeContextOverride` still writes to MMKV, so a previously-chosen
+   * value is preserved and will take effect again the moment this is reverted.
+   *
+   * To re-enable dark mode:
+   *   1. restore `initialContext || themeScheme || "light"` below, and
+   *   2. unhide the APPEARANCE section in SettingsScreen.
    */
-  const themeContext: ImmutableThemeContextModeT = useMemo(() => {
-    // Default to light mode if no preference is set (instead of following system)
-    const t = initialContext || themeScheme || "light"
-    return t === "dark" ? "dark" : "light"
-  }, [initialContext, themeScheme])
+  // Explicitly generic: without it TS infers the literal "light" and then reports
+  // the `case "dark"` arms below as uncomparable dead code.
+  const themeContext: ImmutableThemeContextModeT = useMemo<ImmutableThemeContextModeT>(() => {
+    return "light"
+  }, [])
 
   const navigationTheme: NavTheme = useMemo(() => {
     switch (themeContext) {

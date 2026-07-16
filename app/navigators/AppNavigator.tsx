@@ -37,6 +37,7 @@ import { OrgSetupScreen } from "@/screens/OrgSetupScreen"
 import { UpgradeScreen } from "@/screens/UpgradeScreen"
 import { PaywallScreen } from "@/screens/PaywallScreen"
 import { CustomerCenterScreen } from "@/screens/CustomerCenterScreen"
+import { IconGalleryScreen } from "@/screens/IconGalleryScreen"
 import { useAppTheme } from "@/theme/context"
 
 import { MainTabNavigator } from "./MainTabNavigator"
@@ -103,6 +104,7 @@ const AppStack = () => {
           <Stack.Screen name="Login" component={LoginScreen} />
         </>
       )}
+      <Stack.Screen name="IconGallery" component={IconGalleryScreen} />
     </Stack.Navigator>
   )
 }

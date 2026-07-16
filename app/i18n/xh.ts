@@ -505,6 +505,11 @@ const xh = {
     },
   },
   animalDetailScreen: {
+    rescan: {
+      scanning: "Iyaskena...",
+      rfidLabel: "Skena kwakhona itheki ye-RFID",
+      saveFailed: "Ayikwazanga ukugcina itheki eskeniweyo. Nceda uzame kwakhona.",
+    },
     loading: "Iyalayisha...",
     notFound: "Isilwanyana asifumanekanga",
     backButton: "Buya",
@@ -585,6 +590,11 @@ const xh = {
           castrated: "Inkabi",
           unknown: "Akwaziwa",
         },
+      },
+      vaccinationsUpToDate: {
+        label: "Ugonyo lukhathaleliwe",
+        helpOn: "Kuza kucwangciswa kuphela ugonyo lwexesha elizayo. Cima ukuba esi silwanyana sisafuna iinaliti zaso zangaphambili.",
+        helpOff: "Nayiphi na ugonyo esele lulahlekile kwesi silwanyana luya kongezwa njengolugqithisiweyo lixesha.",
       },
       dateOfBirth: {
         label: "Umhla wokuZalwa",
@@ -994,6 +1004,36 @@ const xh = {
       },
     },
     },
+  calendarScreen: {
+    badges: {
+      overdue: "Lugqithisiwe",
+      soon: "Kungekudala",
+    },
+    tagPrefix: "Itheki: {{tag}}",
+    title: "Ikhalenda",
+    unknownVaccination: "Ugonyo Olungaziwayo",
+    filters: {
+      all: "Konke",
+      today: "Namhlanje",
+      week: "Kule Veki",
+      month: "Kule Nyanga",
+    },
+    empty: {
+      title: "Azikho Iziganeko Ezizayo",
+      allCaughtUp: "Ugqibile konke!",
+      today: "Azikho iziganeko namhlanje",
+      week: "Azikho iziganeko kule veki",
+      month: "Azikho iziganeko kule nyanga",
+    },
+    manage: {
+      action: "Lawula",
+      title: "Lawula",
+      schedules: "Iishedyuli Zokugonya",
+      schedulesHelp: "Misela izikhumbuzi zokugonya ezizenzekelayo zomhlambi wakho",
+      protocols: "Izitofu",
+      protocolsHelp: "Iimveliso ozisebenzisayo — umlinganiselo, indlela nexesha lokuyeka",
+    },
+  },
   vaccinationScheduleForm: {
     protocolPicker: {
       title: "Khetha Isitofu",
