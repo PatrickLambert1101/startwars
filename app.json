@@ -1,110 +1,43 @@
 {
-  "name": "HerdTrackr",
-  "slug": "herd-trackr",
-  "scheme": "herdtrackr",
-  "version": "1.0.0",
-  "orientation": "portrait",
-  "userInterfaceStyle": "automatic",
-  "icon": "./assets/images/app-icon-all.png",
-  "updates": {
-    "fallbackToCacheTimeout": 0
-  },
-  "newArchEnabled": true,
-  "jsEngine": "hermes",
-  "assetBundlePatterns": [
-    "**/*"
-  ],
-  "android": {
-    "icon": "./assets/images/app-icon-android-legacy.png",
-    "package": "com.herdtrackr",
-    "adaptiveIcon": {
-      "foregroundImage": "./assets/images/app-icon-android-adaptive-foreground.png",
-      "backgroundImage": "./assets/images/app-icon-android-adaptive-background.png"
-    },
-    "allowBackup": false,
-    "edgeToEdgeEnabled": true,
-    "permissions": [
-      "CAMERA"
-    ]
-  },
-  "ios": {
-    "icon": "./assets/images/app-icon-ios.png",
-    "supportsTablet": true,
-    "bundleIdentifier": "com.herdtrackr",
-    "buildNumber": "2",
-    "infoPlist": {
-      "NSCameraUsageDescription": "HerdTrackr uses the camera to scan ear tag numbers for quick animal identification",
-      "NSLocationWhenInUseUsageDescription": "HerdTrackr may use your location to help organize and track your herd across different farm locations",
-      "ITSAppUsesNonExemptEncryption": false
-    },
-    "privacyManifests": {
-      "NSPrivacyAccessedAPITypes": [
-        {
-          "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
-          "NSPrivacyAccessedAPITypeReasons": [
-            "CA92.1"
-          ]
-        }
-      ]
-    }
-  },
-  "web": {
-    "favicon": "./assets/images/app-icon-web-favicon.png",
-    "bundler": "metro"
-  },
-  "plugins": [
-    "expo-localization",
-    "expo-font",
-    [
-      "expo-splash-screen",
-      {
-        "image": "./assets/images/splash-logo-all.png",
-        "imageWidth": 200,
-        "resizeMode": "contain",
-        "backgroundColor": "#FFFFFF"
-      }
-    ],
-    [
-      "react-native-edge-to-edge",
-      {
-        "android": {
-          "parentTheme": "Light",
-          "enforceNavigationBarContrast": false
-        }
-      }
-    ],
-    [
-      "react-native-vision-camera",
-      {
-        "cameraPermissionText": "HerdTrackr uses the camera to scan ear tag numbers for quick animal identification",
-        "enableCodeScanner": false
-      }
-    ],
-    "expo-build-properties",
-    [
-      "sentry-expo",
-      {
-        "organization": "patrick-sullivan",
-        "project": "javascript-react-native"
-      }
-    ]
-  ],
-  "experiments": {
-    "tsconfigPaths": true
-  },
-  "extra": {
-    "ignite": {
-      "version": "UNKNOWN"
-    },
-    "eas": {
-      "projectId": "ce99f731-12da-4ab9-85a4-c706072b2e26"
-    }
-  },
   "expo": {
+    "name": "HerdTrackr",
+    "slug": "herd-trackr",
+    "scheme": "herdtrackr",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "icon": "./assets/images/app-icon-all.png",
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "newArchEnabled": true,
+    "jsEngine": "hermes",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "android": {
-      "package": "com.lambertpatrick091.herdtrackr"
+      "icon": "./assets/images/app-icon-android-legacy.png",
+      "package": "com.herdtrackr",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/app-icon-android-adaptive-foreground.png",
+        "backgroundImage": "./assets/images/app-icon-android-adaptive-background.png"
+      },
+      "allowBackup": false,
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "CAMERA"
+      ]
     },
     "ios": {
+      "icon": "./assets/images/app-icon-ios.png",
+      "supportsTablet": true,
+      "bundleIdentifier": "com.herdtrackr",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSFaceIDUsageDescription": "HerdTrackr uses Face ID to unlock the app",
+        "NSCameraUsageDescription": "HerdTrackr uses the camera to scan ear tag numbers for quick animal identification",
+        "NSLocationWhenInUseUsageDescription": "HerdTrackr may use your location to help organize and track your herd across different farm locations"
+      },
       "privacyManifests": {
         "NSPrivacyAccessedAPITypes": [
           {
@@ -114,9 +47,59 @@
             ]
           }
         ]
-      },
-      "bundleIdentifier": "com.lambertpatrick091.herdtrackr"
+      }
     },
-    "web": {}
+    "web": {
+      "favicon": "./assets/images/app-icon-web-favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-localization",
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-logo-all.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#FFFFFF"
+        }
+      ],
+      [
+        "react-native-edge-to-edge",
+        {
+          "android": {
+            "parentTheme": "Light",
+            "enforceNavigationBarContrast": false
+          }
+        }
+      ],
+      [
+        "react-native-vision-camera",
+        {
+          "cameraPermissionText": "HerdTrackr uses the camera to scan ear tag numbers for quick animal identification",
+          "enableCodeScanner": false
+        }
+      ],
+      "expo-build-properties",
+      [
+        "sentry-expo",
+        {
+          "organization": "patrick-sullivan",
+          "project": "javascript-react-native"
+        }
+      ]
+    ],
+    "experiments": {
+      "tsconfigPaths": true
+    },
+    "extra": {
+      "ignite": {
+        "version": "UNKNOWN"
+      },
+      "eas": {
+        "projectId": "ce99f731-12da-4ab9-85a4-c706072b2e26"
+      }
+    }
   }
 }

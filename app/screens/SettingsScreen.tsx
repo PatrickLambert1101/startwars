@@ -1,25 +1,26 @@
 import { FC, useCallback, useState, useEffect } from "react"
-import { View, ViewStyle, TextStyle, Pressable, Switch, Alert } from "react-native"
-import { useTranslation } from "react-i18next"
+import { View, ViewStyle, TextStyle, Pressable, Alert, Switch } from "react-native"
+import * as LocalAuthentication from "expo-local-authentication"
 import { Q } from "@nozbe/watermelondb"
+import { useTranslation } from "react-i18next"
+import * as Sentry from "sentry-expo"
 
-import { Screen, Text, ListItem, Button, Icon } from "@/components"
+import { Screen, Text, ListItem, Button, Icon, BIOMETRIC_LOCK_KEY } from "@/components"
 import { useAuth } from "@/context/AuthContext"
 import { useDatabase } from "@/context/DatabaseContext"
 import { useSubscription } from "@/context/SubscriptionContext"
+import { database } from "@/db"
 import { useRfidReader } from "@/hooks/useRfidReader"
 import { useSync } from "@/hooks/useSync"
+import { seedDefaultSchedules } from "@/services/defaultSchedules"
+import { calculateScheduledVaccinations } from "@/services/vaccinationScheduler"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { loadString, saveString } from "@/utils/storage"
-import { database } from "@/db"
-import { seedDefaultSchedules } from "@/services/defaultSchedules"
-import { calculateScheduledVaccinations } from "@/services/vaccinationScheduler"
-import * as Sentry from "sentry-expo"
 
 const STORAGE_KEY_POWER = "rfid_reader_power"
-const POWER_MIN = 5   // Must match native Android MIN_POWER
-const POWER_MAX = 30  // Must match native Android MAX_POWER
+const POWER_MIN = 5 // Must match native Android MIN_POWER
+const POWER_MAX = 30 // Must match native Android MAX_POWER
 const POWER_DEFAULT = 18
 
 const LANGUAGES = [
@@ -30,7 +31,12 @@ const LANGUAGES = [
 ]
 
 export const SettingsScreen: FC<any> = ({ navigation }) => {
-  const { themed, themeContext, setThemeContextOverride } = useAppTheme()
+  // themeContext/setThemeContextOverride dropped with the dark-mode toggle;
+  // restore them here if the APPEARANCE section comes back.
+  const {
+    themed,
+    theme: { colors },
+  } = useAppTheme()
   const { logout, user } = useAuth()
   const { currentOrg } = useDatabase()
   const { plan, isPremium, isLoading } = useSubscription()
@@ -41,6 +47,30 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
   const [readerPower, setReaderPower] = useState(POWER_DEFAULT)
   const [powerSaved, setPowerSaved] = useState(false)
   const [hasSchedules, setHasSchedules] = useState(false)
+  const [biometricAvailable, setBiometricAvailable] = useState(false)
+  const [biometricEnabled, setBiometricEnabled] = useState(
+    () => loadString(BIOMETRIC_LOCK_KEY) === "true",
+  )
+
+  useEffect(() => {
+    Promise.all([LocalAuthentication.hasHardwareAsync(), LocalAuthentication.isEnrolledAsync()])
+      .then(([hasHardware, isEnrolled]) => setBiometricAvailable(hasHardware && isEnrolled))
+      .catch(() => setBiometricAvailable(false))
+  }, [])
+
+  const handleToggleBiometricLock = useCallback(
+    async (value: boolean) => {
+      // Confirm identity before changing the lock, so someone else holding the
+      // unlocked phone can't quietly turn it off.
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: t("biometricLock.prompt"),
+      })
+      if (!result.success) return
+      setBiometricEnabled(value)
+      saveString(BIOMETRIC_LOCK_KEY, String(value))
+    },
+    [t],
+  )
 
   useEffect(() => {
     const saved = loadString(STORAGE_KEY_POWER)
@@ -127,7 +157,7 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
                 await calculateScheduledVaccinations(currentOrg.id)
                 Alert.alert(
                   "Success!",
-                  "Default vaccination schedules have been added! Vaccinations have been calculated for your existing animals. Check the Calendar tab to see upcoming vaccinations."
+                  "Default vaccination schedules have been added! Vaccinations have been calculated for your existing animals. Check the Calendar tab to see upcoming vaccinations.",
                 )
               } else {
                 Alert.alert("Error", "Failed to seed default schedules. Check console for details.")
@@ -158,7 +188,10 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
           onPress: async () => {
             try {
               await calculateScheduledVaccinations(currentOrg.id)
-              Alert.alert("Success!", "Vaccinations have been recalculated. Check the Calendar tab to see upcoming vaccinations.")
+              Alert.alert(
+                "Success!",
+                "Vaccinations have been recalculated. Check the Calendar tab to see upcoming vaccinations.",
+              )
             } catch (error) {
               console.error("Error calculating vaccinations:", error)
               Alert.alert("Error", "An error occurred while calculating vaccinations")
@@ -219,9 +252,15 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
               await database.write(async () => {
                 await database.unsafeResetDatabase()
               })
-              Alert.alert(t("settingsScreen.dangerZone.alerts.successTitle"), t("settingsScreen.dangerZone.alerts.successMessage"))
+              Alert.alert(
+                t("settingsScreen.dangerZone.alerts.successTitle"),
+                t("settingsScreen.dangerZone.alerts.successMessage"),
+              )
             } catch (error) {
-              Alert.alert(t("settingsScreen.dangerZone.alerts.errorTitle"), t("settingsScreen.dangerZone.alerts.errorMessage", { error }))
+              Alert.alert(
+                t("settingsScreen.dangerZone.alerts.errorTitle"),
+                t("settingsScreen.dangerZone.alerts.errorMessage", { error }),
+              )
             }
           },
         },
@@ -249,7 +288,10 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
       // Capture the error
       Sentry.Native.captureException(error)
       console.log("[DEBUG] Test error captured and sent to Sentry")
-      Alert.alert("Test Sent!", "A test error has been sent to Sentry. Check your Sentry dashboard in a few moments.")
+      Alert.alert(
+        "Test Sent!",
+        "A test error has been sent to Sentry. Check your Sentry dashboard in a few moments.",
+      )
     }
   }, [])
 
@@ -263,7 +305,8 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
     [i18n],
   )
 
-  const currentLanguage = LANGUAGES.find((lang) => lang.code === i18n.language?.split("-")[0]) || LANGUAGES[0]
+  const currentLanguage =
+    LANGUAGES.find((lang) => lang.code === i18n.language?.split("-")[0]) || LANGUAGES[0]
 
   return (
     <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
@@ -280,10 +323,16 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
           app/theme/context.tsx. Re-enable both together. */}
 
       <View style={themed($section)}>
-        <Text preset="formLabel" text={t("settingsScreen.sections.language")} style={themed($sectionLabel)} />
+        <Text
+          preset="formLabel"
+          text={t("settingsScreen.sections.language")}
+          style={themed($sectionLabel)}
+        />
         <View style={themed($languageCard)}>
           <Text style={themed($languageTitle)}>{t("settingsScreen.language.appLanguage")}</Text>
-          <Text style={themed($languageSubtext)}>{t("settingsScreen.language.current", { language: currentLanguage.nativeName })}</Text>
+          <Text style={themed($languageSubtext)}>
+            {t("settingsScreen.language.current", { language: currentLanguage.nativeName })}
+          </Text>
           <View style={themed($languageGrid)}>
             {LANGUAGES.map((lang) => {
               const isActive = lang.code === currentLanguage.code
@@ -293,10 +342,17 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
                   style={[themed($languageChip), isActive && themed($languageChipActive)]}
                   onPress={() => handleChangeLanguage(lang.code)}
                 >
-                  <Text style={[themed($languageChipText), isActive && themed($languageChipTextActive)]}>
+                  <Text
+                    style={[themed($languageChipText), isActive && themed($languageChipTextActive)]}
+                  >
                     {lang.nativeName}
                   </Text>
-                  <Text style={[themed($languageChipSubtext), isActive && themed($languageChipSubtextActive)]}>
+                  <Text
+                    style={[
+                      themed($languageChipSubtext),
+                      isActive && themed($languageChipSubtextActive),
+                    ]}
+                  >
                     {lang.name}
                   </Text>
                 </Pressable>
@@ -307,33 +363,70 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
       </View>
 
       <View style={themed($section)}>
-        <Text preset="formLabel" text={t("settingsScreen.sections.account")} style={themed($sectionLabel)} />
+        <Text
+          preset="formLabel"
+          text={t("settingsScreen.sections.account")}
+          style={themed($sectionLabel)}
+        />
         <ListItem text={user?.email || t("settingsScreen.account.notSignedIn")} bottomSeparator />
-        <ListItem text={t("settingsScreen.account.org", { orgName: currentOrg?.name || t("settingsScreen.account.noOrg") })} bottomSeparator />
+        <ListItem
+          text={t("settingsScreen.account.org", {
+            orgName: currentOrg?.name || t("settingsScreen.account.noOrg"),
+          })}
+          bottomSeparator
+        />
+        {biometricAvailable && (
+          <View style={themed($appLockRow)}>
+            <View style={themed($appLockText)}>
+              <Text text={t("settingsScreen.account.appLock")} />
+              <Text
+                size="xxs"
+                style={themed($appLockHint)}
+                text={t("settingsScreen.account.appLockHint")}
+              />
+            </View>
+            <Switch
+              value={biometricEnabled}
+              onValueChange={handleToggleBiometricLock}
+              trackColor={{ false: "#D1D5DB", true: colors.palette.primary500 }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+        )}
       </View>
 
       <View style={themed($section)}>
-        <Text preset="formLabel" text={t("settingsScreen.sections.subscription")} style={themed($sectionLabel)} />
+        <Text
+          preset="formLabel"
+          text={t("settingsScreen.sections.subscription")}
+          style={themed($sectionLabel)}
+        />
         <View style={themed($subscriptionCard)}>
           <View style={themed($subscriptionHeader)}>
             <View>
               <Text style={themed($subscriptionPlan)}>
-                {plan === "commercial" ? t("settingsScreen.subscription.plans.commercial") : plan === "farm" ? t("settingsScreen.subscription.plans.farm") : t("settingsScreen.subscription.plans.starter")}
+                {plan === "commercial"
+                  ? t("settingsScreen.subscription.plans.commercial")
+                  : plan === "farm"
+                    ? t("settingsScreen.subscription.plans.farm")
+                    : t("settingsScreen.subscription.plans.starter")}
               </Text>
               <Text style={themed($subscriptionStatus)}>
                 {isLoading
                   ? t("settingsScreen.subscription.status.loading")
                   : plan === "commercial"
-                  ? t("settingsScreen.subscription.status.commercialAccess")
-                  : plan === "farm"
-                  ? t("settingsScreen.subscription.status.farmAccess")
-                  : t("settingsScreen.subscription.status.freeTier")}
+                    ? t("settingsScreen.subscription.status.commercialAccess")
+                    : plan === "farm"
+                      ? t("settingsScreen.subscription.status.farmAccess")
+                      : t("settingsScreen.subscription.status.freeTier")}
               </Text>
             </View>
             {isPremium && (
               <View style={themed($proBadge)}>
                 <Text style={themed($proBadgeText)}>
-                  {plan === "commercial" ? t("settingsScreen.subscription.badges.com") : t("settingsScreen.subscription.badges.farm")}
+                  {plan === "commercial"
+                    ? t("settingsScreen.subscription.badges.com")
+                    : t("settingsScreen.subscription.badges.farm")}
                 </Text>
               </View>
             )}
@@ -380,7 +473,11 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
       </View>
 
       <View style={themed($section)}>
-        <Text preset="formLabel" text={t("settingsScreen.sections.management")} style={themed($sectionLabel)} />
+        <Text
+          preset="formLabel"
+          text={t("settingsScreen.sections.management")}
+          style={themed($sectionLabel)}
+        />
         <ListItem
           text={t("settingsScreen.management.team")}
           bottomSeparator
@@ -404,7 +501,8 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
           <View style={themed($recalculateCard)}>
             <Text style={themed($recalculateTitle)}>Recalculate Vaccinations</Text>
             <Text style={themed($recalculateText)}>
-              Calculate upcoming vaccinations for all animals based on active schedules. Run this after adding new animals or modifying schedules.
+              Calculate upcoming vaccinations for all animals based on active schedules. Run this
+              after adding new animals or modifying schedules.
             </Text>
             <Button
               text="Recalculate Now"
@@ -419,7 +517,8 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
           <View style={themed($seedCard)}>
             <Text style={themed($seedTitle)}>Add Default Vaccination Schedules</Text>
             <Text style={themed($seedText)}>
-              Add standard South African cattle vaccination schedules (FMD, Multivax, Brucellosis, LSD, BVD, Botulism) to your farm
+              Add standard South African cattle vaccination schedules (FMD, Multivax, Brucellosis,
+              LSD, BVD, Botulism) to your farm
             </Text>
             <Button
               text="Add Default Schedules"
@@ -433,7 +532,11 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
 
       {hasRfidHardware && (
         <View style={themed($section)}>
-          <Text preset="formLabel" text={t("settingsScreen.sections.rfidScanner")} style={themed($sectionLabel)} />
+          <Text
+            preset="formLabel"
+            text={t("settingsScreen.sections.rfidScanner")}
+            style={themed($sectionLabel)}
+          />
 
           <View style={themed($rfidCard)}>
             <View style={themed($rfidStatusRow)}>
@@ -497,7 +600,9 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
             </View>
 
             {powerSaved && (
-              <Text style={themed($rfidSavedText)}>{t("settingsScreen.rfid.powerSaved", { power: readerPower })}</Text>
+              <Text style={themed($rfidSavedText)}>
+                {t("settingsScreen.rfid.powerSaved", { power: readerPower })}
+              </Text>
             )}
 
             <Text style={themed($rfidHint)}>
@@ -511,13 +616,15 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
         <Text preset="formLabel" text="Sync" style={themed($sectionLabel)} />
         <View style={themed($seedCard)}>
           <Text style={themed($seedText)}>
-            ✅ Auto-sync is active! Your data syncs automatically when you make changes, when the app opens, and every 5 minutes.
+            ✅ Auto-sync is active! Your data syncs automatically when you make changes, when the
+            app opens, and every 5 minutes.
           </Text>
         </View>
         <View style={themed($seedCard)}>
           <Text style={themed($seedTitle)}>Force Full Sync</Text>
           <Text style={themed($seedText)}>
-            Only use this if data is missing or out of sync. This will re-download all data from the server.
+            Only use this if data is missing or out of sync. This will re-download all data from the
+            server.
           </Text>
           <Button
             text={status === "syncing" ? "Syncing..." : "Force Full Sync"}
@@ -534,7 +641,8 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
         <View style={themed($seedCard)}>
           <Text style={themed($seedTitle)}>Test Sentry Integration</Text>
           <Text style={themed($seedText)}>
-            Send a test error to Sentry to verify logging is working. This will create a test event in your Sentry dashboard.
+            Send a test error to Sentry to verify logging is working. This will create a test event
+            in your Sentry dashboard.
           </Text>
           <Button
             text="Test Sentry"
@@ -546,12 +654,14 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
       </View>
 
       <View style={themed($section)}>
-        <Text preset="formLabel" text={t("settingsScreen.sections.dangerZone")} style={themed($dangerLabel)} />
+        <Text
+          preset="formLabel"
+          text={t("settingsScreen.sections.dangerZone")}
+          style={themed($dangerLabel)}
+        />
         <View style={themed($dangerCard)}>
           <Text style={themed($dangerTitle)}>{t("settingsScreen.dangerZone.resetTitle")}</Text>
-          <Text style={themed($dangerText)}>
-            {t("settingsScreen.dangerZone.resetDescription")}
-          </Text>
+          <Text style={themed($dangerText)}>{t("settingsScreen.dangerZone.resetDescription")}</Text>
           <Button
             text={t("settingsScreen.dangerZone.resetButton")}
             preset="filled"
@@ -561,7 +671,12 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
         </View>
       </View>
 
-      <Button text={t("settingsScreen.signOut")} preset="default" onPress={handleLogout} style={themed($logoutButton)} />
+      <Button
+        text={t("settingsScreen.signOut")}
+        preset="default"
+        onPress={handleLogout}
+        style={themed($logoutButton)}
+      />
 
       <Text preset="formHelper" text={t("settingsScreen.version")} style={themed($version)} />
     </Screen>
@@ -607,6 +722,22 @@ const $sectionLabel: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   color: colors.textDim,
   marginBottom: spacing.xs,
   letterSpacing: 1,
+})
+
+const $appLockRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+  paddingVertical: spacing.sm,
+})
+
+const $appLockText: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flex: 1,
+  marginRight: spacing.md,
+})
+
+const $appLockHint: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.textDim,
 })
 
 const $logoutButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({

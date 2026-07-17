@@ -122,6 +122,8 @@ const en = {
       notSignedIn: "Not signed in",
       org: "Org: {{orgName}}",
       noOrg: "None",
+      appLock: "App Lock",
+      appLockHint: "Require Face ID or fingerprint to open the app",
     },
     subscription: {
       plans: {
@@ -140,9 +142,9 @@ const en = {
         farm: "FARM",
       },
       descriptions: {
-        commercial: "Full access: Unlimited animals, pastures, vaccines, team members, and advanced reports.",
-        farm: "Premium access: Unlimited animals, pasture management, and vaccine tracking.",
-        starter: "Upgrade to unlock pasture management, vaccine tracking, unlimited animals, and more.",
+        commercial: "Unlimited animals, plus every feature.",
+        farm: "Unlimited animals, plus every feature.",
+        starter: "Every feature is included free, for up to 50 animals. Upgrade for unlimited animals.",
       },
       buttons: {
         manageSubscription: "Manage Subscription",
@@ -662,7 +664,17 @@ const en = {
       },
     },
     alerts: {
+      animalLimit: {
+        title: "Free Limit Reached",
+        message: "You've reached your plan's limit of {{limit}} animals. Upgrade for a higher limit — every feature is already included.",
+        upgrade: "Upgrade",
+      },
       validation: {
+        duplicateTag: {
+          title: "Duplicate Tag",
+          visualMessage: "Visual tag \"{{tag}}\" is already used by {{name}}. Please use a unique tag.",
+          rfidMessage: "RFID tag \"{{tag}}\" is already used by {{name}}. Please use a unique tag.",
+        },
         tagRequired: {
           title: "Required",
           message: "Please enter either an RFID Tag or Visual Tag (at least one is required)",
@@ -1099,6 +1111,11 @@ const en = {
         message: "Failed to delete schedule",
       },
     },
+  },
+  biometricLock: {
+    title: "HerdTrackr is locked",
+    prompt: "Unlock HerdTrackr",
+    unlockButton: "Unlock",
   },
 }
 

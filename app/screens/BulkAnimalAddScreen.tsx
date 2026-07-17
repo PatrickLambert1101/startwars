@@ -9,7 +9,7 @@ import { PhotoPicker } from "@/components/PhotoPicker"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
-import { useAnimalActions, AnimalFormData } from "@/hooks/useAnimals"
+import { useAnimalActions, AnimalFormData, DuplicateTagError, AnimalLimitError } from "@/hooks/useAnimals"
 import { AnimalSex, AnimalStatus } from "@/db/models/Animal"
 import { useRfidReader } from "@/hooks/useRfidReader"
 import { useDatabase } from "@/context/DatabaseContext"
@@ -208,11 +208,34 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
       // Refocus input
       tagInputRef.current?.focus()
     } catch (e) {
-      console.error("Failed to add animal:", e)
-      Alert.alert(
-        t("common.error"),
-        t("bulkAnimalAddScreen.alerts.addError.message")
-      )
+      if (e instanceof DuplicateTagError) {
+        // Inputs are intentionally left as-is (the clear step above is skipped
+        // on throw) so the farmer can correct the tag without re-entering.
+        Alert.alert(
+          t("animalFormScreen.alerts.validation.duplicateTag.title"),
+          t(`animalFormScreen.alerts.validation.duplicateTag.${e.tagKind}Message`, {
+            tag: e.tagValue,
+            name: e.existingName,
+          }),
+        )
+        tagInputRef.current?.focus()
+      } else if (e instanceof AnimalLimitError) {
+        // Hit the free cap mid-batch — offer to upgrade rather than keep failing.
+        Alert.alert(
+          t("animalFormScreen.alerts.animalLimit.title"),
+          t("animalFormScreen.alerts.animalLimit.message", { limit: e.limit }),
+          [
+            { text: t("common.cancel"), style: "cancel" },
+            {
+              text: t("animalFormScreen.alerts.animalLimit.upgrade"),
+              onPress: () => navigation.navigate("Paywall"),
+            },
+          ],
+        )
+      } else {
+        console.error("Failed to add animal:", e)
+        Alert.alert(t("common.error"), t("bulkAnimalAddScreen.alerts.addError.message"))
+      }
     }
     setIsSubmitting(false)
   }, [currentTag, currentRfidTag, tagType, tags, breed, sex, dateOfBirth, vaccinationsUpToDate, notesTemplate, currentOrg, createAnimal, t])

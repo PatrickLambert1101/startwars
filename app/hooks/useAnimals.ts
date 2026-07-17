@@ -3,8 +3,70 @@ import { Q } from "@nozbe/watermelondb"
 import { database } from "@/db"
 import { Animal, AnimalSex, AnimalStatus } from "@/db/models/Animal"
 import { useDatabase } from "@/context/DatabaseContext"
+import { useSubscription } from "@/context/SubscriptionContext"
 import { calculateScheduledVaccinations } from "@/services/vaccinationScheduler"
 import type { FilterState } from "@/components/FilterModal"
+
+/**
+ * Thrown by createAnimal when a free-plan org tries to add an animal beyond the
+ * free limit. Enforced at the data layer so both the single and bulk add flows
+ * are covered and a rapid bulk loop can't slip past a stale count.
+ */
+export class AnimalLimitError extends Error {
+  constructor(public readonly limit: number) {
+    super(`Free plan is limited to ${limit} animals`)
+    this.name = "AnimalLimitError"
+  }
+}
+
+/**
+ * Thrown when a create/update would give two animals the same visual or RFID
+ * tag within an org. Carries enough detail for the UI to name the conflict.
+ * Checked at the data layer (not per-screen) so both the single and bulk add
+ * flows are covered, and so rapid bulk inserts can't race a stale local list.
+ */
+export class DuplicateTagError extends Error {
+  constructor(
+    public readonly tagKind: "visual" | "rfid",
+    public readonly tagValue: string,
+    public readonly existingName: string,
+  ) {
+    super(`Duplicate ${tagKind} tag: ${tagValue}`)
+    this.name = "DuplicateTagError"
+  }
+}
+
+/**
+ * Look for an existing (non-deleted) animal in the org that already uses the
+ * given visual or RFID tag. Comparison is trimmed + case-insensitive to match
+ * how a farmer thinks of a tag ("A12" == "a12"). Empty tags never collide.
+ */
+async function findTagConflict(
+  organizationId: string,
+  visualTag: string,
+  rfidTag: string,
+  excludeAnimalId?: string,
+): Promise<DuplicateTagError | null> {
+  const v = visualTag.trim().toLowerCase()
+  const r = rfidTag.trim().toLowerCase()
+  if (!v && !r) return null
+
+  const existing = await database
+    .get<Animal>("animals")
+    .query(Q.where("organization_id", organizationId), Q.where("is_deleted", false))
+    .fetch()
+
+  for (const a of existing) {
+    if (excludeAnimalId && a.id === excludeAnimalId) continue
+    if (v && a.visualTag?.trim().toLowerCase() === v) {
+      return new DuplicateTagError("visual", visualTag.trim(), a.displayName)
+    }
+    if (r && a.rfidTag?.trim().toLowerCase() === r) {
+      return new DuplicateTagError("rfid", rfidTag.trim(), a.displayName)
+    }
+  }
+  return null
+}
 
 // Columns we can sort on at the DB level. Anything else falls back to visual_tag.
 const DB_SORT_COLUMNS: Record<string, string> = {
@@ -34,6 +96,8 @@ export type AnimalFormData = {
   vaccinationsUpToDate?: boolean
   herdTag?: string
   notes?: string
+  /** JSON-encoded array of tag strings (e.g. ["Breeding Stock"]), or null. */
+  tags?: string | null
 }
 
 export function useAnimals() {
@@ -211,9 +275,23 @@ export function useAnimal(animalId: string) {
 
 export function useAnimalActions() {
   const { currentOrg } = useDatabase()
+  const { animalLimit } = useSubscription()
 
   const createAnimal = async (data: AnimalFormData): Promise<Animal> => {
     if (!currentOrg) throw new Error("No organization selected")
+
+    // Enforce the plan's animal cap. Counted live at write time so a bulk loop
+    // can't race past it. Unlimited plans (Infinity) skip the query entirely.
+    if (animalLimit !== Infinity) {
+      const count = await database
+        .get<Animal>("animals")
+        .query(Q.where("organization_id", currentOrg.id), Q.where("is_deleted", false))
+        .fetchCount()
+      if (count >= animalLimit) throw new AnimalLimitError(animalLimit)
+    }
+
+    const conflict = await findTagConflict(currentOrg.id, data.visualTag, data.rfidTag)
+    if (conflict) throw conflict
 
     const animal = await database.write(async () => {
       return database.get<Animal>("animals").create((animal) => {
@@ -233,6 +311,7 @@ export function useAnimalActions() {
         animal.vaccinationsUpToDate = data.vaccinationsUpToDate ?? true
         animal.herdTag = data.herdTag ?? null
         animal.notes = data.notes ?? null
+        animal.tags = data.tags ?? null
         animal.isDeleted = false
       })
     })
@@ -255,6 +334,18 @@ export function useAnimalActions() {
 
   const updateAnimal = async (animalId: string, data: Partial<AnimalFormData>): Promise<void> => {
     if (!currentOrg) throw new Error("No organization selected")
+
+    // Only guard tags that are actually changing; pass "" for the untouched one
+    // so it never collides. Exclude this animal so it doesn't match itself.
+    if (data.visualTag !== undefined || data.rfidTag !== undefined) {
+      const conflict = await findTagConflict(
+        currentOrg.id,
+        data.visualTag ?? "",
+        data.rfidTag ?? "",
+        animalId,
+      )
+      if (conflict) throw conflict
+    }
 
     const shouldRecalculate =
       data.dateOfBirth !== undefined ||

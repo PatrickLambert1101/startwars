@@ -122,6 +122,8 @@ const xh = {
       notSignedIn: "Akungenanga",
       org: "Umbutho: {{orgName}}",
       noOrg: "Awukho",
+      appLock: "Ukutshixwa kwe-App",
+      appLockHint: "Kufuneka i-Face ID okanye isishicilelo somnwe ukuvula i-app",
     },
     subscription: {
       plans: {
@@ -140,9 +142,9 @@ const xh = {
         farm: "FARM",
       },
       descriptions: {
-        commercial: "Ukufikelela okupheleleyo: Izilwanyana ezingenamda, amadlelo, izitofu, amalungu eqela, neengxelo eziphucukileyo.",
-        farm: "Ukufikelela kwe-Premium: Izilwanyana ezingenamda, ulawulo lwamadlelo, nokulandelela izitofu.",
-        starter: "Phakamisa ukuze uvule ulawulo lwamadlelo, ukulandelela izitofu, izilwanyana ezingenamda, nokunye.",
+        commercial: "Izilwanyana ezingenamda, kunye nazo zonke iimpawu.",
+        farm: "Izilwanyana ezingenamda, kunye nazo zonke iimpawu.",
+        starter: "Zonke iimpawu zibandakanyiwe simahla, kuze kube zizilwanyana ezingu-50. Phucula ukuze ufumane izilwanyana ezingenamda.",
       },
       buttons: {
         manageSubscription: "Lawula Urhwebo",
@@ -662,7 +664,17 @@ const xh = {
       },
     },
     alerts: {
+      animalLimit: {
+        title: "Umda Wasimahla Ufikelelwe",
+        message: "Ufikelele umda wesicwangciso sakho wezilwanyana ezingu-{{limit}}. Phucula ukuze ufumane umda ophezulu — zonke iimpawu sezibandakanyiwe.",
+        upgrade: "Phucula",
+      },
       validation: {
+        duplicateTag: {
+          title: "Itheki Ephindaphindiweyo",
+          visualMessage: "Itheki ebonakalayo ethi \"{{tag}}\" sele isetyenziswa ngu-{{name}}. Nceda usebenzise itheki eyahlukileyo.",
+          rfidMessage: "Itheki ye-RFID ethi \"{{tag}}\" sele isetyenziswa ngu-{{name}}. Nceda usebenzise itheki eyahlukileyo.",
+        },
         tagRequired: {
           title: "Iyafuneka",
           message: "Nceda faka mhlawumbi ithegi ye-RFID okanye Ithegi Ebonakalayo (ubuncinane enye iyafuneka)",
@@ -1099,6 +1111,11 @@ const xh = {
         message: "Akukwazanga kucinywa ixesha",
       },
     },
+  },
+  biometricLock: {
+    title: "I-HerdTrackr itshixiwe",
+    prompt: "Vula i-HerdTrackr",
+    unlockButton: "Vula",
   },
 }
 

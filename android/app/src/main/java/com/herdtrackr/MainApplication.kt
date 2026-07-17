@@ -1,4 +1,4 @@
-package com.lambertpatrick091.herdtrackr
+package com.herdtrackr
 
 import android.app.Application
 import android.content.res.Configuration

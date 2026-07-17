@@ -122,6 +122,8 @@ const zu = {
       notSignedIn: "Awungenile",
       org: "Inhlangano: {{orgName}}",
       noOrg: "Akukho",
+      appLock: "Ukukhiywa Kwe-App",
+      appLockHint: "Kudingeka i-Face ID noma isigxivizo somunwe ukuvula i-app",
     },
     subscription: {
       plans: {
@@ -140,9 +142,9 @@ const zu = {
         farm: "FARM",
       },
       descriptions: {
-        commercial: "Ukufinyelela okugcwele: Izilwane ezingenamkhawulo, amadlelo, imigomo, amalungu eqembu, nemibiko ethuthukile.",
-        farm: "Ukufinyelela kwe-Premium: Izilwane ezingenamkhawulo, ukuphathwa kwamadlelo, nokulandelela imigomo.",
-        starter: "Khuphukela ukuze uvule ukuphathwa kwamadlelo, ukulandelela imigomo, izilwane ezingenamkhawulo, nokunye.",
+        commercial: "Izilwane ezingenamkhawulo, kanye nazo zonke izici.",
+        farm: "Izilwane ezingenamkhawulo, kanye nazo zonke izici.",
+        starter: "Zonke izici zifakiwe mahhala, kuze kube izilwane ezingu-50. Thuthukisa ukuze uthole izilwane ezingenamkhawulo.",
       },
       buttons: {
         manageSubscription: "Phatha Ukubhalisa",
@@ -662,7 +664,17 @@ const zu = {
       },
     },
     alerts: {
+      animalLimit: {
+        title: "Umkhawulo Wamahhala Ufinyelelwe",
+        message: "Ufinyelele umkhawulo wohlelo lwakho wezilwane ezingu-{{limit}}. Thuthukisa ukuze uthole umkhawulo ophakeme — zonke izici sezifakiwe.",
+        upgrade: "Thuthukisa",
+      },
       validation: {
+        duplicateTag: {
+          title: "Ithegi Ephindaphindiwe",
+          visualMessage: "Ithegi ebonakalayo ethi \"{{tag}}\" isetshenziswa kakade ngu-{{name}}. Sicela usebenzise ithegi eyingqayizivele.",
+          rfidMessage: "Ithegi ye-RFID ethi \"{{tag}}\" isetshenziswa kakade ngu-{{name}}. Sicela usebenzise ithegi eyingqayizivele.",
+        },
         tagRequired: {
           title: "Kuyadingeka",
           message: "Sicela ufake noma Ithegi le-RFID noma Ithegi Elibonakalayo (okungenani elilodwa liyadingeka)",
@@ -1099,6 +1111,11 @@ const zu = {
         message: "Yehlulekile ukususa uhlelo",
       },
     },
+  },
+  biometricLock: {
+    title: "I-HerdTrackr ikhiyiwe",
+    prompt: "Vula i-HerdTrackr",
+    unlockButton: "Vula",
   },
 }
 

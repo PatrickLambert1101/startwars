@@ -21,14 +21,38 @@ export type PlanTier = "starter" | "farm" | "commercial"
 export type PremiumFeature = "vaccines" | "pastures" | "unlimited_animals" | "team_members" | "advanced_reports"
 export type BillingPeriod = "monthly" | "annual"
 
+/**
+ * The whole paid model is now just an animal-count ladder — every tier has every
+ * feature, they differ only in how many animals you may hold. "Cows" loosely:
+ * the cap counts total animals of every species. Infinity = unlimited.
+ *
+ * Tiers reuse the existing RevenueCat entitlements (farm, commercial); only what
+ * they grant changed (a higher cap instead of extra features).
+ */
+export const ANIMAL_LIMITS: Record<PlanTier, number> = {
+  starter: 50, // free
+  farm: 500, // mid
+  commercial: Infinity, // unlimited
+}
+
+/** The free tier's cap, surfaced for copy ("free for your first N animals"). */
+export const FREE_ANIMAL_LIMIT = ANIMAL_LIMITS.starter
+
 export type SubscriptionContextType = {
   plan: PlanTier
   isStarter: boolean
   isFarm: boolean
   isCommercial: boolean
   isPremium: boolean // Farm or Commercial
+  /** True once the animal cap has been lifted (paid, or super user). */
+  isPaid: boolean
+  /** Max animals allowed on the current plan (Infinity once paid). */
+  animalLimit: number
   isLoading: boolean
-  /** Check if a specific premium feature is unlocked */
+  /**
+   * Every feature is now free for everyone — the only thing you pay for is
+   * animals beyond the free limit. Kept so existing call sites don't break.
+   */
   hasFeature: (feature: PremiumFeature) => boolean
   /** Available purchase packages from RevenueCat */
   packages: PurchasesPackage[]
@@ -36,13 +60,6 @@ export type SubscriptionContextType = {
   purchasePackage: (pkg: PurchasesPackage) => Promise<void>
   /** Restore previous purchases */
   restorePurchases: () => Promise<void>
-}
-
-// Feature availability by tier
-const TIER_FEATURES = {
-  starter: [] as PremiumFeature[], // Free tier - no premium features
-  farm: ["vaccines", "pastures", "unlimited_animals"] as PremiumFeature[],
-  commercial: ["vaccines", "pastures", "unlimited_animals", "team_members", "advanced_reports"] as PremiumFeature[],
 }
 
 // RevenueCat API keys from environment variables
@@ -75,11 +92,17 @@ export const SubscriptionProvider: FC<PropsWithChildren> = ({ children }) => {
   const [isSuperUser, setIsSuperUser] = useState(false)
   const [isRevenueCatConfigured, setIsRevenueCatConfigured] = useState(false)
 
-  // Computed tier checks
+  // Computed tier checks. Tiers are legacy: the model is now simply free (capped
+  // at FREE_ANIMAL_LIMIT animals) vs paid (uncapped). Any non-starter plan — or a
+  // super user — counts as paid.
   const isStarter = plan === "starter"
   const isFarm = plan === "farm"
   const isCommercial = plan === "commercial"
   const isPremium = isFarm || isCommercial
+  const isPaid = isPremium || isSuperUser
+  // Super users are effectively commercial (unlimited); otherwise the cap comes
+  // straight from the plan ladder.
+  const animalLimit = isSuperUser ? Infinity : ANIMAL_LIMITS[plan]
 
   // ── Initialise RevenueCat ─────────────────────────────────
   useEffect(() => {
@@ -271,12 +294,9 @@ export const SubscriptionProvider: FC<PropsWithChildren> = ({ children }) => {
     }
   }
 
-  const hasFeature = useCallback(
-    (feature: PremiumFeature) => {
-      return TIER_FEATURES[plan].includes(feature)
-    },
-    [plan],
-  )
+  // All features are free now; paying only lifts the animal cap. Kept as a
+  // function so the existing hasFeature(...) call sites keep working.
+  const hasFeature = useCallback((_feature: PremiumFeature) => true, [])
 
   // ── Purchase methods ──────────────────────────────────────
   const purchasePackage = useCallback(async (pkg: PurchasesPackage) => {
@@ -326,13 +346,15 @@ export const SubscriptionProvider: FC<PropsWithChildren> = ({ children }) => {
       isFarm,
       isCommercial,
       isPremium,
+      isPaid,
+      animalLimit,
       isLoading,
       hasFeature,
       packages,
       purchasePackage,
       restorePurchases,
     }),
-    [plan, isStarter, isFarm, isCommercial, isPremium, isLoading, hasFeature, packages, purchasePackage, restorePurchases]
+    [plan, isStarter, isFarm, isCommercial, isPremium, isPaid, animalLimit, isLoading, hasFeature, packages, purchasePackage, restorePurchases]
   )
 
   return (

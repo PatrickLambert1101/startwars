@@ -10,6 +10,12 @@ export interface AppHeaderProps {
   title?: string
   showSettings?: boolean
   showSync?: boolean
+  /**
+   * Show a back chevron on the left. Needed on pushed stack screens (e.g.
+   * Reports) — unlike tab screens, they have no tab bar to navigate away with,
+   * so without this the screen is a dead end.
+   */
+  showBack?: boolean
   /** Screen-specific action(s), rendered to the left of the settings cog. */
   actions?: ReactNode
 }
@@ -18,6 +24,7 @@ export const AppHeader: FC<AppHeaderProps> = ({
   title = "HerdTrackr",
   showSettings = true,
   showSync = false,
+  showBack = false,
   actions,
 }) => {
   const navigation = useNavigation<any>()
@@ -25,7 +32,18 @@ export const AppHeader: FC<AppHeaderProps> = ({
 
   return (
     <View style={themed($container)}>
-      {/* Left: App name or screen title */}
+      {/* Left: optional back button + screen title */}
+      {showBack && navigation.canGoBack() && (
+        <Pressable
+          onPress={() => navigation.goBack()}
+          style={themed($iconButton)}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+        >
+          <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
+        </Pressable>
+      )}
       <Text preset="heading" text={title} style={themed($title)} />
 
       {/* Right: Icons */}

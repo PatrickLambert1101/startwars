@@ -15,14 +15,13 @@ import { useFonts } from "expo-font"
 import * as Linking from "expo-linking"
 import { KeyboardProvider } from "react-native-keyboard-controller"
 import { initialWindowMetrics, SafeAreaProvider } from "react-native-safe-area-context"
-
 import Toast from "react-native-toast-message"
 
+import { AutoSync, BiometricLock, SyncIndicator, ErrorBoundary } from "./components"
 import { AuthProvider } from "./context/AuthContext"
 import { DatabaseProvider } from "./context/DatabaseContext"
 import { SubscriptionProvider } from "./context/SubscriptionContext"
 import { SyncProvider } from "./context/SyncContext"
-import { AutoSync, SyncIndicator, ErrorBoundary } from "./components"
 import { initI18n } from "./i18n"
 import { AppNavigator } from "./navigators/AppNavigator"
 import { useNavigationPersistence } from "./navigators/navigationUtilities"
@@ -72,10 +71,7 @@ export function App() {
 
   useEffect(() => {
     // Initialize i18n and date formatting in parallel
-    Promise.all([
-      initI18n(),
-      loadDateFnsLocale()
-    ])
+    Promise.all([initI18n(), loadDateFnsLocale()])
       .then(() => setIsI18nInitialized(true))
       .catch((err) => {
         console.error("Failed to initialize i18n:", err)
@@ -112,6 +108,7 @@ export function App() {
                         onStateChange={onNavigationStateChange}
                       />
                       <Toast />
+                      <BiometricLock />
                     </ErrorBoundary>
                   </ThemeProvider>
                 </SubscriptionProvider>

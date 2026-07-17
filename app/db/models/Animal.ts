@@ -34,7 +34,7 @@ export const BREEDS_BY_SPECIES: Record<AnimalSpecies, string[]> = {
   goats: ["Boer Goat", "Angora", "Kalahari Red", "Savanna", "Toggenburg", "Saanen", "Indigenous Veld", "Mixed"],
   game: ["Springbok", "Impala", "Kudu", "Blesbok", "Blue Wildebeest", "Gemsbok", "Eland", "Nyala", "Sable", "Waterbuck", "Bushbuck", "Mixed"],
   pigs: ["Large White", "Landrace", "Duroc", "Kolbroek", "Windsnyer", "SA Landrace", "Mixed"],
-  poultry: ["Boschveld", "Potchefstroom Koekoek", "Rhodes Island Red", "Venda", "Ovambo", "Mixed"],
+  poultry: ["Boschveld", "Potchefstroom Koekoek", "Rhode Island Red", "Venda", "Ovambo", "Mixed"],
 }
 
 export class Animal extends Model {

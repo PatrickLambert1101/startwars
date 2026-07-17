@@ -122,6 +122,8 @@ const af = {
       notSignedIn: "Nie ingeteken nie",
       org: "Org: {{orgName}}",
       noOrg: "Geen",
+      appLock: "Programslot",
+      appLockHint: "Vereis Face ID of vingerafdruk om die program oop te maak",
     },
     subscription: {
       plans: {
@@ -140,9 +142,9 @@ const af = {
         farm: "FARM",
       },
       descriptions: {
-        commercial: "Volle toegang: Onbeperkte diere, weivelde, entstowwe, spanlede en gevorderde verslae.",
-        farm: "Premium toegang: Onbeperkte diere, weiveldbestuur en entstof-opsporing.",
-        starter: "Opgradeer om weiveldbestuur, entstof-opsporing, onbeperkte diere en meer te ontsluit.",
+        commercial: "Onbeperkte diere, plus elke kenmerk.",
+        farm: "Onbeperkte diere, plus elke kenmerk.",
+        starter: "Elke kenmerk is gratis ingesluit, vir tot 50 diere. Gradeer op vir onbeperkte diere.",
       },
       buttons: {
         manageSubscription: "Bestuur Intekening",
@@ -662,7 +664,17 @@ const af = {
       },
     },
     alerts: {
+      animalLimit: {
+        title: "Gratis Limiet Bereik",
+        message: "Jy het jou plan se limiet van {{limit}} diere bereik. Gradeer op vir 'n hoër limiet — elke kenmerk is reeds ingesluit.",
+        upgrade: "Gradeer Op",
+      },
       validation: {
+        duplicateTag: {
+          title: "Dubbele Etiket",
+          visualMessage: "Visuele etiket \"{{tag}}\" word reeds deur {{name}} gebruik. Gebruik asseblief \'n unieke etiket.",
+          rfidMessage: "RFID-etiket \"{{tag}}\" word reeds deur {{name}} gebruik. Gebruik asseblief \'n unieke etiket.",
+        },
         tagRequired: {
           title: "Verpligtend",
           message: "Voer asseblief óf 'n RFID-merker óf Visuele Merker in (ten minste een word vereis)",
@@ -1099,6 +1111,11 @@ const af = {
         message: "Kon nie skedule verwyder nie",
       },
     },
+  },
+  biometricLock: {
+    title: "HerdTrackr is gesluit",
+    prompt: "Ontsluit HerdTrackr",
+    unlockButton: "Ontsluit",
   },
 }
 

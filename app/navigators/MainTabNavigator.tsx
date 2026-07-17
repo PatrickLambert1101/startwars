@@ -1,6 +1,5 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs"
-import { TextStyle, ViewStyle, View, Platform } from "react-native"
-import { MaterialCommunityIcons } from "@expo/vector-icons"
+import { TextStyle, ViewStyle, View, Image, ImageStyle, Platform } from "react-native"
 
 import { DashboardScreen } from "@/screens/DashboardScreen"
 import { HerdListScreen } from "@/screens/HerdListScreen"
@@ -14,12 +13,24 @@ import type { MainTabParamList } from "./navigationTypes"
 
 const Tab = createBottomTabNavigator<MainTabParamList>()
 
+// Branded tab silhouettes. require() must be static literals for Metro. These
+// are alpha-clean PNGs rendered as masks via Image tintColor, so they recolour
+// by active/inactive state exactly like the old icon font did.
+const TAB_ICONS = {
+  dashboard: require("../assets/icons/tab/dashboard.png"),
+  herd: require("../assets/icons/tab/herd.png"),
+  chute: require("../assets/icons/tab/chute.png"),
+  pastures: require("../assets/icons/tab/pastures.png"),
+  calendar: require("../assets/icons/tab/calendar.png"),
+  breeding: require("../assets/icons/tab/breeding.png"),
+} as const
+
 export const MainTabNavigator = () => {
   const {
     theme: { colors },
   } = useAppTheme()
 
-  const renderTabIcon = (iconName: keyof typeof MaterialCommunityIcons.glyphMap, focused: boolean, color: string) => {
+  const renderTabIcon = (icon: keyof typeof TAB_ICONS, focused: boolean, color: string) => {
     return (
       <View
         style={[
@@ -30,7 +41,11 @@ export const MainTabNavigator = () => {
           },
         ]}
       >
-        <MaterialCommunityIcons name={iconName} size={focused ? 26 : 24} color={color} />
+        <Image
+          source={TAB_ICONS[icon]}
+          style={[$tabIcon, { tintColor: color, width: focused ? 26 : 24, height: focused ? 26 : 24 }]}
+          resizeMode="contain"
+        />
       </View>
     )
   }
@@ -59,7 +74,7 @@ export const MainTabNavigator = () => {
         component={DashboardScreen}
         options={{
           tabBarLabel: "Home",
-          tabBarIcon: ({ color, focused }) => renderTabIcon("view-dashboard-outline", focused, color),
+          tabBarIcon: ({ color, focused }) => renderTabIcon("dashboard", focused, color),
         }}
       />
       <Tab.Screen
@@ -67,7 +82,7 @@ export const MainTabNavigator = () => {
         component={HerdListScreen}
         options={{
           tabBarLabel: "Herd",
-          tabBarIcon: ({ color, focused }) => renderTabIcon("cow", focused, color),
+          tabBarIcon: ({ color, focused }) => renderTabIcon("herd", focused, color),
         }}
       />
       <Tab.Screen
@@ -75,7 +90,7 @@ export const MainTabNavigator = () => {
         component={ChuteScreen}
         options={{
           tabBarLabel: "Chute",
-          tabBarIcon: ({ color, focused }) => renderTabIcon("gate-arrow-right", focused, color),
+          tabBarIcon: ({ color, focused }) => renderTabIcon("chute", focused, color),
         }}
       />
       <Tab.Screen
@@ -83,7 +98,7 @@ export const MainTabNavigator = () => {
         component={PasturesScreen}
         options={{
           tabBarLabel: "Pastures",
-          tabBarIcon: ({ color, focused }) => renderTabIcon("grass", focused, color),
+          tabBarIcon: ({ color, focused }) => renderTabIcon("pastures", focused, color),
         }}
       />
       <Tab.Screen
@@ -99,7 +114,7 @@ export const MainTabNavigator = () => {
         component={BreedingScreen}
         options={{
           tabBarLabel: "Breeding",
-          tabBarIcon: ({ color, focused }) => renderTabIcon("heart", focused, color),
+          tabBarIcon: ({ color, focused }) => renderTabIcon("breeding", focused, color),
         }}
       />
     </Tab.Navigator>
@@ -114,6 +129,11 @@ const $tabBarLabel: TextStyle = {
   fontSize: 11,
   fontWeight: "600",
   lineHeight: 16,
+}
+
+const $tabIcon: ImageStyle = {
+  width: 24,
+  height: 24,
 }
 
 const $iconContainer: ViewStyle = {

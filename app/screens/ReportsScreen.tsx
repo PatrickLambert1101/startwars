@@ -257,6 +257,8 @@ export const ReportsScreen: FC = () => {
   if (isLoading) {
     return (
       <Screen preset="fixed" safeAreaEdges={["top"]}>
+        {/* Header here too, so a slow/stuck report query is never a dead end. */}
+        <AppHeader title={t("reportsScreen.title")} showSettings={true} showBack={true} />
         <View style={themed($centered)}>
           <Text text={t("common.loading")} />
         </View>
@@ -267,7 +269,7 @@ export const ReportsScreen: FC = () => {
   if (!report || report.totalHead === 0) {
     return (
       <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
-        <AppHeader title={t("reportsScreen.title")} showSettings={true} />
+        <AppHeader title={t("reportsScreen.title")} showSettings={true} showBack={true} />
         <Text text={t("reportsScreen.noAnimals")} style={themed($dimText)} />
       </Screen>
     )
@@ -275,7 +277,7 @@ export const ReportsScreen: FC = () => {
 
   return (
     <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
-      <AppHeader title={t("reportsScreen.title")} showSettings={true} />
+      <AppHeader title={t("reportsScreen.title")} showSettings={true} showBack={true} />
 
       <View style={themed($card)}>
         <Text preset="subheading" text={t("reportsScreen.herdSummary.title")} style={themed($cardTitle)} />

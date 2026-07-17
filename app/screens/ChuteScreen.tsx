@@ -14,7 +14,7 @@ import { spacing } from "@/theme/spacing"
 import { database } from "@/db"
 import { Animal } from "@/db/models/Animal"
 import { WeightRecord } from "@/db/models/WeightRecord"
-import { HealthRecord } from "@/db/models/HealthRecord"
+import { HealthRecord, HealthRecordType } from "@/db/models/HealthRecord"
 import { useDatabase } from "@/context/DatabaseContext"
 import { useSubscription } from "@/context/SubscriptionContext"
 import { useWeightRecordActions, useHealthRecordActions } from "@/hooks/useRecords"
@@ -33,6 +33,16 @@ type ProcessedEntry = {
   action: SessionMode
   value: string
   timestamp: Date
+}
+
+/**
+ * A protocol's type maps 1:1 onto a health-record type except "deworming",
+ * which health records don't have — it's stored as a "treatment" (matching the
+ * manual health-record form). Writing the raw "deworming" produces an
+ * out-of-enum recordType that no report bucket or filter counts.
+ */
+function protocolRecordType(protocol: TreatmentProtocol): HealthRecordType {
+  return protocol.protocolType === "deworming" ? "treatment" : protocol.protocolType
 }
 
 export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
@@ -57,18 +67,6 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
   // RFID scanner integration
   const { hasRfidHardware, isInitialized, isScanning, scannedTag, initialize, stopScanning, clearScannedTag } = useRfidReader()
 
-  // Debug RFID state
-  useEffect(() => {
-    console.log("[Chute] RFID state:", {
-      hasRfidHardware,
-      isInitialized,
-      isScanning,
-      scannedTag: scannedTag?.epc,
-      sessionMode,
-      scannedAnimal: scannedAnimal?.displayName,
-    })
-  }, [hasRfidHardware, isInitialized, isScanning, scannedTag, sessionMode, scannedAnimal])
-
   // Session mode — pre-select the action for batch processing
   const [sessionMode, setSessionMode] = useState<SessionMode | null>(null)
 
@@ -79,6 +77,20 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
   const [rfidInput, setRfidInput] = useState("")
   const [scannedAnimal, setScannedAnimal] = useState<Animal | null>(null)
   const [isSearching, setIsSearching] = useState(false)
+
+  // Debug RFID state (kept below the state it reads — referencing it above the
+  // useState declarations is a use-before-declaration and, under strict TDZ,
+  // throws at render).
+  useEffect(() => {
+    console.log("[Chute] RFID state:", {
+      hasRfidHardware,
+      isInitialized,
+      isScanning,
+      scannedTag: scannedTag?.epc,
+      sessionMode,
+      scannedAnimal: scannedAnimal?.displayName,
+    })
+  }, [hasRfidHardware, isInitialized, isScanning, scannedTag, sessionMode, scannedAnimal])
 
   // Animal history (loaded after scan)
   const [weightHistory, setWeightHistory] = useState<WeightRecord[]>([])
@@ -132,15 +144,6 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
       initialize()
     }
   }, [hasRfidHardware, isInitialized, initialize])
-
-  // Auto-lookup when RFID tag is scanned (access-scanner pattern: direct trigger on tag change)
-  useEffect(() => {
-    if (scannedTag && !scannedAnimal && sessionMode) {
-      console.log("[Chute] RFID tag scanned:", scannedTag.epc)
-      setRfidInput(scannedTag.epc)
-      lookupAnimal(scannedTag.epc)
-    }
-  }, [scannedTag, scannedAnimal, sessionMode, lookupAnimal])
 
   // Scanning timeout - stop scanning after 10 seconds if no animal found
   useEffect(() => {
@@ -287,6 +290,17 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
     setIsSearching(false)
   }, [currentOrg, t])
 
+  // Auto-lookup when RFID tag is scanned (access-scanner pattern: direct trigger
+  // on tag change). Placed after lookupAnimal so it isn't referenced before its
+  // declaration.
+  useEffect(() => {
+    if (scannedTag && !scannedAnimal && sessionMode) {
+      console.log("[Chute] RFID tag scanned:", scannedTag.epc)
+      setRfidInput(scannedTag.epc)
+      lookupAnimal(scannedTag.epc)
+    }
+  }, [scannedTag, scannedAnimal, sessionMode, lookupAnimal])
+
   const handleScanSubmit = useCallback(() => {
     lookupAnimal(rfidInput)
   }, [rfidInput, lookupAnimal])
@@ -385,7 +399,7 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
       await createHealthRecord({
         animalId: scannedAnimal.id,
         recordDate: new Date(),
-        recordType: selectedProtocol.protocolType,
+        recordType: protocolRecordType(selectedProtocol),
         description: selectedProtocol.name,
         productName: selectedProtocol.productName,
         dosage: selectedProtocol.dosage,
@@ -812,7 +826,7 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
                       await createHealthRecord({
                         animalId: scannedAnimal.id,
                         recordDate: new Date(),
-                        recordType: selectedProtocol.protocolType,
+                        recordType: protocolRecordType(selectedProtocol),
                         description: selectedProtocol.name,
                         productName: selectedProtocol.productName,
                         dosage: selectedProtocol.dosage,

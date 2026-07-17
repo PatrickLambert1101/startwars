@@ -5,7 +5,6 @@ import { useTranslation } from "react-i18next"
 import { Screen, Text, Button, AppHeader } from "@/components"
 import { PastureIcon } from "@/components/icons"
 import { useAppTheme } from "@/theme/context"
-import { useSubscription } from "@/context/SubscriptionContext"
 import type { ThemedStyle } from "@/theme/types"
 import { usePastures } from "@/hooks/usePastures"
 import { Pasture } from "@/db/models"
@@ -14,7 +13,6 @@ import type { MainTabScreenProps } from "@/navigators"
 export const PasturesScreen: React.FC<MainTabScreenProps<"Pastures">> = ({ navigation }) => {
   const { t } = useTranslation()
   const { themed, theme: { colors } } = useAppTheme()
-  const { hasFeature } = useSubscription()
   const { pastures, isLoading } = usePastures()
 
   const stats = useMemo(() => {
@@ -25,27 +23,8 @@ export const PasturesScreen: React.FC<MainTabScreenProps<"Pastures">> = ({ navig
     return { totalAnimals, occupied, needsRotation }
   }, [pastures])
 
-  if (!hasFeature("pastures")) {
-    return (
-      <Screen preset="fixed" contentContainerStyle={themed($lockedContainer)} safeAreaEdges={["top", "bottom"]}>
-        <PastureIcon size={64} color={colors.palette.accent500} />
-        <Text text={t("pasturesScreen.locked.title")} preset="heading" style={themed($lockedTitle)} />
-        <Text
-          text={t("pasturesScreen.locked.description")}
-          style={themed($lockedDesc)}
-        />
-        <View style={themed($proBadge)}>
-          <Text text={t("pasturesScreen.locked.proBadge")} size="xs" style={themed($proBadgeText)} />
-        </View>
-        <Button
-          text={t("pasturesScreen.locked.upgradeButton")}
-          preset="reversed"
-          style={themed($upgradeBtn)}
-          onPress={() => navigation.navigate("Upgrade")}
-        />
-      </Screen>
-    )
-  }
+  // Pastures are available to everyone — no paywall gate. (Previously this
+  // screen showed an upgrade wall for non-premium plans.)
 
   const handleCreatePasture = () => {
     // Show wizard for first pasture, regular form after that
@@ -187,44 +166,6 @@ export const PasturesScreen: React.FC<MainTabScreenProps<"Pastures">> = ({ navig
   )
 }
 
-// Locked state styles
-const $lockedContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flex: 1,
-  justifyContent: "center",
-  alignItems: "center",
-  paddingHorizontal: spacing.xl,
-  gap: spacing.md,
-})
-
-const $lockedTitle: ThemedStyle<TextStyle> = ({ spacing }) => ({
-  marginTop: spacing.md,
-})
-
-const $lockedDesc: ThemedStyle<TextStyle> = ({ colors }) => ({
-  color: colors.textDim,
-  textAlign: "center",
-  lineHeight: 22,
-})
-
-const $proBadge: ThemedStyle<ViewStyle> = ({ colors }) => ({
-  backgroundColor: colors.palette.accent500,
-  borderRadius: 6,
-  paddingHorizontal: 12,
-  paddingVertical: 3,
-})
-
-const $proBadgeText: ThemedStyle<TextStyle> = ({ colors }) => ({
-  color: colors.palette.neutral100,
-  fontWeight: "800",
-  letterSpacing: 1.5,
-})
-
-const $upgradeBtn: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  minWidth: 200,
-  marginTop: spacing.sm,
-})
-
-// Active state styles
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flex: 1,
   paddingHorizontal: spacing.lg,

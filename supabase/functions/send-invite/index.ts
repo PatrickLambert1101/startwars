@@ -161,7 +161,16 @@ serve(async (req) => {
         })
       }
 
-      const messageResult = await sendMessage(invite.email, inviterName, orgName, inviteCode, method)
+      // SMS/WhatsApp invites store the recipient in `phone`, not `email`
+      // (the client sets email = null for those methods), so send to the phone.
+      if (!invite.phone) {
+        return new Response(JSON.stringify({ error: "No phone number on this invite" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        })
+      }
+
+      const messageResult = await sendMessage(invite.phone, inviterName, orgName, inviteCode, method)
 
       if (!messageResult.success) {
         return new Response(JSON.stringify({ error: messageResult.error }), {

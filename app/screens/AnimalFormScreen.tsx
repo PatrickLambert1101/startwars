@@ -10,7 +10,7 @@ import { TagInput } from "@/components/TagInput"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
-import { useAnimal, useAnimalActions, AnimalFormData } from "@/hooks/useAnimals"
+import { useAnimal, useAnimalActions, AnimalFormData, DuplicateTagError, AnimalLimitError } from "@/hooks/useAnimals"
 import { useAnimals } from "@/hooks/useAnimals"
 import { AnimalSex, AnimalStatus, Animal } from "@/db/models/Animal"
 import { useRfidReader } from "@/hooks/useRfidReader"
@@ -197,20 +197,8 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
       return
     }
 
-    // Check for duplicate visual tag (only when creating new animal or changing visual tag)
-    if (visualTag.trim()) {
-      const duplicate = animals.find(a =>
-        a.visualTag.toLowerCase() === visualTag.trim().toLowerCase() &&
-        (!isEditing || a.id !== animalId)
-      )
-      if (duplicate) {
-        Alert.alert(
-          "Duplicate Visual Tag",
-          `Visual tag "${visualTag.trim()}" is already used by ${duplicate.displayName}. Please use a unique tag number.`
-        )
-        return
-      }
-    }
+    // Duplicate tag (visual + RFID) is enforced in the data layer via
+    // createAnimal/updateAnimal, which throws DuplicateTagError — caught below.
 
     setIsSubmitting(true)
     try {
@@ -249,6 +237,33 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
 
       navigation.goBack()
     } catch (e) {
+      if (e instanceof DuplicateTagError) {
+        // Reset here too: setIsSubmitting(false) below is bypassed by the return.
+        setIsSubmitting(false)
+        Alert.alert(
+          t("animalFormScreen.alerts.validation.duplicateTag.title"),
+          t(`animalFormScreen.alerts.validation.duplicateTag.${e.tagKind}Message`, {
+            tag: e.tagValue,
+            name: e.existingName,
+          }),
+        )
+        return
+      }
+      if (e instanceof AnimalLimitError) {
+        setIsSubmitting(false)
+        Alert.alert(
+          t("animalFormScreen.alerts.animalLimit.title"),
+          t("animalFormScreen.alerts.animalLimit.message", { limit: e.limit }),
+          [
+            { text: t("common.cancel"), style: "cancel" },
+            {
+              text: t("animalFormScreen.alerts.animalLimit.upgrade"),
+              onPress: () => navigation.navigate("Paywall"),
+            },
+          ],
+        )
+        return
+      }
       console.error("Failed to save animal:", e)
       Alert.alert(
         t("animalFormScreen.alerts.saveError.title"),

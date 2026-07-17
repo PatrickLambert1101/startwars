@@ -339,21 +339,31 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
                   onPress={() => setInviteMethod("email")}
                   style={[themed($roleOption), inviteMethod === "email" && themed($roleOptionSelected)]}
                 >
-                  <Icon icon="email" size={16} style={{ marginRight: 6 }} />
+                  <MaterialCommunityIcons
+                    name="email"
+                    size={16}
+                    color={inviteMethod === "email" ? colors.tint : colors.text}
+                    style={{ marginRight: 6 }}
+                  />
                   <Text style={[themed($roleOptionText), inviteMethod === "email" && themed($roleOptionTextSelected)]}>
                     {t("teamScreen.inviteForm.methodEmail")}
                   </Text>
                 </Pressable>
-                {/* SMS and WhatsApp temporarily hidden
                 <Pressable
                   onPress={() => setInviteMethod("sms")}
                   style={[themed($roleOption), inviteMethod === "sms" && themed($roleOptionSelected)]}
                 >
-                  <Icon icon="message" size={16} style={{ marginRight: 6 }} />
+                  <MaterialCommunityIcons
+                    name="message-text"
+                    size={16}
+                    color={inviteMethod === "sms" ? colors.tint : colors.text}
+                    style={{ marginRight: 6 }}
+                  />
                   <Text style={[themed($roleOptionText), inviteMethod === "sms" && themed($roleOptionTextSelected)]}>
                     {t("teamScreen.inviteForm.methodSMS")}
                   </Text>
                 </Pressable>
+                {/* WhatsApp temporarily hidden
                 <Pressable
                   onPress={() => setInviteMethod("whatsapp")}
                   style={[themed($roleOption), inviteMethod === "whatsapp" && themed($roleOptionSelected)]}

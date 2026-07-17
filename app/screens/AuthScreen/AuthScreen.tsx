@@ -1,13 +1,12 @@
-import React, { useState, useEffect } from "react"
-import { View, ViewStyle, TextStyle, Image, ImageStyle, Pressable } from "react-native"
-import { MaterialCommunityIcons } from "@expo/vector-icons"
+import { useCallback, useEffect, useRef, useState } from "react"
+import { View, ViewStyle, TextStyle, Pressable } from "react-native"
 import { useTranslation } from "react-i18next"
-import { Screen, Text, TextField, Button, LoadingScreen } from "@/components"
+
+import { Screen, Text, TextField, Button, LoadingScreen, RfidLoadingAnimation } from "@/components"
+import { useAuth } from "@/context/AuthContext"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-import { useAuth } from "@/context/AuthContext"
 import { saveString } from "@/utils/storage"
-import { navigationRef } from "@/navigators/navigationUtilities"
 
 // Hard-gated behind __DEV__ so it can never be enabled in a release build.
 const DEV_SKIP_AUTH = __DEV__ && process.env.EXPO_PUBLIC_DEV_SKIP_AUTH === "true"
@@ -20,7 +19,10 @@ const LANGUAGES = [
 ]
 
 export function AuthScreen() {
-  const { themed } = useAppTheme()
+  const {
+    themed,
+    theme: { colors },
+  } = useAppTheme()
   const { authEmail, setAuthEmail, signInWithOTP, verifyOTP, validationError } = useAuth()
   const { i18n, t } = useTranslation()
   const [isSending, setIsSending] = useState(false)
@@ -30,8 +32,10 @@ export function AuthScreen() {
   const [error, setError] = useState("")
   const [showLanguageMenu, setShowLanguageMenu] = useState(false)
   const [emailTouched, setEmailTouched] = useState(false)
+  const didAutoVerifyRef = useRef(false)
 
-  const currentLanguage = LANGUAGES.find((lang) => lang.code === i18n.language?.split("-")[0]) || LANGUAGES[0]
+  const currentLanguage =
+    LANGUAGES.find((lang) => lang.code === i18n.language?.split("-")[0]) || LANGUAGES[0]
 
   const handleChangeLanguage = (languageCode: string) => {
     i18n.changeLanguage(languageCode)
@@ -61,7 +65,7 @@ export function AuthScreen() {
     }
   }
 
-  const handleVerifyCode = async () => {
+  const handleVerifyCode = useCallback(async () => {
     if (!DEV_SKIP_AUTH && code.length !== 7) {
       setError("Code must be 7 digits")
       return
@@ -77,44 +81,47 @@ export function AuthScreen() {
       setIsVerifying(false)
     }
     // If successful, user will be signed in and LoadingScreen will show via AppNavigator
-  }
+  }, [authEmail, code, verifyOTP])
 
   // Auto-verify in dev mode
   useEffect(() => {
-    if (DEV_SKIP_AUTH && codeSent && !isVerifying) {
+    if (DEV_SKIP_AUTH && codeSent && !isVerifying && !didAutoVerifyRef.current) {
+      didAutoVerifyRef.current = true
       console.log("[AuthScreen] DEV MODE: Auto-verifying")
       handleVerifyCode()
     }
-  }, [codeSent, DEV_SKIP_AUTH])
+  }, [codeSent, handleVerifyCode, isVerifying])
 
   // Show animated loading screen while verifying
   if (isVerifying) {
-    return <LoadingScreen message="Signing in..." />
+    return <LoadingScreen showLogo={false} />
   }
 
   if (codeSent) {
     return (
-      <Screen preset="fixed" safeAreaEdges={["top", "bottom"]} contentContainerStyle={themed($container)}>
+      <Screen
+        preset="fixed"
+        safeAreaEdges={["top", "bottom"]}
+        backgroundColor={colors.palette.neutral100}
+        contentContainerStyle={themed($container)}
+      >
         <View style={themed($content)}>
           <View style={themed($logoContainer)}>
-            <Image
-              source={require("../../../assets/images/herdtrackr-logo-mark.png")}
-              style={themed($logoImage)}
-              resizeMode="contain"
-            />
+            <RfidLoadingAnimation size={196} style={themed($animatedAuthLogo)} />
             <Text preset="heading" style={themed($title)}>
               {DEV_SKIP_AUTH ? "Dev Mode: Auto-Signing In..." : t("authScreen.enterCode")}
             </Text>
             <Text style={themed($subtitle)}>
               {DEV_SKIP_AUTH
                 ? "Authentication bypassed for development"
-                : t("authScreen.checkEmail")
-              }
+                : t("authScreen.checkEmail")}
             </Text>
           </View>
 
           <View style={themed($form)}>
-            <Text style={themed($formTitle)}>{t("authScreen.sentTo")} {authEmail}</Text>
+            <Text style={themed($formTitle)}>
+              {t("authScreen.sentTo")} {authEmail}
+            </Text>
 
             <TextField
               label={t("authScreen.codeLabel")}
@@ -154,10 +161,7 @@ export function AuthScreen() {
 
             <Text style={themed($helpText)}>
               {t("authScreen.didntReceive")}{" "}
-              <Text
-                style={themed($linkText)}
-                onPress={handleSendCode}
-              >
+              <Text style={themed($linkText)} onPress={handleSendCode}>
                 {t("authScreen.resend")}
               </Text>
             </Text>
@@ -168,7 +172,12 @@ export function AuthScreen() {
   }
 
   return (
-    <Screen preset="fixed" safeAreaEdges={["top", "bottom"]} contentContainerStyle={themed($container)}>
+    <Screen
+      preset="fixed"
+      safeAreaEdges={["top", "bottom"]}
+      backgroundColor={colors.palette.neutral100}
+      contentContainerStyle={themed($container)}
+    >
       {/* Language Selector - Top Left */}
       <View style={themed($languageSelectorContainer)}>
         <Pressable
@@ -207,11 +216,7 @@ export function AuthScreen() {
 
       <View style={themed($content)}>
         <View style={themed($logoContainer)}>
-          <Image
-            source={require("../../../assets/images/herdtrackr-logo-text.png")}
-            style={themed($loginLogoImage)}
-            resizeMode="contain"
-          />
+          <RfidLoadingAnimation size={196} style={themed($animatedAuthLogo)} />
         </View>
 
         <View style={themed($form)}>
@@ -224,8 +229,7 @@ export function AuthScreen() {
           <Text style={themed($formSubtitle)}>
             {DEV_SKIP_AUTH
               ? "Enter any email - you'll be auto-signed in (no OTP needed)"
-              : t("authScreen.formSubtitle")
-            }
+              : t("authScreen.formSubtitle")}
           </Text>
 
           <TextField
@@ -254,46 +258,15 @@ export function AuthScreen() {
             disabled={isSending || !!validationError}
             style={themed($button)}
           />
-
-          <Button
-            text="Browse icon library"
-            preset="default"
-            onPress={() => navigationRef.navigate("IconGallery")}
-            style={themed($iconGalleryButton)}
-            textStyle={themed($iconGalleryButtonText)}
-          />
-
-          <View style={themed($benefitsContainer)}>
-            <Text style={themed($benefitsTitle)}>{t("authScreen.benefits.title")}</Text>
-            <View style={themed($benefitRow)}>
-              <MaterialCommunityIcons name="cellphone" size={20} color="#739134" />
-              <Text style={themed($benefitText)}>{t("authScreen.benefits.animals")}</Text>
-            </View>
-            <View style={themed($benefitRow)}>
-              <MaterialCommunityIcons name="grass" size={20} color="#739134" />
-              <Text style={themed($benefitText)}>{t("authScreen.benefits.pastures")}</Text>
-            </View>
-            <View style={themed($benefitRow)}>
-              <MaterialCommunityIcons name="account-multiple" size={20} color="#739134" />
-              <Text style={themed($benefitText)}>{t("authScreen.benefits.team")}</Text>
-            </View>
-            <View style={themed($benefitRow)}>
-              <MaterialCommunityIcons name="cloud-sync" size={20} color="#739134" />
-              <Text style={themed($benefitText)}>{t("authScreen.benefits.sync")}</Text>
-            </View>
-          </View>
         </View>
-
-        <Text style={themed($footerText)}>
-          {t("authScreen.termsNotice")}
-        </Text>
       </View>
     </Screen>
   )
 }
 
-const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+const $container: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flex: 1,
+  backgroundColor: colors.palette.neutral100,
   paddingHorizontal: spacing.lg,
 })
 
@@ -308,16 +281,7 @@ const $logoContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   marginBottom: spacing.xxl,
 })
 
-const $logoImage: ThemedStyle<ImageStyle> = () => ({
-  width: 120,
-  height: 120,
-  marginBottom: 16,
-})
-
-// Login screen only: the wordmark logo, sized up and dropped down the page.
-const $loginLogoImage: ThemedStyle<ImageStyle> = ({ spacing }) => ({
-  width: 275,
-  height: 275,
+const $animatedAuthLogo: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   marginTop: spacing.xxl,
   marginBottom: 16,
 })
@@ -327,7 +291,7 @@ const $title: ThemedStyle<TextStyle> = ({ spacing }) => ({
   marginBottom: spacing.xs,
 })
 
-const $subtitle: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+const $subtitle: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 16,
   color: colors.palette.neutral600,
   textAlign: "center",
@@ -362,94 +326,6 @@ const $button: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   marginBottom: spacing.lg,
 })
 
-const $iconGalleryButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  alignSelf: "center",
-  marginTop: -spacing.md,
-  marginBottom: spacing.md,
-})
-
-const $iconGalleryButtonText: ThemedStyle<TextStyle> = ({ colors }) => ({
-  color: colors.tint,
-})
-
-const $benefitsContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  marginTop: spacing.xs,
-})
-
-const $benefitsTitle: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
-  fontSize: 14,
-  fontWeight: "600",
-  color: colors.palette.neutral700,
-  marginBottom: spacing.sm,
-})
-
-const $benefitRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flexDirection: "row",
-  alignItems: "center",
-  gap: spacing.sm,
-  marginBottom: spacing.xs,
-})
-
-const $benefitText: ThemedStyle<TextStyle> = ({ colors }) => ({
-  fontSize: 14,
-  color: colors.palette.neutral600,
-  flex: 1,
-})
-
-const $footerText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
-  fontSize: 12,
-  color: colors.palette.neutral500,
-  textAlign: "center",
-  marginTop: spacing.lg,
-})
-
-const $messageBox: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  backgroundColor: colors.palette.neutral100,
-  borderRadius: 16,
-  padding: spacing.xl,
-  borderWidth: 1,
-  borderColor: colors.palette.neutral200,
-  alignItems: "center",
-  marginBottom: spacing.lg,
-})
-
-const $successIcon: ThemedStyle<TextStyle> = ({ spacing }) => ({
-  fontSize: 48,
-  marginBottom: spacing.md,
-})
-
-const $messageTitle: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
-  fontSize: 20,
-  fontWeight: "700",
-  color: colors.text,
-  marginBottom: spacing.sm,
-  textAlign: "center",
-})
-
-const $messageText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
-  fontSize: 16,
-  color: colors.palette.neutral600,
-  textAlign: "center",
-  marginBottom: spacing.md,
-  lineHeight: 24,
-})
-
-const $emailText: ThemedStyle<TextStyle> = ({ colors }) => ({
-  fontWeight: "600",
-  color: colors.palette.primary500,
-})
-
-const $messageSubtext: ThemedStyle<TextStyle> = ({ colors }) => ({
-  fontSize: 14,
-  color: colors.palette.neutral500,
-  textAlign: "center",
-  lineHeight: 20,
-})
-
-const $resendButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  marginBottom: spacing.md,
-})
-
 const $helpText: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 13,
   color: colors.palette.neutral500,
@@ -471,13 +347,13 @@ const $devBanner: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   padding: spacing.sm,
   marginBottom: spacing.md,
   borderWidth: 1,
-  borderColor: colors.palette.angry300,
+  borderColor: colors.palette.angry500,
 })
 
 const $devBannerText: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 13,
   fontWeight: "700",
-  color: colors.palette.angry700,
+  color: colors.palette.angry500,
   textAlign: "center",
 })
 
@@ -497,7 +373,7 @@ const $languageTrigger: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   borderRadius: 8,
   borderWidth: 1,
   borderColor: colors.palette.neutral300,
-  backgroundColor: colors.background,
+  backgroundColor: colors.palette.neutral100,
   shadowColor: "#000",
   shadowOffset: { width: 0, height: 2 },
   shadowOpacity: 0.1,
@@ -515,11 +391,11 @@ const $languageDropdownIcon: ThemedStyle<TextStyle> = ({ colors }) => ({
   marginLeft: 4,
 })
 
-const $languageMenu: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+const $languageMenu: ThemedStyle<ViewStyle> = ({ colors }) => ({
   position: "absolute",
   top: 44,
   left: 0,
-  backgroundColor: colors.background,
+  backgroundColor: colors.palette.neutral100,
   borderRadius: 8,
   borderWidth: 1,
   borderColor: colors.palette.neutral300,

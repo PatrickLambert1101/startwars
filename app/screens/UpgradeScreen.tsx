@@ -4,27 +4,28 @@ import { Pressable, View, ViewStyle, TextStyle, ScrollView, Linking } from "reac
 import { Screen, Text, Button } from "@/components"
 import { CheckBadge } from "@/components/icons"
 import { useAppTheme } from "@/theme/context"
-import { useSubscription } from "@/context/SubscriptionContext"
+import { useSubscription, ANIMAL_LIMITS } from "@/context/SubscriptionContext"
 import type { ThemedStyle } from "@/theme/types"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 
-// Pricing tiers matching landing page
+// Every plan includes every feature — they differ only in the animal cap. Each
+// list leads with the herd size, then states that the rest is all included.
+const ALL_INCLUDED = [
+  "Every feature included",
+  "Pastures, vaccines & reports",
+  "Health, breeding & weight records",
+  "RFID + camera scanning",
+  "Team members & photos",
+]
+
 const PRICING_TIERS = [
   {
     id: "starter",
     name: "Starter",
     price: "R0",
     period: "/month",
-    description: "Perfect for small operations",
-    features: [
-      "Up to 100 animals",
-      "1 pasture",
-      "Camera tag scanning",
-      "Basic health records",
-      "Weight tracking",
-      "Offline mode",
-      "1 user",
-    ],
+    description: "Free forever",
+    features: [`Up to ${ANIMAL_LIMITS.starter} animals`, ...ALL_INCLUDED],
     isCurrent: false,
     isFree: true,
     buttonText: "Free Forever",
@@ -34,18 +35,8 @@ const PRICING_TIERS = [
     name: "Farm",
     price: "R249,99",
     period: "/month",
-    description: "Most popular for growing farms",
-    features: [
-      "Up to 1,000 animals",
-      "Up to 15 pastures",
-      "Camera tag scanning",
-      "Full health tracking",
-      "Breeding records",
-      "Reports & CSV export",
-      "Up to 5 users",
-      "Photo attachments",
-      "Priority support",
-    ],
+    description: "For a growing herd",
+    features: [`Up to ${ANIMAL_LIMITS.farm.toLocaleString()} animals`, ...ALL_INCLUDED],
     isFeatured: true,
     buttonText: "Upgrade to Farm",
   },
@@ -54,21 +45,9 @@ const PRICING_TIERS = [
     name: "Commercial",
     price: "R999",
     period: "/month",
-    description: "For large commercial operations",
-    features: [
-      "Unlimited animals",
-      "Unlimited pastures",
-      "Camera tag scanning",
-      "RFID handheld scanner*",
-      "Advanced analytics",
-      "Treatment protocols",
-      "Unlimited users",
-      "Custom reports",
-      "API access",
-      "Dedicated support",
-    ],
-    buttonText: "Contact Sales",
-    isEnterprise: true,
+    description: "Unlimited herd size",
+    features: ["Unlimited animals", ...ALL_INCLUDED],
+    buttonText: "Upgrade to Commercial",
   },
 ]
 
@@ -160,7 +139,7 @@ export const UpgradeScreen: FC<AppStackScreenProps<"Upgrade">> = ({ navigation }
         {/* RFID Hardware Note */}
         <View style={themed($noteSection)}>
           <Text
-            text="* RFID Hardware: Commercial plan customers can purchase RFID handheld scanners. Recommended devices start at R8,500 (Bluetooth handheld) up to R18,500 (professional with display)."
+            text="RFID Hardware: a handheld scanner can be paired on any plan (sold separately). Recommended devices start at R8,500 (Bluetooth handheld) up to R18,500 (professional with display)."
             size="xs"
             style={themed($noteText)}
           />

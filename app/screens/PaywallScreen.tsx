@@ -5,47 +5,39 @@ import { Screen, Button, Text } from "@/components"
 import { CheckBadge } from "@/components/icons"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-import { useSubscription } from "@/context/SubscriptionContext"
+import { useSubscription, ANIMAL_LIMITS, FREE_ANIMAL_LIMIT } from "@/context/SubscriptionContext"
 
 interface PaywallScreenProps extends AppStackScreenProps<"Paywall"> {}
 
-// Define our pricing tiers - monthly only
+// Every feature is free on every plan — plans differ only in how many animals
+// you may hold. Feature lists intentionally lead with the animal cap.
+const EVERY_FEATURE = "Every feature included"
+const SHARED_FEATURES = [
+  "Pastures, vaccines & reports",
+  "Health & breeding records",
+  "Photo attachments & team members",
+]
+
+// Reframed by animal count. rcIdentifiers unchanged so purchases still map to the
+// existing RevenueCat products/entitlements (farm, commercial).
 const PRICING_TIERS = [
   {
     id: "monthly",
-    rcIdentifier: "farm_monthly", // RevenueCat product identifier
-    name: "Farm Plan",
+    rcIdentifier: "farm_monthly",
+    name: "Farm",
     price: "R249,99",
     period: "/month",
-    description: "Perfect for growing farms",
-    features: [
-      "Up to 1,000 animals",
-      "Up to 15 pastures",
-      "Full health tracking",
-      "Breeding records",
-      "Reports & CSV export",
-      "Up to 5 users",
-      "Photo attachments",
-      "Priority support",
-    ],
+    description: "For a growing herd",
+    features: [`Up to ${ANIMAL_LIMITS.farm.toLocaleString()} animals`, EVERY_FEATURE, ...SHARED_FEATURES],
   },
   {
     id: "yearly",
-    rcIdentifier: "commercial_yearly", // RevenueCat product identifier
-    name: "Commercial Plan",
+    rcIdentifier: "commercial_yearly",
+    name: "Commercial",
     price: "R999",
     period: "/month",
-    description: "For large commercial operations (billed annually)",
-    features: [
-      "Unlimited animals",
-      "Unlimited pastures",
-      "Advanced analytics",
-      "Treatment protocols",
-      "Unlimited users",
-      "Custom reports",
-      "API access",
-      "Dedicated support",
-    ],
+    description: "Unlimited herd size",
+    features: ["Unlimited animals", EVERY_FEATURE, ...SHARED_FEATURES],
   },
 ]
 
@@ -120,7 +112,9 @@ export function PaywallScreen(props: PaywallScreenProps) {
             You're on the {plan === "commercial" ? "Commercial" : "Farm"} plan!
           </Text>
           <Text style={themed($successMessage)}>
-            You have access to premium features.
+            {plan === "commercial"
+              ? "You can add unlimited animals."
+              : `You can add up to ${ANIMAL_LIMITS.farm.toLocaleString()} animals.`}
           </Text>
           <Button
             text="Continue"
@@ -142,9 +136,9 @@ export function PaywallScreen(props: PaywallScreenProps) {
 
       <ScrollView style={themed($scrollView)} showsVerticalScrollIndicator={false}>
         <View style={themed($titleSection)}>
-          <Text text="Upgrade to Premium" preset="heading" style={themed($title)} />
+          <Text text="More room for your herd" preset="heading" style={themed($title)} />
           <Text
-            text="Unlock advanced features for your farm"
+            text={`Every feature is free for your first ${FREE_ANIMAL_LIMIT} animals. Plans just raise the limit — nothing is locked away.`}
             style={themed($subtitle)}
           />
         </View>
