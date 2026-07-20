@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react"
-import { Image, type ImageStyle, type ViewStyle } from "react-native"
+import { type ViewStyle } from "react-native"
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -16,13 +16,12 @@ import { Text } from "./Text"
 interface LoadingScreenProps {
   message?: string
   onComplete?: () => void
-  showLogo?: boolean
 }
 
 const MINIMUM_DISPLAY_TIME = 2000 // 2 seconds
 const FADE_OUT_DURATION = 400 // 400ms fade out
 
-export function LoadingScreen({ message, onComplete, showLogo = true }: LoadingScreenProps) {
+export function LoadingScreen({ message, onComplete }: LoadingScreenProps) {
   const { themed } = useAppTheme()
   const opacity = useSharedValue(1)
   const startTimeRef = useRef<number>(Date.now())
@@ -51,14 +50,7 @@ export function LoadingScreen({ message, onComplete, showLogo = true }: LoadingS
 
   return (
     <Animated.View style={[themed($container), animatedStyle]}>
-      {showLogo && (
-        <Image
-          source={require("../../assets/images/herdtrackr-logo-text.png")}
-          style={themed($logo)}
-          resizeMode="contain"
-        />
-      )}
-      <RfidLoadingAnimation size={176} style={showLogo ? themed($loader) : undefined} />
+      <RfidLoadingAnimation size={200} />
       {message && <Text text={message} style={themed($message)} size="md" />}
     </Animated.View>
   )
@@ -71,17 +63,8 @@ const $container: ThemedStyle<ViewStyle> = ({ colors }) => ({
   backgroundColor: colors.palette.neutral100,
 })
 
-const $logo: ThemedStyle<ImageStyle> = () => ({
-  width: 280,
-  height: 280,
-})
-
 const $message: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   marginTop: spacing.xl,
   color: colors.textDim,
   textAlign: "center",
-})
-
-const $loader: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  marginTop: -spacing.xl,
 })

@@ -94,7 +94,7 @@ export function AuthScreen() {
 
   // Show animated loading screen while verifying
   if (isVerifying) {
-    return <LoadingScreen showLogo={false} />
+    return <LoadingScreen />
   }
 
   if (codeSent) {
