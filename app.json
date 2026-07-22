@@ -54,6 +54,7 @@
       "bundler": "metro"
     },
     "plugins": [
+      "./plugins/withRfidScanner",
       "expo-localization",
       "expo-font",
       [

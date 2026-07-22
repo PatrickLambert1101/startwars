@@ -11,6 +11,18 @@ const AUTH_REDIRECT_URL = Linking.createURL("auth-callback")
 // even if EXPO_PUBLIC_DEV_SKIP_AUTH leaks into the production environment.
 const DEV_SKIP_AUTH = __DEV__ && process.env.EXPO_PUBLIC_DEV_SKIP_AUTH === "true"
 
+// App Store / Play review bypass: this email skips the emailed OTP and accepts
+// a fixed code instead, then signs in with a password under the hood. The
+// account only has access to the Demo Ranch demo organization (see
+// scripts/setup-review-account.ts, which must stay in sync with these values).
+// Values are injected from EXPO_PUBLIC_* env vars at build time so no credential
+// lives in source. If unset, the bypass is disabled (empty email never matches).
+const REVIEW_EMAIL = (process.env.EXPO_PUBLIC_REVIEW_EMAIL ?? "").trim().toLowerCase()
+const REVIEW_OTP_CODE = process.env.EXPO_PUBLIC_REVIEW_OTP_CODE ?? ""
+const REVIEW_PASSWORD = process.env.EXPO_PUBLIC_REVIEW_PASSWORD ?? ""
+const isReviewEmail = (email: string) =>
+  REVIEW_EMAIL.length > 0 && email.trim().toLowerCase() === REVIEW_EMAIL
+
 export type AuthContextType = {
   isAuthenticated: boolean
   isLoading: boolean
@@ -182,6 +194,11 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
   }, [])
 
   const signInWithOTP = useCallback(async (email: string) => {
+    // App review bypass - no email is sent; the fixed code is checked in verifyOTP
+    if (isReviewEmail(email)) {
+      return { error: null, success: true }
+    }
+
     // Development bypass - skip OTP entirely
     if (DEV_SKIP_AUTH) {
       console.log("[Auth] DEV MODE: Skipping OTP, will auto-verify")
@@ -199,6 +216,19 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
   }, [])
 
   const verifyOTP = useCallback(async (email: string, token: string) => {
+    // App review bypass - fixed code signs in the demo review account
+    if (isReviewEmail(email)) {
+      if (token.trim() !== REVIEW_OTP_CODE) {
+        return { error: "Invalid code. Please try again." }
+      }
+      const { error } = await supabase.auth.signInWithPassword({
+        email: REVIEW_EMAIL,
+        password: REVIEW_PASSWORD,
+      })
+      if (error) return { error: error.message }
+      return { error: null }
+    }
+
     // Development bypass - auto sign in/up with dev password
     if (DEV_SKIP_AUTH) {
       console.log("[Auth] DEV MODE: Auto-authenticating with dev password")

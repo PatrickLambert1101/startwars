@@ -1,5 +1,7 @@
 package com.herdtrackr
 
+import com.herdtrackr.rfid.KeyPackage
+import com.herdtrackr.rfid.UHFPackage
 import android.app.Application
 import android.content.res.Configuration
 
@@ -23,6 +25,9 @@ class MainApplication : Application(), ReactApplication {
       object : DefaultReactNativeHost(this) {
         override fun getPackages(): List<ReactPackage> =
             PackageList(this).packages.apply {
+              // Handheld UHF RFID reader
+              add(UHFPackage())
+              add(KeyPackage())
               // Packages that cannot be autolinked yet can be added manually here, for example:
               // add(MyReactNativePackage())
             }

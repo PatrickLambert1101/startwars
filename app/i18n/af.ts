@@ -144,7 +144,8 @@ const af = {
       descriptions: {
         commercial: "Onbeperkte diere, plus elke kenmerk.",
         farm: "Onbeperkte diere, plus elke kenmerk.",
-        starter: "Elke kenmerk is gratis ingesluit, vir tot 50 diere. Gradeer op vir onbeperkte diere.",
+        starter:
+          "Elke kenmerk is gratis ingesluit, vir tot 50 diere. Gradeer op vir onbeperkte diere.",
       },
       buttons: {
         manageSubscription: "Bestuur Intekening",
@@ -158,9 +159,10 @@ const af = {
     },
     rfid: {
       connected: "Handskandeerder gekoppel",
-      readerPower: "Leser Krag",
-      powerSaved: "Krag gestel op {{power}}",
-      rangeHint: "Reeks: {{min}} (kortste) tot {{max}} (langste). Hoër krag dreineer battery vinniger.",
+      readerPower: "RFID-leeskrag",
+      powerSaved: "Leeskrag gestel op {{power}} dBm",
+      rangeHint:
+        "{{min}}–{{max}} dBm. Hoër leeskrag kan verder lees, maar kan ook nabygeleë diere se etikette lees. Reikwydte is nie lineêr nie.",
       presets: {
         low: "Laag",
         med: "Med",
@@ -170,11 +172,13 @@ const af = {
     },
     dangerZone: {
       resetTitle: "Herstel Plaaslike Databasis",
-      resetDescription: "Vee ALLE plaaslike data uit. Gebruik slegs as jy van voor af begin nadat Supabase uitgevee is.",
+      resetDescription:
+        "Vee ALLE plaaslike data uit. Gebruik slegs as jy van voor af begin nadat Supabase uitgevee is.",
       resetButton: "Vee Plaaslike Databasis Uit",
       alerts: {
         confirmTitle: "Herstel Plaaslike Databasis",
-        confirmMessage: "Dit sal ALLE plaaslike data uitvee insluitend jou organisasie, diere en rekords. Dit kan nie ongedaan gemaak word nie!\\n\\nDoen dit slegs as jy van voor af begin nadat Supabase uitgevee is.",
+        confirmMessage:
+          "Dit sal ALLE plaaslike data uitvee insluitend jou organisasie, diere en rekords. Dit kan nie ongedaan gemaak word nie!\\n\\nDoen dit slegs as jy van voor af begin nadat Supabase uitgevee is.",
         wipeButton: "VEE ALLES UIT",
         successTitle: "Sukses",
         successMessage: "Plaaslike databasis herstel! Herbegin asseblief die toepassing.",
@@ -339,7 +343,8 @@ const af = {
     exportButton: "Voer Kudde uit as CSV",
     traceability: {
       title: "Dier Naspeurbaarheidsverslae",
-      description: "Genereer omvattende naspeurbaarheidsverslae vir individuele diere of groepe. Verslae sluit volledige geskiedenis in: gesondheidsrekords, gewigte, teling, bewegings en foto's.",
+      description:
+        "Genereer omvattende naspeurbaarheidsverslae vir individuele diere of groepe. Verslae sluit volledige geskiedenis in: gesondheidsrekords, gewigte, teling, bewegings en foto's.",
       selected: "{{count}} gekies",
       selectAll: "Kies Almal",
       clear: "Maak Skoon",
@@ -359,7 +364,8 @@ const af = {
     empty: {
       loading: "Laai...",
       title: "Begin Bou aan Jou Kudde",
-      description: "Voeg jou eerste dier by om gesondheidsrekords, gewigte, teling en meer dop te hou.",
+      description:
+        "Voeg jou eerste dier by om gesondheidsrekords, gewigte, teling en meer dop te hou.",
       onboarding: {
         step1: {
           title: "Voeg Dierbesonderhede By",
@@ -413,7 +419,7 @@ const af = {
       placeholder: "Voer merker in of gebruik kamera",
       lookUp: "Soek Op",
       searching: "Soek tans...",
-      notFound: "Geen dier gevind met merker \"{{tag}}\" nie. Voeg dit eers by in die Kudde-oortjie.",
+      notFound: 'Geen dier gevind met merker "{{tag}}" nie. Voeg dit eers by in die Kudde-oortjie.',
       scanning: "Skandeer tans...",
       pullTrigger: "Trek sneller om merker te skandeer",
       orManualEntry: "Of voer handmatig hieronder in:",
@@ -486,7 +492,8 @@ const af = {
     createButton: "+ Nuut",
     locked: {
       title: "Weiveldrotasie",
-      description: "Karteer kampe, ken kuddes toe en hou weidae dop om voer en grondgesondheid te optimaliseer.",
+      description:
+        "Karteer kampe, ken kuddes toe en hou weidae dop om voer en grondgesondheid te optimaliseer.",
       proBadge: "PRO",
       upgradeButton: "Opgradeer na Pro",
     },
@@ -565,13 +572,15 @@ const af = {
         label: "RFID Merker",
         placeholder: "Voer RFID-merkernommer in",
         scanPlaceholder: "Trek sneller om RFID-merker te skandeer",
-        helpText: "Elektroniese merker ingebed in oormerker - Commercial plan sluit RFID-skandeerderondersteuning in",
+        helpText:
+          "Elektroniese merker ingebed in oormerker - Commercial plan sluit RFID-skandeerderondersteuning in",
         scanning: "Trek sneller om te skandeer...",
       },
       visualTag: {
         label: "Visuele Merker (oormerker/brandmerk)",
         placeholder: "Oormerker- of brandmerknommer",
-        helpText: "Gebruik kamera-skandeerderknoppie om merkernommers outomaties vanaf foto's te lees",
+        helpText:
+          "Gebruik kamera-skandeerderknoppie om merkernommers outomaties vanaf foto's te lees",
       },
       name: {
         label: "Naam (opsioneel)",
@@ -595,8 +604,10 @@ const af = {
       },
       vaccinationsUpToDate: {
         label: "Inentings op datum",
-        helpOn: "Slegs toekomstige inentings sal geskeduleer word. Skakel af as hierdie dier nog sy vroeëre inspuitings benodig.",
-        helpOff: "Enige inentings wat hierdie dier reeds gemis het, sal as agterstallig bygevoeg word.",
+        helpOn:
+          "Slegs toekomstige inentings sal geskeduleer word. Skakel af as hierdie dier nog sy vroeëre inspuitings benodig.",
+        helpOff:
+          "Enige inentings wat hierdie dier reeds gemis het, sal as agterstallig bygevoeg word.",
       },
       dateOfBirth: {
         label: "Geboortedatum",
@@ -666,18 +677,22 @@ const af = {
     alerts: {
       animalLimit: {
         title: "Gratis Limiet Bereik",
-        message: "Jy het jou plan se limiet van {{limit}} diere bereik. Gradeer op vir 'n hoër limiet — elke kenmerk is reeds ingesluit.",
+        message:
+          "Jy het jou plan se limiet van {{limit}} diere bereik. Gradeer op vir 'n hoër limiet — elke kenmerk is reeds ingesluit.",
         upgrade: "Gradeer Op",
       },
       validation: {
         duplicateTag: {
           title: "Dubbele Etiket",
-          visualMessage: "Visuele etiket \"{{tag}}\" word reeds deur {{name}} gebruik. Gebruik asseblief \'n unieke etiket.",
-          rfidMessage: "RFID-etiket \"{{tag}}\" word reeds deur {{name}} gebruik. Gebruik asseblief \'n unieke etiket.",
+          visualMessage:
+            'Visuele etiket "{{tag}}" word reeds deur {{name}} gebruik. Gebruik asseblief \'n unieke etiket.',
+          rfidMessage:
+            'RFID-etiket "{{tag}}" word reeds deur {{name}} gebruik. Gebruik asseblief \'n unieke etiket.',
         },
         tagRequired: {
           title: "Verpligtend",
-          message: "Voer asseblief óf 'n RFID-merker óf Visuele Merker in (ten minste een word vereis)",
+          message:
+            "Voer asseblief óf 'n RFID-merker óf Visuele Merker in (ten minste een word vereis)",
         },
         breedRequired: {
           title: "Verpligtend",
@@ -700,7 +715,8 @@ const af = {
       entry: "Vinnige Byvoeg",
     },
     setup: {
-      helpText: "Stel algemene velde een keer, skandeer dan vinnig merkers vir verskeie diere met dieselfde eienskappe.",
+      helpText:
+        "Stel algemene velde een keer, skandeer dan vinnig merkers vir verskeie diere met dieselfde eienskappe.",
       sectionTitle: "Algemene Velde (van toepassing op alle diere)",
       tagTypeLabel: "Merker Tipe",
       tagTypeModalTitle: "Kies Merker Tipe",
@@ -809,7 +825,8 @@ const af = {
       },
       removeMember: {
         title: "Verwyder Lid",
-        message: "Verwyder {{name}} uit jou span? Hulle sal toegang tot hierdie organisasie verloor.",
+        message:
+          "Verwyder {{name}} uit jou span? Hulle sal toegang tot hierdie organisasie verloor.",
         cancel: "Kanselleer",
         remove: "Verwyder",
       },
@@ -1015,7 +1032,7 @@ const af = {
         message: "Kon nie telingrekord stoor nie",
       },
     },
-    },
+  },
   calendarScreen: {
     badges: {
       overdue: "Agterstallig",
@@ -1052,7 +1069,8 @@ const af = {
       search: "Soek entstowwe...",
       createNew: "+ Skep Nuwe Entstof",
       emptyTitle: "Nog geen entstowwe nie",
-      emptyHelp: "Voeg die entstof by wat jy gebruik — die produknaam, dosis en onttrekkingstydperk — dan kan jy dit skeduleer.",
+      emptyHelp:
+        "Voeg die entstof by wat jy gebruik — die produknaam, dosis en onttrekkingstydperk — dan kan jy dit skeduleer.",
       noMatches: "Geen entstowwe pas by jou soektog nie",
     },
     scheduleTypes: {
@@ -1092,7 +1110,8 @@ const af = {
     },
     empty: {
       title: "Geen Inentingskedules nie",
-      noFilter: "Skep skedules om inentingsherinneringe te outomatiseer gebaseer op ouderdom, datum of groep.",
+      noFilter:
+        "Skep skedules om inentingsherinneringe te outomatiseer gebaseer op ouderdom, datum of groep.",
       withFilter: "Geen {{filter}} skedules gevind nie.",
       showAllButton: "Wys Almal",
       createButton: "Skep Skedule",
@@ -1104,7 +1123,8 @@ const af = {
       },
       deleteConfirm: {
         title: "Verwyder Skedule",
-        message: "Verwyder inentingskedule '{{name}}'? Dit sal nie bestaande gesondheidsrekords beïnvloed nie.",
+        message:
+          "Verwyder inentingskedule '{{name}}'? Dit sal nie bestaande gesondheidsrekords beïnvloed nie.",
       },
       deleteError: {
         title: "Fout",

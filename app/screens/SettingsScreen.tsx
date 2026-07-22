@@ -13,15 +13,17 @@ import { database } from "@/db"
 import { useRfidReader } from "@/hooks/useRfidReader"
 import { useSync } from "@/hooks/useSync"
 import { seedDefaultSchedules } from "@/services/defaultSchedules"
+import {
+  loadRfidReadPower,
+  RFID_READ_POWER_DEFAULT_DBM,
+  RFID_READ_POWER_MAX_DBM,
+  RFID_READ_POWER_MIN_DBM,
+  saveRfidReadPower,
+} from "@/services/rfidReaderSettings"
 import { calculateScheduledVaccinations } from "@/services/vaccinationScheduler"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { loadString, saveString } from "@/utils/storage"
-
-const STORAGE_KEY_POWER = "rfid_reader_power"
-const POWER_MIN = 5 // Must match native Android MIN_POWER
-const POWER_MAX = 30 // Must match native Android MAX_POWER
-const POWER_DEFAULT = 18
 
 const LANGUAGES = [
   { code: "en", name: "English", nativeName: "English" },
@@ -44,7 +46,7 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
   const { sync, status } = useSync()
   const { i18n, t } = useTranslation()
 
-  const [readerPower, setReaderPower] = useState(POWER_DEFAULT)
+  const [readerPower, setReaderPower] = useState(RFID_READ_POWER_DEFAULT_DBM)
   const [powerSaved, setPowerSaved] = useState(false)
   const [hasSchedules, setHasSchedules] = useState(false)
   const [biometricAvailable, setBiometricAvailable] = useState(false)
@@ -73,13 +75,7 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
   )
 
   useEffect(() => {
-    const saved = loadString(STORAGE_KEY_POWER)
-    if (saved) {
-      const parsed = parseInt(saved, 10)
-      if (!isNaN(parsed) && parsed >= POWER_MIN && parsed <= POWER_MAX) {
-        setReaderPower(parsed)
-      }
-    }
+    setReaderPower(loadRfidReadPower())
   }, [])
 
   useEffect(() => {
@@ -119,14 +115,17 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
 
   const applyPower = useCallback(
     async (power: number) => {
-      const clamped = Math.max(POWER_MIN, Math.min(POWER_MAX, power))
-      setReaderPower(clamped)
-      saveString(STORAGE_KEY_POWER, String(clamped))
+      const savedPower = saveRfidReadPower(power)
+      setReaderPower(savedPower)
+
+      let applied = true
       if (hasRfidHardware && isInitialized) {
-        await setOutputPower(clamped)
+        applied = await setOutputPower(savedPower)
       }
-      setPowerSaved(true)
-      setTimeout(() => setPowerSaved(false), 1500)
+      if (applied) {
+        setPowerSaved(true)
+        setTimeout(() => setPowerSaved(false), 1500)
+      }
     },
     [hasRfidHardware, isInitialized, setOutputPower],
   )
@@ -295,7 +294,11 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
     }
   }, [])
 
-  const powerPercent = Math.round(((readerPower - POWER_MIN) / (POWER_MAX - POWER_MIN)) * 100)
+  const powerScalePercent = Math.round(
+    ((readerPower - RFID_READ_POWER_MIN_DBM) /
+      (RFID_READ_POWER_MAX_DBM - RFID_READ_POWER_MIN_DBM)) *
+      100,
+  )
 
   const handleChangeLanguage = useCallback(
     (languageCode: string) => {
@@ -549,27 +552,27 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
               <Pressable
                 style={themed($rfidPowerButton)}
                 onPress={() => applyPower(readerPower - 1)}
-                disabled={readerPower <= POWER_MIN}
+                disabled={readerPower <= RFID_READ_POWER_MIN_DBM}
               >
                 <Text style={themed($rfidPowerButtonText)}>-</Text>
               </Pressable>
 
               <View style={themed($rfidPowerDisplay)}>
                 <Text style={themed($rfidPowerValue)}>{readerPower}</Text>
-                <Text style={themed($rfidPowerPercent)}>{powerPercent}%</Text>
+                <Text style={themed($rfidPowerPercent)}>dBm</Text>
               </View>
 
               <Pressable
                 style={themed($rfidPowerButton)}
                 onPress={() => applyPower(readerPower + 1)}
-                disabled={readerPower >= POWER_MAX}
+                disabled={readerPower >= RFID_READ_POWER_MAX_DBM}
               >
                 <Text style={themed($rfidPowerButtonText)}>+</Text>
               </Pressable>
             </View>
 
             <View style={themed($rfidBarTrack)}>
-              <View style={[themed($rfidBarFill), { width: `${powerPercent}%` }]} />
+              <View style={[themed($rfidBarFill), { width: `${powerScalePercent}%` }]} />
             </View>
 
             <View style={themed($rfidPresetRow)}>
@@ -606,7 +609,10 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
             )}
 
             <Text style={themed($rfidHint)}>
-              {t("settingsScreen.rfid.rangeHint", { min: POWER_MIN, max: POWER_MAX })}
+              {t("settingsScreen.rfid.rangeHint", {
+                min: RFID_READ_POWER_MIN_DBM,
+                max: RFID_READ_POWER_MAX_DBM,
+              })}
             </Text>
           </View>
         </View>
@@ -620,56 +626,64 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
             app opens, and every 5 minutes.
           </Text>
         </View>
-        <View style={themed($seedCard)}>
-          <Text style={themed($seedTitle)}>Force Full Sync</Text>
-          <Text style={themed($seedText)}>
-            Only use this if data is missing or out of sync. This will re-download all data from the
-            server.
-          </Text>
-          <Button
-            text={status === "syncing" ? "Syncing..." : "Force Full Sync"}
-            preset="default"
-            onPress={handleForceFullSync}
-            disabled={status === "syncing"}
-            style={themed($seedButton)}
-          />
-        </View>
+        {__DEV__ && (
+          <View style={themed($seedCard)}>
+            <Text style={themed($seedTitle)}>Force Full Sync</Text>
+            <Text style={themed($seedText)}>
+              Only use this if data is missing or out of sync. This will re-download all data from
+              the server.
+            </Text>
+            <Button
+              text={status === "syncing" ? "Syncing..." : "Force Full Sync"}
+              preset="default"
+              onPress={handleForceFullSync}
+              disabled={status === "syncing"}
+              style={themed($seedButton)}
+            />
+          </View>
+        )}
       </View>
 
-      <View style={themed($section)}>
-        <Text preset="formLabel" text="DEBUG & TESTING" style={themed($sectionLabel)} />
-        <View style={themed($seedCard)}>
-          <Text style={themed($seedTitle)}>Test Sentry Integration</Text>
-          <Text style={themed($seedText)}>
-            Send a test error to Sentry to verify logging is working. This will create a test event
-            in your Sentry dashboard.
-          </Text>
-          <Button
-            text="Test Sentry"
-            preset="default"
-            onPress={handleTestSentry}
-            style={themed($seedButton)}
-          />
+      {__DEV__ && (
+        <View style={themed($section)}>
+          <Text preset="formLabel" text="DEBUG & TESTING" style={themed($sectionLabel)} />
+          <View style={themed($seedCard)}>
+            <Text style={themed($seedTitle)}>Test Sentry Integration</Text>
+            <Text style={themed($seedText)}>
+              Send a test error to Sentry to verify logging is working. This will create a test
+              event in your Sentry dashboard.
+            </Text>
+            <Button
+              text="Test Sentry"
+              preset="default"
+              onPress={handleTestSentry}
+              style={themed($seedButton)}
+            />
+          </View>
         </View>
-      </View>
+      )}
 
-      <View style={themed($section)}>
-        <Text
-          preset="formLabel"
-          text={t("settingsScreen.sections.dangerZone")}
-          style={themed($dangerLabel)}
-        />
-        <View style={themed($dangerCard)}>
-          <Text style={themed($dangerTitle)}>{t("settingsScreen.dangerZone.resetTitle")}</Text>
-          <Text style={themed($dangerText)}>{t("settingsScreen.dangerZone.resetDescription")}</Text>
-          <Button
-            text={t("settingsScreen.dangerZone.resetButton")}
-            preset="filled"
-            onPress={handleResetDatabase}
-            style={themed($dangerButton)}
+      {__DEV__ && (
+        <View style={themed($section)}>
+          <Text
+            preset="formLabel"
+            text={t("settingsScreen.sections.dangerZone")}
+            style={themed($dangerLabel)}
           />
+          <View style={themed($dangerCard)}>
+            <Text style={themed($dangerTitle)}>{t("settingsScreen.dangerZone.resetTitle")}</Text>
+            <Text style={themed($dangerText)}>
+              {t("settingsScreen.dangerZone.resetDescription")}
+            </Text>
+            <Button
+              text={t("settingsScreen.dangerZone.resetButton")}
+              preset="filled"
+              onPress={handleResetDatabase}
+              style={themed($dangerButton)}
+            />
+          </View>
         </View>
-      </View>
+      )}
 
       <Button
         text={t("settingsScreen.signOut")}

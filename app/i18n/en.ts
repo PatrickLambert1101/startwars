@@ -144,7 +144,8 @@ const en = {
       descriptions: {
         commercial: "Unlimited animals, plus every feature.",
         farm: "Unlimited animals, plus every feature.",
-        starter: "Every feature is included free, for up to 50 animals. Upgrade for unlimited animals.",
+        starter:
+          "Every feature is included free, for up to 50 animals. Upgrade for unlimited animals.",
       },
       buttons: {
         manageSubscription: "Manage Subscription",
@@ -158,9 +159,10 @@ const en = {
     },
     rfid: {
       connected: "Hand scanner connected",
-      readerPower: "Reader Power",
-      powerSaved: "Power set to {{power}}",
-      rangeHint: "Range: {{min}} (shortest) to {{max}} (longest). Higher power drains battery faster.",
+      readerPower: "RFID Read Power",
+      powerSaved: "Read power set to {{power}} dBm",
+      rangeHint:
+        "{{min}}–{{max}} dBm. Higher read power can reach farther tags, but may also read nearby animals. Range is not linear.",
       presets: {
         low: "Low",
         med: "Med",
@@ -174,7 +176,8 @@ const en = {
       resetButton: "Wipe Local Database",
       alerts: {
         confirmTitle: "Reset Local Database",
-        confirmMessage: "This will delete ALL local data including your organization, animals, and records. This cannot be undone!\\n\\nOnly do this if you're starting fresh after wiping Supabase.",
+        confirmMessage:
+          "This will delete ALL local data including your organization, animals, and records. This cannot be undone!\\n\\nOnly do this if you're starting fresh after wiping Supabase.",
         wipeButton: "WIPE EVERYTHING",
         successTitle: "Success",
         successMessage: "Local database reset! Please restart the app.",
@@ -339,7 +342,8 @@ const en = {
     exportButton: "Export Herd as CSV",
     traceability: {
       title: "Animal Traceability Reports",
-      description: "Generate comprehensive traceability reports for individual animals or groups. Reports include complete history: health records, weights, breeding, movements, and photos.",
+      description:
+        "Generate comprehensive traceability reports for individual animals or groups. Reports include complete history: health records, weights, breeding, movements, and photos.",
       selected: "{{count}} selected",
       selectAll: "Select All",
       clear: "Clear",
@@ -359,7 +363,8 @@ const en = {
     empty: {
       loading: "Loading...",
       title: "Start Building Your Herd",
-      description: "Add your first animal to start tracking health records, weights, breeding, and more.",
+      description:
+        "Add your first animal to start tracking health records, weights, breeding, and more.",
       onboarding: {
         step1: {
           title: "Add Animal Details",
@@ -413,7 +418,7 @@ const en = {
       placeholder: "Enter tag or use camera",
       lookUp: "Look Up",
       searching: "Searching...",
-      notFound: "No animal found with tag \"{{tag}}\". Add it first in the Herd tab.",
+      notFound: 'No animal found with tag "{{tag}}". Add it first in the Herd tab.',
       scanning: "Scanning...",
       pullTrigger: "Pull trigger to scan tag",
       orManualEntry: "Or enter manually below:",
@@ -486,7 +491,8 @@ const en = {
     createButton: "+ New",
     locked: {
       title: "Pasture Rotation",
-      description: "Map paddocks, assign herds, and track grazing days to optimise forage and soil health.",
+      description:
+        "Map paddocks, assign herds, and track grazing days to optimise forage and soil health.",
       proBadge: "PRO",
       upgradeButton: "Upgrade to Pro",
     },
@@ -565,7 +571,8 @@ const en = {
         label: "RFID Tag",
         placeholder: "Enter RFID tag number",
         scanPlaceholder: "Pull trigger to scan RFID tag",
-        helpText: "Electronic tag embedded in ear tag - Commercial plan includes RFID scanner support",
+        helpText:
+          "Electronic tag embedded in ear tag - Commercial plan includes RFID scanner support",
         scanning: "Pull trigger to scan...",
       },
       visualTag: {
@@ -595,7 +602,8 @@ const en = {
       },
       vaccinationsUpToDate: {
         label: "Vaccinations up to date",
-        helpOn: "Only future vaccinations will be scheduled. Turn off if this animal still needs its earlier shots.",
+        helpOn:
+          "Only future vaccinations will be scheduled. Turn off if this animal still needs its earlier shots.",
         helpOff: "Any vaccinations this animal has already missed will be added as overdue.",
       },
       dateOfBirth: {
@@ -666,14 +674,16 @@ const en = {
     alerts: {
       animalLimit: {
         title: "Free Limit Reached",
-        message: "You've reached your plan's limit of {{limit}} animals. Upgrade for a higher limit — every feature is already included.",
+        message:
+          "You've reached your plan's limit of {{limit}} animals. Upgrade for a higher limit — every feature is already included.",
         upgrade: "Upgrade",
       },
       validation: {
         duplicateTag: {
           title: "Duplicate Tag",
-          visualMessage: "Visual tag \"{{tag}}\" is already used by {{name}}. Please use a unique tag.",
-          rfidMessage: "RFID tag \"{{tag}}\" is already used by {{name}}. Please use a unique tag.",
+          visualMessage:
+            'Visual tag "{{tag}}" is already used by {{name}}. Please use a unique tag.',
+          rfidMessage: 'RFID tag "{{tag}}" is already used by {{name}}. Please use a unique tag.',
         },
         tagRequired: {
           title: "Required",
@@ -700,7 +710,8 @@ const en = {
       entry: "Quick Add",
     },
     setup: {
-      helpText: "Set common fields once, then quickly scan tags for multiple animals with the same characteristics.",
+      helpText:
+        "Set common fields once, then quickly scan tags for multiple animals with the same characteristics.",
       sectionTitle: "Common Fields (apply to all animals)",
       tagTypeLabel: "Tag Type",
       tagTypeModalTitle: "Select Tag Type",
@@ -1015,7 +1026,7 @@ const en = {
         message: "Failed to save breeding record",
       },
     },
-    },
+  },
   calendarScreen: {
     badges: {
       overdue: "Overdue",
@@ -1052,7 +1063,8 @@ const en = {
       search: "Search vaccines...",
       createNew: "+ Create New Vaccine",
       emptyTitle: "No vaccines yet",
-      emptyHelp: "Add the vaccine you use — the product name, dose and withdrawal period — then you can schedule it.",
+      emptyHelp:
+        "Add the vaccine you use — the product name, dose and withdrawal period — then you can schedule it.",
       noMatches: "No vaccines match your search",
     },
     scheduleTypes: {
@@ -1104,7 +1116,8 @@ const en = {
       },
       deleteConfirm: {
         title: "Delete Schedule",
-        message: "Delete vaccination schedule '{{name}}'? This will not affect existing health records.",
+        message:
+          "Delete vaccination schedule '{{name}}'? This will not affect existing health records.",
       },
       deleteError: {
         title: "Error",

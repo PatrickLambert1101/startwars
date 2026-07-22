@@ -29,11 +29,14 @@ interface UHFReaderModule {
   stopScanning(): Promise<boolean>
 
   /**
-   * Set the output power of the RFID reader (1-30)
-   * @param power - Power level from 1 (lowest) to 30 (highest)
+   * Set UHF inventory/read power in dBm. This is transmit power, not receiver sensitivity.
+   * @param power - Read power from 5 dBm (lowest) to 30 dBm (highest)
    * @returns Promise that resolves when power is set
    */
   setPower(power: number): Promise<boolean>
+
+  /** Return the read power last accepted by the native reader manager. */
+  getPower(): Promise<number>
 
   /**
    * Alias for setPower (for backwards compatibility)

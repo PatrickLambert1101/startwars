@@ -95,7 +95,8 @@ const xh = {
     },
     recentAnimals: {
       title: "Izilwanyana Zakutsha",
-      empty: "Akukho zilwanyana okwangoku. Yiya kwithebhu yoMhlambi ukuze wongeze isilwanyana sakho sokuqala.",
+      empty:
+        "Akukho zilwanyana okwangoku. Yiya kwithebhu yoMhlambi ukuze wongeze isilwanyana sakho sokuqala.",
     },
   },
   settingsScreen: {
@@ -144,7 +145,8 @@ const xh = {
       descriptions: {
         commercial: "Izilwanyana ezingenamda, kunye nazo zonke iimpawu.",
         farm: "Izilwanyana ezingenamda, kunye nazo zonke iimpawu.",
-        starter: "Zonke iimpawu zibandakanyiwe simahla, kuze kube zizilwanyana ezingu-50. Phucula ukuze ufumane izilwanyana ezingenamda.",
+        starter:
+          "Zonke iimpawu zibandakanyiwe simahla, kuze kube zizilwanyana ezingu-50. Phucula ukuze ufumane izilwanyana ezingenamda.",
       },
       buttons: {
         manageSubscription: "Lawula Urhwebo",
@@ -158,9 +160,10 @@ const xh = {
     },
     rfid: {
       connected: "Isikena sesandla siqhagamshelwe",
-      readerPower: "Amandla esiFundisi",
-      powerSaved: "Amandla amiselwe ku {{power}}",
-      rangeHint: "Uluhlu: {{min}} (omfutshane) ukuya ku {{max}} (omde). Amandla aphezulu atshisa ibhetri ngokukhawuleza.",
+      readerPower: "Amandla okufunda e-RFID",
+      powerSaved: "Amandla okufunda amiselwe ku-{{power}} dBm",
+      rangeHint:
+        "{{min}}–{{max}} dBm. Amandla aphezulu angafunda iithegi ezikude, kodwa angafunda nezilwanyana ezikufuphi. Umgama awunyuki ngokulinganayo.",
       presets: {
         low: "Ephantsi",
         med: "Phakathi",
@@ -170,11 +173,13 @@ const xh = {
     },
     dangerZone: {
       resetTitle: "Setha Kwakhona Idatha Yendawo",
-      resetDescription: "Icima YONKE idatha yendawo. Sebenzisa kuphela xa uqala phantsi emva kokuba ucime iSupabase.",
+      resetDescription:
+        "Icima YONKE idatha yendawo. Sebenzisa kuphela xa uqala phantsi emva kokuba ucime iSupabase.",
       resetButton: "Cima Idatha Yendawo",
       alerts: {
         confirmTitle: "Setha Kwakhona Idatha Yendawo",
-        confirmMessage: "Oku kuya kucima YONKE idatha yendawo kuquka umbutho wakho, izilwanyana, neerekhodi. Oku akunakubuyiselwa!\\n\\nYenza oku kuphela ukuba uqala phantsi emva kokuba ucime iSupabase.",
+        confirmMessage:
+          "Oku kuya kucima YONKE idatha yendawo kuquka umbutho wakho, izilwanyana, neerekhodi. Oku akunakubuyiselwa!\\n\\nYenza oku kuphela ukuba uqala phantsi emva kokuba ucime iSupabase.",
         wipeButton: "CIMA YONKE INTO",
         successTitle: "Impumelelo",
         successMessage: "Idatha yendawo isethwe kwakhona! Nceda vula usetyenziso kwakhona.",
@@ -332,14 +337,17 @@ const xh = {
       count_other: "{{count}} izilwanyana zidinga ukuhoywa",
       monthsOld: "Iinyanga ezi-{{months}} ubudala",
       reasons: {
-        noVaccinations: "Akukho gonyo lurekhodiweyo - amathole kufuneka egonywe phambi kweenyanga ezi-2",
-        needsBooster: "Anokufuna izitofu zomgcwalisi - zifuneka ngokwesiqhelo phambi kweenyanga ezi-6",
+        noVaccinations:
+          "Akukho gonyo lurekhodiweyo - amathole kufuneka egonywe phambi kweenyanga ezi-2",
+        needsBooster:
+          "Anokufuna izitofu zomgcwalisi - zifuneka ngokwesiqhelo phambi kweenyanga ezi-6",
       },
     },
     exportButton: "Khupha uMhlambi njenge-CSV",
     traceability: {
       title: "Iingxelo zoKulandelela iSilwanyana",
-      description: "Yenza iingxelo ezipheleleyo zokulandelela izilwanyana ngazinye okanye amaqela. Iingxelo ziquka imbali epheleleyo: iirekhodi zempilo, ubunzima, ukuzala, ukushukuma, neefoto.",
+      description:
+        "Yenza iingxelo ezipheleleyo zokulandelela izilwanyana ngazinye okanye amaqela. Iingxelo ziquka imbali epheleleyo: iirekhodi zempilo, ubunzima, ukuzala, ukushukuma, neefoto.",
       selected: "{{count}} ezikhethiweyo",
       selectAll: "Khetha Zonke",
       clear: "Sula",
@@ -359,7 +367,8 @@ const xh = {
     empty: {
       loading: "Iyalayisha...",
       title: "Qalisa Ukwakha uMhlambi Wakho",
-      description: "Yongeza isilwanyana sakho sokuqala ukuze uqalise ukulandelela iirekhodi zempilo, ubunzima, ukuzala, nokunye.",
+      description:
+        "Yongeza isilwanyana sakho sokuqala ukuze uqalise ukulandelela iirekhodi zempilo, ubunzima, ukuzala, nokunye.",
       onboarding: {
         step1: {
           title: "Yongeza Iinkcukacha zeSilwanyana",
@@ -389,7 +398,8 @@ const xh = {
       },
       protocol: {
         title: "Gonya / Nyanga",
-        description: "Sebenzisa iiprotocol zogonyo okanye unyango ngamayeza abalwe ngokuzenzekelayo",
+        description:
+          "Sebenzisa iiprotocol zogonyo okanye unyango ngamayeza abalwe ngokuzenzekelayo",
         sessionTitle: "Iseshoni yokuGonya / Nyanga",
       },
       weightAndTreatment: {
@@ -413,7 +423,8 @@ const xh = {
       placeholder: "Faka ithegi okanye sebenzisa ikhamera",
       lookUp: "Khangela",
       searching: "Iyakhangela...",
-      notFound: "Akukho silwanyana sifumanekayo ngethegi \"{{tag}}\". Yongeza kuqala kwithebhu yoMhlambi.",
+      notFound:
+        'Akukho silwanyana sifumanekayo ngethegi "{{tag}}". Yongeza kuqala kwithebhu yoMhlambi.',
       scanning: "Iyaskena...",
       pullTrigger: "Tsala isikhuphulisi ukuskena ithegi",
       orManualEntry: "Okanye faka ngesandla ngezantsi:",
@@ -486,7 +497,8 @@ const xh = {
     createButton: "+ Entsha",
     locked: {
       title: "Ujikelezo lwaMadlelo",
-      description: "Yenza imephu yamadlelo, wabela imihlambi, kwaye ulandelele iintsuku zokutya ukuze uphucule ingca nempilo yomhlaba.",
+      description:
+        "Yenza imephu yamadlelo, wabela imihlambi, kwaye ulandelele iintsuku zokutya ukuze uphucule ingca nempilo yomhlaba.",
       proBadge: "PRO",
       upgradeButton: "Phakamisa kwiPro",
     },
@@ -502,7 +514,8 @@ const xh = {
     },
     empty: {
       title: "Akukho Madlelo Okwangoku",
-      description: "Sizakukukhokela ekudaleni idlelo lakho lokuqala ngamanyathelo amathathu nje alula",
+      description:
+        "Sizakukukhokela ekudaleni idlelo lakho lokuqala ngamanyathelo amathathu nje alula",
       button: "Qalisa →",
     },
   },
@@ -565,13 +578,15 @@ const xh = {
         label: "Ithegi ye-RFID",
         placeholder: "Faka inombolo yethegi ye-RFID",
         scanPlaceholder: "Tsala isikhuphulisi ukuskena ithegi ye-RFID",
-        helpText: "Ithegi yombane efakwe kwithegi yendlebe - isicwangciso seCommercial siquka inkxaso yesikena se-RFID",
+        helpText:
+          "Ithegi yombane efakwe kwithegi yendlebe - isicwangciso seCommercial siquka inkxaso yesikena se-RFID",
         scanning: "Tsala isikhuphulisi ukuskena...",
       },
       visualTag: {
         label: "Ithegi Ebonakalayo (ithegi yendlebe/uphawu)",
         placeholder: "Ithegi yendlebe okanye inombolo yophawu",
-        helpText: "Sebenzisa iqhosha lesikena sekhamera ukufunda iinombolo zethegi ngokuzenzekelayo kwiifoto",
+        helpText:
+          "Sebenzisa iqhosha lesikena sekhamera ukufunda iinombolo zethegi ngokuzenzekelayo kwiifoto",
       },
       name: {
         label: "Igama (ngokuzithandela)",
@@ -595,8 +610,10 @@ const xh = {
       },
       vaccinationsUpToDate: {
         label: "Ugonyo lukhathaleliwe",
-        helpOn: "Kuza kucwangciswa kuphela ugonyo lwexesha elizayo. Cima ukuba esi silwanyana sisafuna iinaliti zaso zangaphambili.",
-        helpOff: "Nayiphi na ugonyo esele lulahlekile kwesi silwanyana luya kongezwa njengolugqithisiweyo lixesha.",
+        helpOn:
+          "Kuza kucwangciswa kuphela ugonyo lwexesha elizayo. Cima ukuba esi silwanyana sisafuna iinaliti zaso zangaphambili.",
+        helpOff:
+          "Nayiphi na ugonyo esele lulahlekile kwesi silwanyana luya kongezwa njengolugqithisiweyo lixesha.",
       },
       dateOfBirth: {
         label: "Umhla wokuZalwa",
@@ -630,7 +647,8 @@ const xh = {
       dame: {
         label: "Unina (Umama)",
         placeholder: "+ Yongeza unina",
-        noFemales: "Yongeza izilwanyana zabasetyhini kumhlambi wakho kuqala ukuze uzikhethe njengoonina",
+        noFemales:
+          "Yongeza izilwanyana zabasetyhini kumhlambi wakho kuqala ukuze uzikhethe njengoonina",
       },
     },
     buttons: {
@@ -666,18 +684,22 @@ const xh = {
     alerts: {
       animalLimit: {
         title: "Umda Wasimahla Ufikelelwe",
-        message: "Ufikelele umda wesicwangciso sakho wezilwanyana ezingu-{{limit}}. Phucula ukuze ufumane umda ophezulu — zonke iimpawu sezibandakanyiwe.",
+        message:
+          "Ufikelele umda wesicwangciso sakho wezilwanyana ezingu-{{limit}}. Phucula ukuze ufumane umda ophezulu — zonke iimpawu sezibandakanyiwe.",
         upgrade: "Phucula",
       },
       validation: {
         duplicateTag: {
           title: "Itheki Ephindaphindiweyo",
-          visualMessage: "Itheki ebonakalayo ethi \"{{tag}}\" sele isetyenziswa ngu-{{name}}. Nceda usebenzise itheki eyahlukileyo.",
-          rfidMessage: "Itheki ye-RFID ethi \"{{tag}}\" sele isetyenziswa ngu-{{name}}. Nceda usebenzise itheki eyahlukileyo.",
+          visualMessage:
+            'Itheki ebonakalayo ethi "{{tag}}" sele isetyenziswa ngu-{{name}}. Nceda usebenzise itheki eyahlukileyo.',
+          rfidMessage:
+            'Itheki ye-RFID ethi "{{tag}}" sele isetyenziswa ngu-{{name}}. Nceda usebenzise itheki eyahlukileyo.',
         },
         tagRequired: {
           title: "Iyafuneka",
-          message: "Nceda faka mhlawumbi ithegi ye-RFID okanye Ithegi Ebonakalayo (ubuncinane enye iyafuneka)",
+          message:
+            "Nceda faka mhlawumbi ithegi ye-RFID okanye Ithegi Ebonakalayo (ubuncinane enye iyafuneka)",
         },
         breedRequired: {
           title: "Iyafuneka",
@@ -700,7 +722,8 @@ const xh = {
       entry: "Yongeza Ngokukhawuleza",
     },
     setup: {
-      helpText: "Misela amasimi aqhelekileyo kanye, emva koko skena iithegi ngokukhawuleza kwizilwanyana ezininzi ezineempawu ezifanayo.",
+      helpText:
+        "Misela amasimi aqhelekileyo kanye, emva koko skena iithegi ngokukhawuleza kwizilwanyana ezininzi ezineempawu ezifanayo.",
       sectionTitle: "Amasimi Aqhelekileyo (asebenza kuzo zonke izilwanyana)",
       tagTypeLabel: "Uhlobo lweThegi",
       tagTypeModalTitle: "Khetha Uhlobo lweThegi",
@@ -1015,7 +1038,7 @@ const xh = {
         message: "Akukwazanga kugcinwa irekhodi yokuzala",
       },
     },
-    },
+  },
   calendarScreen: {
     badges: {
       overdue: "Lugqithisiwe",
@@ -1052,7 +1075,8 @@ const xh = {
       search: "Khangela izitofu...",
       createNew: "+ Yenza Isitofu Esitsha",
       emptyTitle: "Azikho izitofu okwangoku",
-      emptyHelp: "Yongeza isitofu osisebenzisayo — igama lemveliso, umlinganiselo kunye nexesha lokuyeka — uze ukwazi ukusicwangcisa.",
+      emptyHelp:
+        "Yongeza isitofu osisebenzisayo — igama lemveliso, umlinganiselo kunye nexesha lokuyeka — uze ukwazi ukusicwangcisa.",
       noMatches: "Azikho izitofu ezihambelana nokhangelo lwakho",
     },
     scheduleTypes: {
@@ -1092,7 +1116,8 @@ const xh = {
     },
     empty: {
       title: "Akukho Maxesha oGonyo",
-      noFilter: "Yenza amaxesha ukuze izikhumbuzi zogonyo zenziwe ngokuzenzekelayo ngokweminyaka, umhla, okanye iqela.",
+      noFilter:
+        "Yenza amaxesha ukuze izikhumbuzi zogonyo zenziwe ngokuzenzekelayo ngokweminyaka, umhla, okanye iqela.",
       withFilter: "Akukho maxesha e-{{filter}} afumanekayo.",
       showAllButton: "Bonisa Onke",
       createButton: "Yenza iXesha",
@@ -1104,7 +1129,8 @@ const xh = {
       },
       deleteConfirm: {
         title: "Cima iXesha",
-        message: "Cima ixesha logonyo elithi '{{name}}'? Oku akuyi kuchaphazela iirekhodi zempilo ezikhoyo.",
+        message:
+          "Cima ixesha logonyo elithi '{{name}}'? Oku akuyi kuchaphazela iirekhodi zempilo ezikhoyo.",
       },
       deleteError: {
         title: "Impazamo",
