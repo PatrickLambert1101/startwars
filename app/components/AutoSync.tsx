@@ -15,7 +15,8 @@ import { Q } from "@nozbe/watermelondb"
  * - Database changes occur (create/update/delete)
  * - App comes to foreground
  * - Network reconnects
- * - Periodically every 5 minutes (for pulling server changes)
+ * - Server data changes (via Supabase Realtime, see useSync.ts)
+ * - Periodically every 3 minutes (safety net for missed Realtime events)
  */
 export function AutoSync() {
   const { queueSync } = useSyncContext()
@@ -130,15 +131,19 @@ export function AutoSync() {
     }
   }, [isAuthenticated, queueSync])
 
-  // Periodic background sync to pull server changes (every 5 minutes)
+  // Periodic background sync as a safety net (every 3 minutes).
+  // Cross-device propagation is now primarily driven by Supabase Realtime
+  // (see useSync.ts), which triggers a sync within seconds of a remote change.
+  // This interval only backstops missed Realtime events (e.g. a silently
+  // dropped WebSocket), so it can be infrequent to save battery/network.
   useEffect(() => {
     if (!isAuthenticated) return
 
-    if (__DEV__) console.log("[AutoSync] Starting periodic sync (every 5 minutes)")
+    if (__DEV__) console.log("[AutoSync] Starting periodic sync (every 3 minutes)")
     const interval = setInterval(() => {
       if (__DEV__) console.log("[AutoSync] Periodic sync triggered")
       queueSync()
-    }, 5 * 60 * 1000) // 5 minutes
+    }, 3 * 60 * 1000) // 3 minutes
 
     return () => {
       clearInterval(interval)

@@ -1,5 +1,5 @@
 import { FC, useCallback, useEffect, useRef, useState } from "react"
-import { Alert, FlatList, Pressable, ScrollView, TextInput, View, ViewStyle, TextStyle, ActivityIndicator } from "react-native"
+import { Alert, FlatList, Image, ImageStyle, Pressable, ScrollView, TextInput, View, ViewStyle, TextStyle, ActivityIndicator } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { format } from "date-fns"
 import { useTranslation } from "react-i18next"
@@ -463,7 +463,7 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
             style={[themed($modeCard), { borderColor: "#739134" }]}
           >
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              <MaterialCommunityIcons name="scale" size={20} color="#739134" />
+              <Image source={require("@/assets/icons/herdtrackr/chute.png")} style={$modeIcon} resizeMode="contain" />
               <Text preset="subheading" text={t("chuteScreen.modes.weight.title")} style={{ color: "#739134" }} />
             </View>
             <Text size="xs" text={t("chuteScreen.modes.weight.description")} style={themed($dimText)} />
@@ -473,7 +473,7 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
             style={[themed($modeCard), { borderColor: "#10B981" }]}
           >
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              <MaterialCommunityIcons name="needle" size={20} color="#10B981" />
+              <Image source={require("@/assets/icons/herdtrackr/needle.png")} style={$modeIcon} resizeMode="contain" />
               <Text preset="subheading" text={t("chuteScreen.modes.protocol.title")} style={{ color: "#10B981" }} />
             </View>
             <Text size="xs" text={t("chuteScreen.modes.protocol.description")} style={themed($dimText)} />
@@ -483,8 +483,8 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
             style={[themed($modeCard), { borderColor: "#8B5CF6" }]}
           >
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              <MaterialCommunityIcons name="scale" size={18} color="#8B5CF6" />
-              <MaterialCommunityIcons name="needle" size={18} color="#8B5CF6" />
+              <Image source={require("@/assets/icons/herdtrackr/chute.png")} style={$modeIconSmall} resizeMode="contain" />
+              <Image source={require("@/assets/icons/herdtrackr/needle.png")} style={$modeIconSmall} resizeMode="contain" />
               <Text preset="subheading" text={t("chuteScreen.modes.weightAndTreatment.title")} style={{ color: "#8B5CF6" }} />
             </View>
             <Text size="xs" text={t("chuteScreen.modes.weightAndTreatment.description")} style={themed($dimText)} />
@@ -1037,6 +1037,16 @@ const $modePickerArea: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   gap: spacing.md,
   paddingHorizontal: spacing.md,
 })
+
+const $modeIcon: ImageStyle = {
+  width: 28,
+  height: 28,
+}
+
+const $modeIconSmall: ImageStyle = {
+  width: 24,
+  height: 24,
+}
 
 const $modeCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,

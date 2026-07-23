@@ -1,5 +1,5 @@
 import { FC, useState, useMemo } from "react"
-import { View, ViewStyle, TextStyle, FlatList, Pressable, Modal } from "react-native"
+import { View, ViewStyle, TextStyle, FlatList, Pressable, Modal, Image, ImageStyle } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
 
@@ -247,18 +247,24 @@ export const CalendarScreen: FC<MainTabScreenProps<"Calendar">> = ({ navigation 
             onPress={() => navigation.navigate("VaccinationSchedules")}
             style={themed($emptyActionCard)}
           >
-            <MaterialCommunityIcons name="calendar-clock" size={32} color={colors.palette.accent500} />
+            <Image source={require("@/assets/icons/herdtrackr-hex/calendar-clock.png")} style={$emptyActionIcon} resizeMode="contain" />
             <Text preset="bold" text={t("calendarScreen.manage.schedules")} style={themed($emptyActionTitle)} />
             <Text text={t("calendarScreen.manage.schedulesHelp")} size="xs" style={themed($emptyActionText)} />
+            <View style={themed($emptyActionButton)}>
+              <Text text={t("calendarScreen.manage.setUp")} size="xs" style={themed($emptyActionButtonText)} />
+            </View>
           </Pressable>
 
           <Pressable
             onPress={() => navigation.navigate("TreatmentProtocols")}
             style={themed($emptyActionCard)}
           >
-            <MaterialCommunityIcons name="medical-bag" size={32} color={colors.tint} />
+            <Image source={require("@/assets/icons/herdtrackr-hex/medical-bag.png")} style={$emptyActionIcon} resizeMode="contain" />
             <Text preset="bold" text={t("calendarScreen.manage.protocols")} style={themed($emptyActionTitle)} />
             <Text text={t("calendarScreen.manage.protocolsHelp")} size="xs" style={themed($emptyActionText)} />
+            <View style={themed($emptyActionButton)}>
+              <Text text={t("calendarScreen.manage.setUp")} size="xs" style={themed($emptyActionButtonText)} />
+            </View>
           </Pressable>
         </View>
       )}
@@ -557,4 +563,22 @@ const $emptyActionTitle: ThemedStyle<TextStyle> = ({ spacing }) => ({
 const $emptyActionText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.textDim,
   textAlign: "center",
+})
+
+const $emptyActionIcon: ImageStyle = {
+  width: 48,
+  height: 48,
+}
+
+const $emptyActionButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  marginTop: spacing.sm,
+  backgroundColor: colors.tint,
+  borderRadius: 8,
+  paddingVertical: spacing.xs,
+  paddingHorizontal: spacing.md,
+})
+
+const $emptyActionButtonText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.palette.neutral100,
+  fontWeight: "600",
 })

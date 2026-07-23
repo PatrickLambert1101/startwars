@@ -1,12 +1,12 @@
 import React, { useState } from "react"
-import { View, ViewStyle, TextStyle, Pressable } from "react-native"
+import { View, ViewStyle, TextStyle, Pressable, Alert } from "react-native"
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { Screen, Text, TextField, Button, Icon } from "@/components"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { AppStackScreenProps } from "@/navigators"
-import { usePastureActions, PastureFormData } from "@/hooks/usePastures"
+import { usePastureActions, PastureFormData, DuplicatePastureCodeError } from "@/hooks/usePastures"
 
 interface PastureWizardScreenProps extends AppStackScreenProps<"PastureWizard"> {}
 
@@ -96,6 +96,14 @@ export function PastureWizardScreen({ navigation }: PastureWizardScreenProps) {
       navigation.goBack()
     } catch (error) {
       console.error("Failed to create pasture:", error)
+      if (error instanceof DuplicatePastureCodeError) {
+        Alert.alert(
+          "Duplicate Code",
+          `Code "${error.code}" is already used by ${error.existingName}. Please choose a different code.`,
+        )
+      } else {
+        Alert.alert("Error", "Failed to create pasture. Please try again.")
+      }
     } finally {
       setIsSaving(false)
     }

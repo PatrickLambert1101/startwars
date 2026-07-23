@@ -5,7 +5,7 @@
 
 ## 🔴 Blocking launch
 
-- [ ] **Commit the pending work** — splash fix, LoadingScreen, biometric expiry lock, review-account bypass, RFID Unlimited gating, deep-link routes (all uncommitted on `main`)
+- [ ] **EAS build must set review env vars** — `EXPO_PUBLIC_REVIEW_EMAIL`, `EXPO_PUBLIC_REVIEW_OTP_CODE`, `EXPO_PUBLIC_REVIEW_PASSWORD` in eas.json/EAS secrets, or the review bypass is disabled in the build. Values are in local `.env`.
 - [ ] **Apple: build & submit** — new EAS build (picks up splash + review bypass), attach IAPs to the version, paste review notes (review@herdtrackr.co.za / code 7314159, "data syncs on first launch")
 - [ ] **Apple: in-app account deletion (5.1.1)** — minimum: Settings row linking to herdtrackr.co.za/data-deletion.html; native delete better
 - [ ] **Play: closed-testing release live** — check Releases tab says "Available to testers"; publish from Publishing overview if pending
@@ -40,6 +40,7 @@
 
 ## ✅ Done log
 
+- 2026-07-20 — Committed + pushed launch-prep batch to public origin/main (`d16e82c`); moved review creds to env vars (EXPO_PUBLIC_REVIEW_*) so no secret in public repo; re-verified review account works
 - 2026-07-20 — Hid debug controls in prod (Force Full Sync, Test Sentry, Reset Database) behind `__DEV__` in SettingsScreen; kept "Add Default Vaccination Schedules" (real user feature) and "Auto-sync active" info
 - 2026-07-20 — Splash: new logo everywhere (app.json, Android drawables, iOS storyboard); old blue logo gone
 - 2026-07-20 — LoadingScreen single animated logo; biometric only locks when login expires (+1h offline grace)

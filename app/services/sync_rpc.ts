@@ -230,6 +230,14 @@ export async function syncDatabase(): Promise<{ success: boolean; error?: string
       pullChanges,
       pushChanges,
       migrationsEnabledAtVersion: 3,
+      // Our sync_pull classifies rows as "created" purely by created_at >
+      // last_pulled_at, so a device gets its OWN just-pushed rows back as
+      // "created" on the next pull (pull happens before the watermark covers
+      // the push). Without this flag WatermelonDB treats that as a fatal
+      // "record already exists locally" diagnostic and recovers awkwardly,
+      // which delayed newly-added records from appearing. This flag makes the
+      // create-of-existing case a normal update instead.
+      sendCreatedAsUpdated: true,
     })
 
     if (__DEV__) console.log("[Sync] Synchronization complete!")
