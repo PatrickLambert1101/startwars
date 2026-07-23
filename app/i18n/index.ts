@@ -13,6 +13,7 @@ import fr from "./fr"
 import hi from "./hi"
 import ja from "./ja"
 import ko from "./ko"
+import nso from "./nso"
 import xh from "./xh"
 import zu from "./zu"
 
@@ -30,6 +31,7 @@ const resources = {
   hi: { translation: hi },
   ja: { translation: ja },
   ko: { translation: ko },
+  nso: { translation: nso },
   xh: { translation: xh },
   zu: { translation: zu },
 }
