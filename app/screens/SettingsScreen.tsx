@@ -30,6 +30,7 @@ const LANGUAGES = [
   { code: "af", name: "Afrikaans", nativeName: "Afrikaans" },
   { code: "zu", name: "Zulu", nativeName: "isiZulu" },
   { code: "xh", name: "Xhosa", nativeName: "isiXhosa" },
+  { code: "nso", name: "Sepedi", nativeName: "Sepedi" },
 ]
 
 export const SettingsScreen: FC<any> = ({ navigation }) => {

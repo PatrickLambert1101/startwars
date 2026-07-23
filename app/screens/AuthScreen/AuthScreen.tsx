@@ -16,6 +16,7 @@ const LANGUAGES = [
   { code: "af", flag: "🇿🇦", name: "Afrikaans" },
   { code: "zu", flag: "🇿🇦", name: "isiZulu" },
   { code: "xh", flag: "🇿🇦", name: "isiXhosa" },
+  { code: "nso", flag: "🇿🇦", name: "Sepedi" },
 ]
 
 export function AuthScreen() {
