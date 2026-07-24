@@ -22,39 +22,30 @@
             <td style="background-color: #FFFFFF; border-radius: 16px; padding: 40px 36px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
 
               <p style="margin: 0 0 6px; font-size: 22px; font-weight: 700; color: #1E1A16; text-align: center;">
-                Sign in to HerdTrackr
+                Confirm It's You
               </p>
               <p style="margin: 0 0 32px; font-size: 15px; color: #8C857C; text-align: center;">
-                Click the button below to securely access your account
+                Enter this code to confirm this action
               </p>
 
-              <!-- CTA Button -->
+              <!-- OTP Code -->
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td align="center" style="padding: 0 0 24px;">
-                    <a href="{{ .ConfirmationURL }}" style="display: inline-block; background: linear-gradient(135deg, #4A8C3F 0%, #36712D 100%); background-color: #4A8C3F; color: #FFFFFF; text-decoration: none; font-size: 16px; font-weight: 600; padding: 14px 32px; border-radius: 10px; box-shadow: 0 2px 6px rgba(54, 113, 45, 0.3);">
-                      Sign In Now
-                    </a>
+                  <td style="background: linear-gradient(135deg, #E2EDDF 0%, #F5F3F0 100%); background-color: #E2EDDF; border: 2px solid #C5DBBF; border-radius: 12px; padding: 24px 16px; text-align: center;">
+                    <span style="font-size: 42px; font-weight: 800; letter-spacing: 10px; font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace; color: #36712D;">{{ .Token }}</span>
                   </td>
                 </tr>
               </table>
 
-              <p style="margin: 0 0 8px; font-size: 13px; color: #B5AFA6; text-align: center;">
-                This link expires in <strong style="color: #8C857C;">1 hour</strong>
+              <p style="margin: 24px 0 0; font-size: 13px; color: #B5AFA6; text-align: center;">
+                This code expires in <strong style="color: #8C857C;">10 minutes</strong>
               </p>
 
               <!-- Divider -->
-              <hr style="border: none; border-top: 1px solid #F0EDE8; margin: 24px 0 20px;">
-
-              <p style="margin: 0 0 12px; font-size: 13px; color: #8C857C; text-align: center;">
-                Or copy and paste this link:
-              </p>
-              <p style="margin: 0 0 20px; font-size: 11px; color: #B5AFA6; word-break: break-all; text-align: center; background-color: #F5F3F0; padding: 12px; border-radius: 6px;">
-                {{ .ConfirmationURL }}
-              </p>
+              <hr style="border: none; border-top: 1px solid #F0EDE8; margin: 28px 0 20px;">
 
               <p style="margin: 0; font-size: 13px; color: #B5AFA6; text-align: center; line-height: 1.6;">
-                If you didn't request this link, you can safely ignore this email. No account changes will be made.
+                If you didn't request this, please secure your account and contact support immediately.
               </p>
             </td>
           </tr>

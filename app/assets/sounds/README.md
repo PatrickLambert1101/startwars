@@ -80,9 +80,22 @@ await SoundFeedback.error()
 - Volume levels are pre-configured (neutral: 50%, success: 70%, error: 60%)
 - Sounds will play even when the device is in silent mode (iOS) or Do Not Disturb (Android)
 
-## Placeholder Files
+## Current Files
 
-Until you add real sound files, you can create silent placeholder MP3s or the app will fail when trying to load them. Use Audacity to generate silent audio:
-1. Generate → Silence → 0.2 seconds
-2. Export as MP3
-3. Name accordingly
+Real beep tones are checked in (generated with ffmpeg, valid MPEG layer III):
+
+- `beep_neutral.mp3` — 440 Hz single tone, ~220ms
+- `beep_success.mp3` — ascending C5 → E5, ~260ms
+- `beep_error.mp3` — descending E5 → C4, ~360ms
+
+To regenerate, e.g. the neutral beep:
+
+```bash
+ffmpeg -y -f lavfi -i "sine=frequency=440:duration=0.22" \
+  -af "afade=t=in:st=0:d=0.01,afade=t=out:st=0.20:d=0.02" \
+  -ac 1 -ar 44100 -codec:a libmp3lame -b:a 96k beep_neutral.mp3
+```
+
+Note: the files must contain real MPEG audio frames. An MP3 with only an ID3
+header and no frames will fail to load on-device with
+`UnrecognizedInputFormatException` (ExoPlayer / expo-av).

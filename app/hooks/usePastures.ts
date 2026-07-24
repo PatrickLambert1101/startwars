@@ -4,6 +4,44 @@ import { Pasture, PastureMovement, Animal } from "@/db/models"
 import { Q } from "@nozbe/watermelondb"
 import { useDatabase } from "@/context/DatabaseContext"
 
+/** Thrown when another pasture in the org already uses the same code. */
+export class DuplicatePastureCodeError extends Error {
+  constructor(
+    public readonly code: string,
+    public readonly existingName: string,
+  ) {
+    super(`Duplicate pasture code: ${code}`)
+    this.name = "DuplicatePastureCodeError"
+  }
+}
+
+/**
+ * Case-insensitive duplicate-code check across the org's non-deleted pastures.
+ * Codes are user-entered (uppercased in the form), so compare trimmed+lowered
+ * in JS rather than relying on SQL collation.
+ */
+async function findCodeConflict(
+  organizationId: string,
+  code: string,
+  excludePastureId?: string,
+): Promise<DuplicatePastureCodeError | null> {
+  const c = code.trim().toLowerCase()
+  if (!c) return null
+
+  const pastures = await database
+    .get<Pasture>("pastures")
+    .query(Q.where("organization_id", organizationId), Q.where("is_deleted", false))
+    .fetch()
+
+  for (const p of pastures) {
+    if (excludePastureId && p.id === excludePastureId) continue
+    if (p.code?.trim().toLowerCase() === c) {
+      return new DuplicatePastureCodeError(code.trim(), p.name)
+    }
+  }
+  return null
+}
+
 export interface PastureFormData {
   name: string
   code: string
@@ -155,6 +193,9 @@ export function usePastureActions() {
   const createPasture = async (data: PastureFormData) => {
     if (!currentOrg) throw new Error("No organization selected")
 
+    const conflict = await findCodeConflict(currentOrg.id, data.code)
+    if (conflict) throw conflict
+
     return await database.write(async () => {
       return await database.get<Pasture>("pastures").create((pasture) => {
         pasture.organizationId = currentOrg.id
@@ -179,6 +220,10 @@ export function usePastureActions() {
   }
 
   const updatePasture = async (pastureId: string, data: PastureFormData) => {
+    if (currentOrg) {
+      const conflict = await findCodeConflict(currentOrg.id, data.code, pastureId)
+      if (conflict) throw conflict
+    }
     await database.write(async () => {
       const pasture = await database.get<Pasture>("pastures").find(pastureId)
       await pasture.update((p) => {

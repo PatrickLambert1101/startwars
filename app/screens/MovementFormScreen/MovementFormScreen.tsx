@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react"
-import { View, ViewStyle, TextStyle, ScrollView, Pressable, FlatList, Alert, Modal, ActivityIndicator } from "react-native"
+import { View, ViewStyle, TextStyle, ScrollView, Pressable, FlatList, Alert, Modal, ActivityIndicator, Image, ImageStyle } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import Toast from "react-native-toast-message"
 import { Screen, Text, TextField, Button, Icon, ScanTagButton } from "@/components"
@@ -334,20 +334,22 @@ export function MovementFormScreen({ navigation, route }: MovementFormScreenProp
               onPress={() => handleToggleMovementType("move_in")}
               style={[themed($toggleButton), movementType === "move_in" && themed($toggleButtonActive)]}
             >
+              <Image source={require("@/assets/icons/herdtrackr-hex/movement-in.png")} style={$toggleIcon} resizeMode="contain" />
               <Text
                 style={[themed($toggleButtonText), movementType === "move_in" && themed($toggleButtonTextActive)]}
               >
-                ⬇ Move In
+                Move In
               </Text>
             </Pressable>
             <Pressable
               onPress={() => handleToggleMovementType("move_out")}
               style={[themed($toggleButton), movementType === "move_out" && themed($toggleButtonActive)]}
             >
+              <Image source={require("@/assets/icons/herdtrackr-hex/movement-out.png")} style={$toggleIcon} resizeMode="contain" />
               <Text
                 style={[themed($toggleButtonText), movementType === "move_out" && themed($toggleButtonTextActive)]}
               >
-                ⬆ Move Out
+                Move Out
               </Text>
             </Pressable>
           </View>
@@ -612,7 +614,15 @@ const $toggleButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   borderColor: colors.palette.neutral300,
   backgroundColor: colors.palette.neutral100,
   alignItems: "center",
+  flexDirection: "row",
+  justifyContent: "center",
+  gap: spacing.xs,
 })
+
+const $toggleIcon: ImageStyle = {
+  width: 24,
+  height: 24,
+}
 
 const $toggleButtonActive: ThemedStyle<ViewStyle> = ({ colors }) => ({
   borderColor: colors.palette.primary500,

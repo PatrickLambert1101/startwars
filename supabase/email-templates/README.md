@@ -162,7 +162,7 @@ In the footer of each template, the contact info is already configured as:
 
 ```html
 <td style="font-size: 12px; color: #8C857C; padding: 0 8px;">
-  &#9993; support@herdtrackr.com
+  &#9993; support@herdtrackr.co.za
 </td>
 <td style="font-size: 12px; color: #8C857C; padding: 0 8px;">
   &#9742; +27 60 878 3715
@@ -285,7 +285,7 @@ To improve email deliverability:
 
 3. **Set Up DMARC**:
    - Add DMARC policy to DNS
-   - Example: `v=DMARC1; p=none; rua=mailto:dmarc@herdtrackr.com`
+   - Example: `v=DMARC1; p=none; rua=mailto:dmarc@herdtrackr.co.za`
 
 4. **Warm Up Your Domain**:
    - Start with low volume

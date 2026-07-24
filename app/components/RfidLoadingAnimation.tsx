@@ -1,6 +1,5 @@
 import { useEffect } from "react"
 import { StyleSheet, View, type ViewStyle } from "react-native"
-import { useAssets } from "expo-asset"
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -8,7 +7,9 @@ import Animated, {
   withRepeat,
   withTiming,
 } from "react-native-reanimated"
-import Svg, { Path, SvgUri } from "react-native-svg"
+import Svg, { Path } from "react-native-svg"
+
+import HerdtrackrLogoMark from "./HerdtrackrLogoMark"
 
 interface RfidLoadingAnimationProps {
   size?: number
@@ -18,11 +19,12 @@ interface RfidLoadingAnimationProps {
 const green = "#70952E"
 
 /**
- * Renders the approved HerdTrackr logo SVG exactly as supplied. The artwork is
- * intentionally not redrawn here. A single clean hex rotates quietly behind it.
+ * Renders the approved HerdTrackr logo with a single clean hex rotating quietly
+ * behind it. The logo mark is inlined as a native react-native-svg component
+ * (see HerdtrackrLogoMark) rather than fetched via SvgUri, which silently fails
+ * to render on Android and left only the spinning hex visible.
  */
 export function RfidLoadingAnimation({ size = 132, style }: RfidLoadingAnimationProps) {
-  const [assets] = useAssets([require("@/assets/branding/herdtrackr-logo-animated.svg")])
   const hexRotation = useSharedValue(0)
 
   useEffect(() => {
@@ -36,9 +38,6 @@ export function RfidLoadingAnimation({ size = 132, style }: RfidLoadingAnimation
   const hexRotationStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${hexRotation.value}deg` }],
   }))
-
-  const asset = assets?.[0]
-  const uri = asset?.localUri ?? asset?.uri
 
   return (
     <View
@@ -68,7 +67,7 @@ export function RfidLoadingAnimation({ size = 132, style }: RfidLoadingAnimation
           />
         </Svg>
       </Animated.View>
-      {uri ? <SvgUri height={size} uri={uri} width={size} /> : null}
+      <HerdtrackrLogoMark height={size} width={size} />
     </View>
   )
 }

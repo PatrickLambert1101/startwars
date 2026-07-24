@@ -6,7 +6,7 @@ import { Screen, Text, TextField, Button, Icon } from "@/components"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { AppStackScreenProps } from "@/navigators"
-import { usePasture, usePastureActions, PastureFormData } from "@/hooks/usePastures"
+import { usePasture, usePastureActions, PastureFormData, DuplicatePastureCodeError } from "@/hooks/usePastures"
 
 interface PastureFormScreenProps extends AppStackScreenProps<"PastureForm"> {}
 
@@ -101,7 +101,11 @@ export function PastureFormScreen({ navigation, route }: PastureFormScreenProps)
       navigation.goBack()
     } catch (error) {
       console.error("Failed to save pasture:", error)
-      setErrors({ name: "Failed to save pasture. Please try again." })
+      if (error instanceof DuplicatePastureCodeError) {
+        setErrors({ code: `Code "${error.code}" is already used by ${error.existingName}` })
+      } else {
+        setErrors({ name: "Failed to save pasture. Please try again." })
+      }
     } finally {
       setIsSaving(false)
     }

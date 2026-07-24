@@ -1,5 +1,5 @@
 import { FC, useCallback, useState, useEffect, useRef } from "react"
-import { FlatList, Pressable, View, ViewStyle, TextStyle, Image, ImageStyle, RefreshControl, Modal, ScrollView, StyleSheet } from "react-native"
+import { FlatList, Pressable, View, ViewStyle, TextStyle, Image, ImageStyle, RefreshControl, Modal, ScrollView, StyleSheet, ActivityIndicator } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
 import * as Network from "expo-network"
@@ -19,6 +19,7 @@ import { STATUS_COLORS } from "@/theme/colors"
 import { parsePhotos } from "@/types/Photo"
 import { syncDatabase } from "@/services/sync_rpc"
 import { extractTagNumbers } from "@/hooks/useTagScanner/tagParser"
+import { useRfidReader } from "@/hooks/useRfidReader"
 
 const HERD_ONBOARDING_KEY = "herd_list_onboarding_seen"
 
@@ -38,10 +39,28 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation 
   const { animals, isLoading, hasMore, loadMore } = useAnimalsQuery(filters, search, PAGE_SIZE)
   const [showScanModal, setShowScanModal] = useState(false)
   const [torch, setTorch] = useState<"off" | "on">("off")
+  const [showRfidModal, setShowRfidModal] = useState(false)
 
   const cameraRef = useRef<any>(null)
   const device = useCameraDevice("back")
   const { hasPermission, requestPermission } = useCameraPermission()
+
+  const {
+    hasRfidHardware,
+    isInitialized: isRfidInitialized,
+    isScanning: isRfidScanning,
+    scannedTag,
+    initialize: initializeRfid,
+    stopScanning: stopRfidScanning,
+    clearScannedTag,
+  } = useRfidReader()
+
+  // Initialize RFID reader once when hardware is present
+  useEffect(() => {
+    if (hasRfidHardware && !isRfidInitialized) {
+      initializeRfid()
+    }
+  }, [hasRfidHardware, isRfidInitialized, initializeRfid])
 
   // Check if first time visiting and show onboarding
   useEffect(() => {
@@ -176,6 +195,28 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation 
     }
   }, [])
 
+  const handleOpenRfidScan = useCallback(() => {
+    clearScannedTag()
+    setShowRfidModal(true)
+  }, [clearScannedTag])
+
+  const handleCloseRfidScan = useCallback(() => {
+    stopRfidScanning()
+    clearScannedTag()
+    setShowRfidModal(false)
+  }, [stopRfidScanning, clearScannedTag])
+
+  // When an RFID tag is scanned while the modal is open, drop the EPC into the
+  // search field (which matches rfid_tag) and close the modal.
+  useEffect(() => {
+    if (showRfidModal && scannedTag) {
+      setSearch(scannedTag.epc)
+      stopRfidScanning()
+      clearScannedTag()
+      setShowRfidModal(false)
+    }
+  }, [showRfidModal, scannedTag, stopRfidScanning, clearScannedTag])
+
   // Apply the remaining in-memory/computed filters (age, tag, parent).
   // Cheap filters + sort were already pushed into the DB query above.
   const filtered = useComputedAnimalFilters(animals, filters)
@@ -276,6 +317,11 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation 
           <Pressable onPress={handleOpenScan} style={themed($scanButton)}>
             <MaterialCommunityIcons name="barcode-scan" size={18} color={theme.colors.tint} />
           </Pressable>
+          {hasRfidHardware && (
+            <Pressable onPress={handleOpenRfidScan} style={themed($scanButton)}>
+              <MaterialCommunityIcons name="access-point" size={18} color={theme.colors.tint} />
+            </Pressable>
+          )}
           <Pressable onPress={handleOpenFilters} style={themed($filterButton)}>
             <MaterialCommunityIcons name="filter-variant" size={18} color={hasActiveFilters ? theme.colors.palette.primary500 : theme.colors.tint} />
             {hasActiveFilters && (
@@ -573,6 +619,57 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation 
               <Button text="Cancel" preset="default" onPress={handleCloseScan} style={themed($permissionButton)} />
             </View>
           )}
+        </View>
+      </Modal>
+
+      {/* RFID Scan Modal */}
+      <Modal
+        visible={showRfidModal}
+        transparent
+        animationType="fade"
+        onRequestClose={handleCloseRfidScan}
+      >
+        <View style={themed($rfidModalOverlay)}>
+          <View style={themed($rfidModalCard)}>
+            <Text
+              preset="heading"
+              size="lg"
+              text={t("herdListScreen.rfidScan.title")}
+              style={themed($rfidModalTitle)}
+            />
+
+            {isRfidScanning ? (
+              <View style={themed($rfidScanningBox)}>
+                <ActivityIndicator size="small" color={theme.colors.tint} />
+                <Text
+                  text={t("herdListScreen.rfidScan.scanning")}
+                  size="md"
+                  style={themed($rfidScanningText)}
+                />
+              </View>
+            ) : (
+              <View style={themed($rfidPromptBox)}>
+                <MaterialCommunityIcons name="radio-tower" size={24} color={theme.colors.textDim} />
+                <Text
+                  text={t("herdListScreen.rfidScan.instruction")}
+                  size="sm"
+                  style={themed($rfidModalText)}
+                />
+              </View>
+            )}
+
+            <Text
+              size="xs"
+              text={t("herdListScreen.rfidScan.hint")}
+              style={themed($rfidModalHint)}
+            />
+            <Button
+              text={t("herdListScreen.rfidScan.close")}
+              preset="default"
+              onPress={handleCloseRfidScan}
+              style={themed($rfidModalButton)}
+            />
+          </View>
         </View>
       </Modal>
 
@@ -1086,4 +1183,76 @@ const $permissionText: ThemedStyle<TextStyle> = ({ spacing }) => ({
 const $permissionButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   minWidth: 200,
   marginTop: spacing.sm,
+})
+
+const $rfidModalOverlay: ThemedStyle<ViewStyle> = () => ({
+  flex: 1,
+  backgroundColor: "rgba(0, 0, 0, 0.6)",
+  justifyContent: "center",
+  alignItems: "center",
+  padding: 20,
+})
+
+const $rfidModalCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.background,
+  borderRadius: 20,
+  padding: spacing.lg,
+  width: "100%",
+  maxWidth: 360,
+  alignItems: "center",
+})
+
+const $rfidModalTitle: ThemedStyle<TextStyle> = ({ spacing }) => ({
+  textAlign: "center",
+  marginBottom: spacing.md,
+})
+
+const $rfidScanningBox: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  width: "100%",
+  backgroundColor: colors.palette.primary100,
+  borderWidth: 2,
+  borderColor: colors.tint,
+  borderRadius: 12,
+  padding: spacing.md,
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: spacing.sm,
+  minHeight: 56,
+  marginBottom: spacing.md,
+})
+
+const $rfidScanningText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.tint,
+  fontWeight: "600",
+})
+
+const $rfidPromptBox: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  width: "100%",
+  backgroundColor: colors.palette.neutral100,
+  borderWidth: 2,
+  borderColor: colors.border,
+  borderStyle: "dashed",
+  borderRadius: 12,
+  padding: spacing.md,
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: spacing.sm,
+  minHeight: 56,
+  marginBottom: spacing.md,
+})
+
+const $rfidModalText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.textDim,
+})
+
+const $rfidModalHint: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  textAlign: "center",
+  color: colors.textDim,
+  marginBottom: spacing.lg,
+})
+
+const $rfidModalButton: ThemedStyle<ViewStyle> = () => ({
+  minWidth: 200,
 })

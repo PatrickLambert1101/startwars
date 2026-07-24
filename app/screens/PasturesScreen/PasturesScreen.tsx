@@ -1,9 +1,8 @@
 import React, { useMemo } from "react"
-import { View, ViewStyle, TextStyle, FlatList, Pressable } from "react-native"
+import { View, ViewStyle, TextStyle, FlatList, Pressable, Image, ImageStyle } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
 import { Screen, Text, Button, AppHeader } from "@/components"
-import { PastureIcon } from "@/components/icons"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { usePastures } from "@/hooks/usePastures"
@@ -146,7 +145,11 @@ export const PasturesScreen: React.FC<MainTabScreenProps<"Pastures">> = ({ navig
         </View>
       ) : pastures.length === 0 ? (
         <View style={themed($emptyContainer)}>
-          <PastureIcon size={48} color={colors.palette.neutral400} />
+          <Image
+            source={require("@/assets/icons/herdtrackr/pasture.png")}
+            style={$emptyImage}
+            resizeMode="contain"
+          />
           <Text style={themed($emptyTitle)}>{t("pasturesScreen.empty.title")}</Text>
           <Text style={themed($emptyDescription)}>
             {t("pasturesScreen.empty.description")}
@@ -331,6 +334,11 @@ const $emptyContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingHorizontal: spacing.xl,
   paddingVertical: spacing.xxxl,
 })
+
+const $emptyImage: ImageStyle = {
+  width: 96,
+  height: 96,
+}
 
 const $emptyTitle: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   fontSize: 20,

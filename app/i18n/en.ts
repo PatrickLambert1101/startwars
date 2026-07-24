@@ -382,6 +382,13 @@ const en = {
       button: "Add Your First Animal",
       tip: "Tip: Use the camera scanner to automatically read ear tag numbers",
     },
+    rfidScan: {
+      title: "Scan RFID Tag",
+      instruction: "Pull trigger to scan tag",
+      scanning: "Scanning...",
+      hint: "Hold the reader near the animal's tag",
+      close: "Cancel",
+    },
   },
   chuteScreen: {
     title: "Chute Mode",
@@ -1051,6 +1058,7 @@ const en = {
     manage: {
       action: "Manage",
       title: "Manage",
+      setUp: "Set up",
       schedules: "Vaccination Schedules",
       schedulesHelp: "Set up automatic vaccination reminders for your herd",
       protocols: "Vaccines",

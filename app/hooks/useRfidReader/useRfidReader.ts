@@ -13,6 +13,14 @@ const volumeUpEventEmitter = VolumeUpEventModule
   ? new NativeEventEmitter(VolumeUpEventModule as any)
   : null
 
+// The UHF reader is a single shared piece of hardware, but this hook is mounted
+// by many screens at once (Herd list tab, Chute, forms…). Every live instance
+// receives the same hardware trigger (onKeyDown) and would each call
+// UHFReader.startScanning(), producing "Scanning already in progress" errors.
+// This module-level flag collapses those concurrent calls into a single
+// hardware start/stop so only the first caller drives the reader.
+let isHardwareScanning = false
+
 export const useRfidReader = (): RfidReaderHook => {
   const [isInitialized, setIsInitialized] = useState(false)
   const [isScanning, setIsScanning] = useState(false)
@@ -109,6 +117,16 @@ export const useRfidReader = (): RfidReaderHook => {
     }
     try {
       if (Platform.OS === "android" && UHFReader) {
+        // Another mounted instance may already have started the shared reader
+        // (e.g. a second screen also listening for the same hardware trigger).
+        // Reflect the scanning state locally but don't start the hardware twice.
+        if (isHardwareScanning) {
+          console.log("[RFID] Scan already in progress on shared reader - syncing local state")
+          setIsScanning(true)
+          setError(null)
+          return
+        }
+        isHardwareScanning = true
         console.log("[RFID] Calling UHFReader.startScanning()...")
         await UHFReader.startScanning()
         console.log("[RFID] ✅ UHFReader.startScanning() completed")
@@ -118,6 +136,7 @@ export const useRfidReader = (): RfidReaderHook => {
         console.warn("[RFID] Cannot start scanning - UHFReader not available")
       }
     } catch (err) {
+      isHardwareScanning = false
       console.error("[RFID] ❌ Start scanning failed:", err)
       setError(`Scanning start error: ${err}`)
     }
@@ -127,6 +146,15 @@ export const useRfidReader = (): RfidReaderHook => {
     console.log("[RFID] stopScanning() called")
     try {
       if (Platform.OS === "android" && UHFReader) {
+        // Only the instance that actually started the shared reader needs to
+        // stop the hardware; the rest just clear their local scanning state.
+        if (!isHardwareScanning) {
+          console.log("[RFID] Shared reader already stopped - syncing local state")
+          setIsScanning(false)
+          setError(null)
+          return
+        }
+        isHardwareScanning = false
         console.log("[RFID] Calling UHFReader.stopScanning()...")
         await UHFReader.stopScanning()
         console.log("[RFID] ✅ UHFReader.stopScanning() completed")
@@ -183,6 +211,10 @@ export const useRfidReader = (): RfidReaderHook => {
 
     const tagSubscription = uhfEventEmitter.addListener("onTagScanned", (tag) => {
       console.log("[RFID] 📡 TAG SCANNED EVENT:", tag)
+      // NOTE: don't clear isHardwareScanning here. Let the authoritative
+      // stopScanning()/onScanningStopped path release it, so the instance that
+      // owns the shared reader can still issue a real UHFReader.stopScanning().
+      // (The success beep below is played by the app, independent of the flag.)
       setScannedTag(tag)
       setIsScanning(false)
 
@@ -199,6 +231,7 @@ export const useRfidReader = (): RfidReaderHook => {
         console.error("[RFID] ❌ SCAN ERROR:", err)
         const message =
           typeof err === "string" ? err : err.message || err.details || "Unknown error"
+        isHardwareScanning = false
         setError(`Scanning error: ${message}`)
         setIsScanning(false)
 
@@ -212,6 +245,8 @@ export const useRfidReader = (): RfidReaderHook => {
     })
 
     const scanningStoppedSubscription = uhfEventEmitter.addListener("onScanningStopped", () => {
+      // Authoritative native signal that the shared reader has stopped.
+      isHardwareScanning = false
       setIsScanning(false)
     })
 

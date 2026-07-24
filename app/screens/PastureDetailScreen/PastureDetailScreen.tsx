@@ -1,5 +1,5 @@
 import React from "react"
-import { View, ViewStyle, TextStyle, ScrollView, Pressable, FlatList, Alert } from "react-native"
+import { View, ViewStyle, TextStyle, ScrollView, Pressable, FlatList, Alert, Image, ImageStyle } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { Screen, Text, Button, Icon } from "@/components"
 import { useAppTheme } from "@/theme/context"
@@ -289,11 +289,11 @@ export function PastureDetailScreen({ navigation, route }: PastureDetailScreenPr
         {/* Actions */}
         <View style={themed($actionsSection)}>
           <Pressable onPress={handleScanIn} style={themed($scanButton)}>
-            <MaterialCommunityIcons name="camera-outline" size={20} color="#FFF" />
+            <Image source={require("@/assets/icons/herdtrackr-hex/movement-in.png")} style={$scanButtonIcon} resizeMode="contain" />
             <Text text="Scan Animals In" style={themed($scanButtonText)} />
           </Pressable>
           <Pressable onPress={handleScanOut} style={themed($scanButtonOutline)}>
-            <MaterialCommunityIcons name="camera-outline" size={20} color={colors.tint} />
+            <Image source={require("@/assets/icons/herdtrackr-hex/movement-out.png")} style={$scanButtonIcon} resizeMode="contain" />
             <Text text="Scan Animals Out" style={themed($scanButtonOutlineText)} />
           </Pressable>
           <Button
@@ -559,6 +559,11 @@ const $actionsSection: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $actionButton: ThemedStyle<ViewStyle> = () => ({
   width: "100%",
 })
+
+const $scanButtonIcon: ImageStyle = {
+  width: 26,
+  height: 26,
+}
 
 const $scanButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.primary500,
