@@ -294,7 +294,23 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
       token,
       type: "email",
     })
-    if (error) return { error: error.message }
+    if (error) {
+      // Supabase returns the same "Token has expired or is invalid" /
+      // otp_expired error for BOTH a genuinely expired code and a wrong or
+      // already-used one. The far more common case is a mistyped code, so give
+      // the user a message that points them at re-checking before assuming the
+      // code aged out.
+      const isOtpExpiredOrInvalid =
+        (error as { code?: string }).code === "otp_expired" ||
+        /expired or is invalid/i.test(error.message)
+      if (isOtpExpiredOrInvalid) {
+        return {
+          error:
+            "That code didn't work. Double-check the digits from your most recent email — or tap Back and request a new code.",
+        }
+      }
+      return { error: error.message }
+    }
     return { error: null }
   }, [])
 

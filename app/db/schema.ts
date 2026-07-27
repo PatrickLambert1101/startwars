@@ -355,12 +355,58 @@ export const migrations = schemaMigrations({
         },
       ],
     },
+    {
+      toVersion: 18,
+      steps: [
+        {
+          type: "create_table",
+          schema: tableSchema({
+            name: "report_templates",
+            columns: [
+              { name: "organization_id", type: "string", isIndexed: true },
+              { name: "name", type: "string" },
+              { name: "description", type: "string", isOptional: true },
+              { name: "report_type", type: "string" }, // custom | traceability
+              { name: "filters", type: "string", isOptional: true }, // JSON ReportFilters
+              { name: "group_by", type: "string", isOptional: true }, // breed | sex | age_bracket | pasture | status | tag
+              { name: "sections", type: "string", isOptional: true }, // JSON section keys
+              { name: "columns", type: "string", isOptional: true }, // JSON column keys
+              { name: "last_run_at", type: "number", isOptional: true },
+              { name: "created_by_user_id", type: "string", isOptional: true },
+              { name: "created_by_name", type: "string", isOptional: true },
+              { name: "created_at", type: "number" },
+              { name: "updated_at", type: "number" },
+              { name: "is_deleted", type: "boolean" },
+            ],
+          }),
+        },
+      ],
+    },
   ],
 })
 
 export const schema = appSchema({
-  version: 17,
+  version: 18,
   tables: [
+    tableSchema({
+      name: "report_templates",
+      columns: [
+        { name: "organization_id", type: "string", isIndexed: true },
+        { name: "name", type: "string" },
+        { name: "description", type: "string", isOptional: true },
+        { name: "report_type", type: "string" }, // custom | traceability
+        { name: "filters", type: "string", isOptional: true }, // JSON ReportFilters
+        { name: "group_by", type: "string", isOptional: true }, // breed | sex | age_bracket | pasture | status | tag
+        { name: "sections", type: "string", isOptional: true }, // JSON section keys
+        { name: "columns", type: "string", isOptional: true }, // JSON column keys
+        { name: "last_run_at", type: "number", isOptional: true },
+        { name: "created_by_user_id", type: "string", isOptional: true },
+        { name: "created_by_name", type: "string", isOptional: true },
+        { name: "created_at", type: "number" },
+        { name: "updated_at", type: "number" },
+        { name: "is_deleted", type: "boolean" },
+      ],
+    }),
     tableSchema({
       name: "organizations",
       columns: [

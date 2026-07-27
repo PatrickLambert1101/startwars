@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react"
 import { NativeEventEmitter, Platform } from "react-native"
 
-import { useSubscription } from "@/context/SubscriptionContext"
 import { KeyEventModule, UHFReader, VolumeUpEventModule, SoundFeedback } from "@/services"
 import { clampRfidReadPower, loadRfidReadPower } from "@/services/rfidReaderSettings"
 
@@ -27,14 +26,13 @@ export const useRfidReader = (): RfidReaderHook => {
   const [scannedTag, setScannedTag] = useState<{ epc: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  // Handheld RFID reader support is an Unlimited-tier feature. animalLimit is
-  // Infinity exactly for the commercial (unlimited) plan and super users, so it
-  // doubles as the entitlement check without needing a new flag.
-  const { animalLimit } = useSubscription()
-  const hasRfidAccess = animalLimit === Infinity
+  // The handheld RFID reader is hardware: if the device has it, any plan can use
+  // it to scan tags. The subscription paywall applies to the animal cap (50+
+  // head), not to the scanner itself, so RFID access is not plan-gated.
+  const hasRfidAccess = true
 
-  // Check if RFID hardware is available (and the plan allows using it)
-  const hasRfidHardware = Platform.OS === "android" && !!UHFReader && hasRfidAccess
+  // Check if RFID hardware is available (native module present on Android)
+  const hasRfidHardware = Platform.OS === "android" && !!UHFReader
 
   console.log("[RFID] Hook initialized:", {
     platform: Platform.OS,

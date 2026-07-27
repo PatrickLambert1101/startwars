@@ -17,7 +17,7 @@ import { KeyboardProvider } from "react-native-keyboard-controller"
 import { initialWindowMetrics, SafeAreaProvider } from "react-native-safe-area-context"
 import Toast from "react-native-toast-message"
 
-import { AutoSync, BiometricLock, SyncIndicator, ErrorBoundary } from "./components"
+import { AutoSync, BiometricLock, SyncIndicator, NetworkBanner, ErrorBoundary } from "./components"
 import { AuthProvider } from "./context/AuthContext"
 import { DatabaseProvider } from "./context/DatabaseContext"
 import { SubscriptionProvider } from "./context/SubscriptionContext"
@@ -110,6 +110,7 @@ export function App() {
                         onStateChange={onNavigationStateChange}
                       />
                       <Toast />
+                      <NetworkBanner />
                       <BiometricLock />
                     </ErrorBoundary>
                   </ThemeProvider>

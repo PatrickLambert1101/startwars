@@ -1,4 +1,4 @@
-import * as Sentry from "sentry-expo"
+import * as Sentry from "@sentry/react-native"
 import { Platform } from "react-native"
 
 const SENTRY_DSN = process.env.EXPO_PUBLIC_SENTRY_DSN
@@ -15,15 +15,11 @@ export function initSentry() {
   Sentry.init({
     dsn: SENTRY_DSN,
 
-    // IMPORTANT: Enable Sentry in Expo development mode for testing
-    // Remove this in production or set to false
-    enableInExpoDevelopment: true,
-
     // Enable debug to see what's being sent (useful for troubleshooting)
     // Set to false in production once everything works
     debug: true,
 
-    // Environment - auto-detected by sentry-expo
+    // Environment
     environment: __DEV__ ? "development" : "production",
 
     // Enable auto session tracking
@@ -36,15 +32,9 @@ export function initSentry() {
     // Performance monitoring - sample 100% in dev, 10% in production
     tracesSampleRate: __DEV__ ? 1.0 : 0.1,
 
-    // Integrations
-    integrations: [
-      new Sentry.Native.ReactNativeTracing({
-        // Set to true to track app start-up performance
-        enableAppStartTracking: true,
-        // Set to true to track slow/frozen frames
-        enableStallTracking: true,
-      }),
-    ],
+    // Integrations. App-start and stall tracking are enabled by default in the
+    // React Native tracing integration.
+    integrations: [Sentry.reactNativeTracingIntegration()],
 
     // Filter out noisy errors
     beforeSend(event, hint) {
@@ -95,7 +85,7 @@ export function initSentry() {
   })
 
   // Set user context with platform info
-  Sentry.Native.setContext("device", {
+  Sentry.setContext("device", {
     platform: Platform.OS,
     version: Platform.Version,
   })
@@ -124,7 +114,7 @@ export function logDatabaseOperation(
   // Only add breadcrumb in dev or if there's an error
   // This reduces overhead in production for successful operations
   if (__DEV__ || details.error) {
-    Sentry.Native.addBreadcrumb({
+    Sentry.addBreadcrumb({
       category: "database",
       message: `Database ${operation}${details.table ? ` on ${details.table}` : ""}`,
       level: details.error ? "error" : "info",
@@ -167,7 +157,7 @@ export function logSyncOperation(
     lastPulledAt?: Date | null
   }
 ) {
-  Sentry.Native.addBreadcrumb({
+  Sentry.addBreadcrumb({
     category: "sync",
     message: `Sync ${operation}`,
     level: details.error ? "error" : "info",
@@ -204,7 +194,7 @@ export function logAuthOperation(
     method?: "password" | "magic-link" | "otp"
   }
 ) {
-  Sentry.Native.addBreadcrumb({
+  Sentry.addBreadcrumb({
     category: "auth",
     message: `Auth ${operation}`,
     level: details.error ? "error" : "info",
@@ -232,13 +222,13 @@ export function logAuthOperation(
  */
 export function setUserContext(user: { id: string; email?: string } | null) {
   if (user) {
-    Sentry.Native.setUser({
+    Sentry.setUser({
       id: user.id,
       email: user.email,
     })
     console.log("[Sentry] User context set:", user.email)
   } else {
-    Sentry.Native.setUser(null)
+    Sentry.setUser(null)
     console.log("[Sentry] User context cleared")
   }
 }
@@ -248,13 +238,13 @@ export function setUserContext(user: { id: string; email?: string } | null) {
  */
 export function setOrgContext(org: { id: string; name: string } | null) {
   if (org) {
-    Sentry.Native.setContext("organization", {
+    Sentry.setContext("organization", {
       id: org.id,
       name: org.name,
     })
     console.log("[Sentry] Organization context set:", org.name)
   } else {
-    Sentry.Native.setContext("organization", null)
+    Sentry.setContext("organization", null)
     console.log("[Sentry] Organization context cleared")
   }
 }
@@ -263,7 +253,7 @@ export function setOrgContext(org: { id: string; name: string } | null) {
  * Capture an exception with rich context
  */
 export function captureException(error: Error, context?: Record<string, any>) {
-  Sentry.Native.captureException(error, {
+  Sentry.captureException(error, {
     contexts: context ? { extra: context } : undefined,
   })
   console.error("[Sentry] Exception captured:", error, context)

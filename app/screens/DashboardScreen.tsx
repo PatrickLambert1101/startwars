@@ -1,14 +1,17 @@
 import { FC, useCallback, useState, useEffect } from "react"
-import { Pressable, View, ViewStyle, TextStyle, Modal, FlatList } from "react-native"
+import { Pressable, View, ViewStyle, TextStyle, Modal, FlatList, Alert } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { Q } from "@nozbe/watermelondb"
 import { useTranslation } from "react-i18next"
 
-import { Screen, Text, Button, AppHeader } from "@/components"
+import { Screen, Text, Button, AppHeader, FriendlyEmpty } from "@/components"
+import { RfidLoadingAnimation } from "@/components/RfidLoadingAnimation"
+import { usePendingInvites } from "@/hooks/usePendingInvites"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { useDashboardStats } from "@/hooks/useDashboardStats"
 import { useDatabase } from "@/context/DatabaseContext"
+import { useSyncContext } from "@/context/SyncContext"
 import { useAuth } from "@/context/AuthContext"
 import { usePendingVaccinations } from "@/hooks/useVaccinationSchedules"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
@@ -20,11 +23,16 @@ export const DashboardScreen: FC<MainTabScreenProps<"Dashboard">> = ({ navigatio
   const { t } = useTranslation()
   const { themed, theme: { colors } } = useAppTheme()
   const { stats } = useDashboardStats()
-  const { currentOrg, switchOrganization } = useDatabase()
+  const { currentOrg, isOrgLoading, switchOrganization, leaveOrganization } = useDatabase()
+  const { status: syncStatus, lastSynced } = useSyncContext()
   const { user } = useAuth()
+  const { invites: pendingInvites, accept: acceptInvite } = usePendingInvites()
   const { vaccinations: pendingVaccinations } = usePendingVaccinations()
   const [showFarmPicker, setShowFarmPicker] = useState(false)
   const [userOrgs, setUserOrgs] = useState<Organization[]>([])
+  // True from tapping Accept until the joined farm has synced down and become
+  // currentOrg — keeps the cow loader up instead of flashing the setup card.
+  const [isAcceptingInvite, setIsAcceptingInvite] = useState(false)
 
   // Load all organizations the user is a member of
   useEffect(() => {
@@ -71,9 +79,63 @@ export const DashboardScreen: FC<MainTabScreenProps<"Dashboard">> = ({ navigatio
     navigation.navigate("OrgSetup")
   }, [navigation])
 
+  const handleAcceptInvite = useCallback(async (inviteId: string) => {
+    setIsAcceptingInvite(true)
+    const result = await acceptInvite(inviteId)
+    if (!result.success) {
+      setIsAcceptingInvite(false)
+      Alert.alert(t("dashboardScreen.pendingInvite.errorTitle"), result.error || "")
+    }
+    // On success, keep the loader up; the effect below clears it once the
+    // joined farm has synced down and become currentOrg.
+  }, [acceptInvite, t])
+
+  // Clear the accepting state once the joined farm is available.
+  useEffect(() => {
+    if (currentOrg && isAcceptingInvite) {
+      setIsAcceptingInvite(false)
+    }
+  }, [currentOrg, isAcceptingInvite])
+
+  const handleLeaveFarm = useCallback((orgId: string, orgName: string) => {
+    Alert.alert(
+      t("dashboardScreen.leaveFarmConfirm.title"),
+      t("dashboardScreen.leaveFarmConfirm.message", { farm: orgName }),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("dashboardScreen.leaveFarm"),
+          style: "destructive",
+          onPress: async () => {
+            const result = await leaveOrganization(orgId)
+            if (!result.success) {
+              const msg =
+                result.error === "last_admin"
+                  ? t("dashboardScreen.leaveFarmLastAdmin")
+                  : result.error || ""
+              Alert.alert(t("dashboardScreen.leaveFarmConfirm.title"), msg)
+            } else {
+              setShowFarmPicker(false)
+            }
+          },
+        },
+      ],
+    )
+  }, [leaveOrganization, t])
+
   const handleViewVaccinations = useCallback(() => {
     navigation.navigate("PendingVaccinations")
   }, [navigation])
+
+  // True while we can't yet be sure whether the user has any farms: the org
+  // query is still running, the first sync hasn't finished pulling data down
+  // (lastSynced is null and we're not in an error state), a sync is active, or
+  // the user just accepted an invite and the joined farm is still syncing in.
+  const orgResolving =
+    isOrgLoading ||
+    isAcceptingInvite ||
+    syncStatus === "syncing" ||
+    (lastSynced === null && syncStatus !== "error")
 
   // Calculate vaccination urgency counts
   const vaccinationCounts = {
@@ -92,7 +154,31 @@ export const DashboardScreen: FC<MainTabScreenProps<"Dashboard">> = ({ navigatio
     <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
       <AppHeader title={t("dashboardScreen.title")} showSettings={true} />
 
-      {!currentOrg ? (
+      {/* Pending farm invites, matched by the signed-in user's email. */}
+      {pendingInvites.map((invite) => (
+        <FriendlyEmpty
+          key={invite.id}
+          icon="email-outline"
+          heading={t("dashboardScreen.pendingInvite.title")}
+          content={t("dashboardScreen.pendingInvite.subtitle", {
+            farm: invite.organizationName,
+            role: t(`dashboardScreen.pendingInvite.role.${invite.role}`),
+          })}
+          buttonText={t("dashboardScreen.pendingInvite.accept")}
+          onButtonPress={() => handleAcceptInvite(invite.id)}
+          style={themed($inviteCard)}
+        />
+      ))}
+
+      {!currentOrg && orgResolving ? (
+        // Right after login, memberships/farms are still syncing down from the
+        // server. Show the cow loader instead of the "set up a farm" card so a
+        // user who already has farms doesn't briefly see a false empty state.
+        <View style={themed($loadingCard)}>
+          <RfidLoadingAnimation size={140} />
+          <Text text={t("dashboardScreen.loadingFarms")} style={themed($dimText)} />
+        </View>
+      ) : !currentOrg ? (
         <View style={themed($setupCard)}>
           <Text preset="subheading" text={t("dashboardScreen.setupCard.title")} />
           <Text
@@ -209,15 +295,25 @@ export const DashboardScreen: FC<MainTabScreenProps<"Dashboard">> = ({ navigatio
               data={userOrgs}
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
-                <Pressable
-                  onPress={() => handleSwitchFarm(item.id)}
-                  style={themed($farmOption)}
-                >
-                  <Text text={item.name} preset="bold" />
-                  {item.id === currentOrg?.id && (
-                    <MaterialCommunityIcons name="check" size={20} color={colors.tint} />
-                  )}
-                </Pressable>
+                <View style={themed($farmOption)}>
+                  <Pressable
+                    onPress={() => handleSwitchFarm(item.id)}
+                    style={themed($farmOptionMain)}
+                  >
+                    <Text text={item.name} preset="bold" />
+                    {item.id === currentOrg?.id && (
+                      <MaterialCommunityIcons name="check" size={20} color={colors.tint} />
+                    )}
+                  </Pressable>
+                  <Pressable
+                    onPress={() => handleLeaveFarm(item.id, item.name)}
+                    hitSlop={8}
+                    style={themed($leaveButton)}
+                    accessibilityLabel={t("dashboardScreen.leaveFarm")}
+                  >
+                    <MaterialCommunityIcons name="exit-to-app" size={20} color={colors.error} />
+                  </Pressable>
+                </View>
               )}
               ListFooterComponent={
                 <>
@@ -248,6 +344,13 @@ const $setupCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   padding: spacing.md,
   marginTop: spacing.sm,
   gap: spacing.xs,
+})
+
+const $loadingCard: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  alignItems: "center",
+  justifyContent: "center",
+  paddingVertical: spacing.xxl,
+  gap: spacing.sm,
 })
 
 const $statsRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -329,6 +432,24 @@ const $farmOption: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flexDirection: "row",
   justifyContent: "space-between",
   alignItems: "center",
+})
+
+const $farmOptionMain: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flex: 1,
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: spacing.xs,
+})
+
+const $leaveButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  paddingLeft: spacing.md,
+})
+
+const $inviteCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.palette.neutral100,
+  borderRadius: 12,
+  marginTop: spacing.sm,
 })
 
 const $divider: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({

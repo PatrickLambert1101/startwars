@@ -3,7 +3,7 @@ import { View, ViewStyle, TextStyle, Pressable, Alert, Switch } from "react-nati
 import * as LocalAuthentication from "expo-local-authentication"
 import { Q } from "@nozbe/watermelondb"
 import { useTranslation } from "react-i18next"
-import * as Sentry from "sentry-expo"
+import * as Sentry from "@sentry/react-native"
 
 import { Screen, Text, ListItem, Button, Icon, BIOMETRIC_LOCK_KEY } from "@/components"
 import { useAuth } from "@/context/AuthContext"
@@ -273,20 +273,20 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
       console.log("[DEBUG] Testing Sentry integration...")
 
       // Add a breadcrumb
-      Sentry.Native.addBreadcrumb({
+      Sentry.addBreadcrumb({
         category: "debug",
         message: "User triggered test error from Settings",
         level: "info",
       })
 
       // Capture a test message
-      Sentry.Native.captureMessage("Test message from Settings screen", "info")
+      Sentry.captureMessage("Test message from Settings screen", "info")
 
       // Throw a test error
       throw new Error("Test error from Settings screen - Sentry integration test")
     } catch (error) {
       // Capture the error
-      Sentry.Native.captureException(error)
+      Sentry.captureException(error)
       console.log("[DEBUG] Test error captured and sent to Sentry")
       Alert.alert(
         "Test Sent!",

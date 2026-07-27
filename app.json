@@ -84,7 +84,7 @@
       ],
       "expo-build-properties",
       [
-        "sentry-expo",
+        "@sentry/react-native/expo",
         {
           "organization": "patrick-sullivan",
           "project": "javascript-react-native"

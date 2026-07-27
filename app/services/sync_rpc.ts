@@ -6,7 +6,7 @@
  */
 import { synchronize, SyncPullArgs, SyncPushArgs } from "@nozbe/watermelondb/sync"
 import { Model } from "@nozbe/watermelondb"
-import { database } from "@/db"
+import { database, schema } from "@/db"
 import { supabase } from "@/services/supabase"
 
 // ---- Sync types ----------------------------------------------------------
@@ -61,6 +61,9 @@ async function pullChanges({ lastPulledAt }: SyncPullArgs) {
 
   const { data, error } = await supabase.rpc("sync_pull", {
     last_pulled_at: lastPulledAtMs,
+    // Lets the server withhold tables this build's schema doesn't know about
+    // (e.g. report_templates for pre-v18 installs).
+    client_schema_version: schema.version,
   })
 
   if (error) {
@@ -86,6 +89,13 @@ async function pullChanges({ lastPulledAt }: SyncPullArgs) {
   for (const [tableName, tableChanges] of Object.entries(rawChanges)) {
     // Map Supabase table names to local table names
     const localTableName = tableName === "memberships" ? "organization_members" : tableName
+
+    // Drop tables this build's schema doesn't know — WatermelonDB throws on
+    // unknown tables, which would brick sync when the server is ahead of us.
+    if (!(localTableName in schema.tables)) {
+      if (__DEV__) console.log(`[Sync] Skipping unknown table from server: ${tableName}`)
+      continue
+    }
 
     const created = (tableChanges.created ?? []).map(supabaseToWatermelon)
     const updated = (tableChanges.updated ?? []).map(supabaseToWatermelon)

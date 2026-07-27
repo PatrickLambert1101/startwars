@@ -7,6 +7,7 @@ import { colors } from "@/theme/colors"
 import { AppStackScreenProps } from "@/navigators"
 import { useProtocols, useProtocolActions } from "@/hooks/useProtocols"
 import { TreatmentProtocol, ProtocolType } from "@/db/models"
+import { useDatabase } from "@/context/DatabaseContext"
 import { useTranslation } from "react-i18next"
 
 interface TreatmentProtocolsScreenProps extends AppStackScreenProps<"TreatmentProtocols"> {}
@@ -16,6 +17,7 @@ type FilterOption = "all" | ProtocolType
 export function TreatmentProtocolsScreen({ navigation }: TreatmentProtocolsScreenProps) {
   const { protocols, isLoading } = useProtocols()
   const { toggleProtocolActive, deleteProtocol, seedDefaultProtocols } = useProtocolActions()
+  const { currentOrg } = useDatabase()
   const { themed } = useAppTheme()
   const { t } = useTranslation()
   const [activeFilter, setActiveFilter] = useState<FilterOption>("all")
@@ -30,10 +32,13 @@ export function TreatmentProtocolsScreen({ navigation }: TreatmentProtocolsScree
   ]
 
   useEffect(() => {
-    if (!isLoading && protocols.length === 0) {
+    // Only auto-seed once a farm is selected — otherwise seedDefaultProtocols
+    // throws "No organization selected" (e.g. for a freshly signed-in invitee
+    // with no farm yet).
+    if (!isLoading && currentOrg && protocols.length === 0 && !seeding) {
       handleSeedDefaults()
     }
-  }, [isLoading])
+  }, [isLoading, currentOrg])
 
   const filteredProtocols = useMemo(() => {
     if (activeFilter === "all") return protocols

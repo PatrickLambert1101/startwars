@@ -28,6 +28,8 @@ import { VaccinationScheduleScreen } from "@/screens/VaccinationScheduleScreen"
 import { VaccinationScheduleFormScreen } from "@/screens/VaccinationScheduleFormScreen"
 import { PendingVaccinationsScreen } from "@/screens/PendingVaccinationsScreen"
 import { ReportsScreen } from "@/screens/ReportsScreen"
+import { ReportBuilderScreen } from "@/screens/ReportBuilderScreen"
+import { ReportViewerScreen } from "@/screens/ReportViewerScreen"
 import { PastureDetailScreen } from "@/screens/PastureDetailScreen"
 import { PastureFormScreen } from "@/screens/PastureFormScreen"
 import { PastureWizardScreen } from "@/screens/PastureWizardScreen"
@@ -88,6 +90,8 @@ const AppStack = () => {
           <Stack.Screen name="VaccinationScheduleForm" component={VaccinationScheduleFormScreen} />
           <Stack.Screen name="PendingVaccinations" component={PendingVaccinationsScreen} />
           <Stack.Screen name="Reports" component={ReportsScreen} />
+          <Stack.Screen name="ReportBuilder" component={ReportBuilderScreen} />
+          <Stack.Screen name="ReportViewer" component={ReportViewerScreen} />
           <Stack.Screen name="PastureDetail" component={PastureDetailScreen} />
           <Stack.Screen name="PastureForm" component={PastureFormScreen} />
           <Stack.Screen name="PastureWizard" component={PastureWizardScreen} />

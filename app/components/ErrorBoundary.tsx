@@ -1,6 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from "react"
 import { View, Text, StyleSheet, Pressable } from "react-native"
-import * as Sentry from "sentry-expo"
+import * as Sentry from "@sentry/react-native"
 
 interface Props {
   children: ReactNode
@@ -27,7 +27,7 @@ export class ErrorBoundary extends Component<Props, State> {
     console.error("[ErrorBoundary] Caught error:", error, errorInfo)
 
     // Report to Sentry
-    Sentry.Native.captureException(error, {
+    Sentry.captureException(error, {
       contexts: {
         react: {
           componentStack: errorInfo.componentStack,

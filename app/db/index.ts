@@ -1,9 +1,8 @@
 import { Database } from "@nozbe/watermelondb"
 import SQLiteAdapter from "@nozbe/watermelondb/adapters/sqlite"
-import * as Sentry from "@sentry/react-native"
 
 import { schema, migrations } from "./schema"
-import { Organization, Animal, HealthRecord, WeightRecord, BreedingRecord, TreatmentProtocol, Pasture, PastureMovement, OrganizationMember, VaccinationSchedule, ScheduledVaccination } from "./models"
+import { Organization, Animal, HealthRecord, WeightRecord, BreedingRecord, TreatmentProtocol, Pasture, PastureMovement, OrganizationMember, VaccinationSchedule, ScheduledVaccination, ReportTemplate } from "./models"
 import { logDatabaseOperation, captureException } from "@/services/sentry"
 
 // Use SQLite adapter for reliable persistence on native platforms
@@ -35,7 +34,7 @@ console.log("[DB] Initializing WatermelonDB with schema version:", schema.versio
 
 export const database = new Database({
   adapter,
-  modelClasses: [Organization, Animal, HealthRecord, WeightRecord, BreedingRecord, TreatmentProtocol, Pasture, PastureMovement, OrganizationMember, VaccinationSchedule, ScheduledVaccination],
+  modelClasses: [Organization, Animal, HealthRecord, WeightRecord, BreedingRecord, TreatmentProtocol, Pasture, PastureMovement, OrganizationMember, VaccinationSchedule, ScheduledVaccination, ReportTemplate],
 })
 
 console.log("[DB] WatermelonDB initialized successfully with", Object.keys(database.collections).length, "collections")

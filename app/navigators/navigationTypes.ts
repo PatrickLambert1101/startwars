@@ -44,6 +44,9 @@ export type AppStackParamList = {
   VaccinationScheduleForm: { mode: "create" | "edit"; scheduleId?: string }
   PendingVaccinations: undefined
   Reports: undefined
+  ReportBuilder: { templateId?: string }
+  /** adHocConfig: serialized ReportConfig JSON; title shown when no template */
+  ReportViewer: { templateId?: string; adHocConfig?: string; title?: string }
   PastureDetail: { pastureId: string }
   PastureForm: { pastureId?: string }
   PastureWizard: undefined

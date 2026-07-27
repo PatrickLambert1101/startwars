@@ -128,7 +128,6 @@ serve(async (req) => {
                        membership?.user_email?.split('@')[0] ||
                        "A team member"
     const orgName = invite.organizations.name
-    const inviteCode = invite.invite_code
 
     console.log("[send-invite] Sending invite via", method, "to", invite.email)
 
@@ -141,7 +140,7 @@ serve(async (req) => {
         })
       }
 
-      const emailResult = await sendEmail(invite.email, inviterName, orgName, inviteCode)
+      const emailResult = await sendEmail(invite.email, inviterName, orgName)
 
       if (!emailResult.success) {
         return new Response(JSON.stringify({ error: emailResult.error }), {
@@ -170,7 +169,7 @@ serve(async (req) => {
         })
       }
 
-      const messageResult = await sendMessage(invite.phone, inviterName, orgName, inviteCode, method)
+      const messageResult = await sendMessage(invite.phone, inviterName, orgName, method)
 
       if (!messageResult.success) {
         return new Response(JSON.stringify({ error: messageResult.error }), {
@@ -221,7 +220,6 @@ async function sendEmail(
   email: string,
   inviterName: string,
   orgName: string,
-  inviteCode: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const response = await fetch("https://api.resend.com/emails", {
@@ -276,17 +274,18 @@ async function sendEmail(
                           </tr>
                         </table>
 
-                        <!-- Invite Code -->
-                        <p style="margin: 28px 0 10px; font-size: 13px; color: #8C857C; text-align: center;">Your invite code</p>
-                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                        <!-- Get the app button -->
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 28px 0 8px;">
                           <tr>
-                            <td style="background: linear-gradient(135deg, #E2EDDF 0%, #F5F3F0 100%); background-color: #E2EDDF; border: 2px solid #C5DBBF; border-radius: 12px; padding: 24px 16px; text-align: center;">
-                              <span style="font-size: 34px; font-weight: 800; letter-spacing: 8px; font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace; color: #36712D;">${inviteCode}</span>
+                            <td align="center">
+                              <a href="https://apps.apple.com/za/app/herdtrackr/id6760476630" style="display: inline-block; background-color: #4A8C3F; color: #FFFFFF; font-size: 16px; font-weight: 700; text-decoration: none; padding: 16px 40px; border-radius: 12px;">
+                                Get HerdTrackr for iPhone
+                              </a>
                             </td>
                           </tr>
                         </table>
 
-                        <p style="margin: 24px 0 8px; font-size: 13px; color: #B5AFA6; text-align: center;">
+                        <p style="margin: 16px 0 8px; font-size: 13px; color: #B5AFA6; text-align: center;">
                           This invitation expires in <strong style="color: #8C857C;">7 days</strong>
                         </p>
 
@@ -300,21 +299,21 @@ async function sendEmail(
                           <tr>
                             <td style="padding: 6px 0;">
                               <p style="margin: 0; font-size: 13px; color: #8C857C; line-height: 1.6;">
-                                <strong style="color: #4A8C3F;">1.</strong> Download HerdTrackr from the App Store or Google Play
+                                <strong style="color: #4A8C3F;">1.</strong> Download HerdTrackr from the App Store (Android coming soon)
                               </p>
                             </td>
                           </tr>
                           <tr>
                             <td style="padding: 6px 0;">
                               <p style="margin: 0; font-size: 13px; color: #8C857C; line-height: 1.6;">
-                                <strong style="color: #4A8C3F;">2.</strong> Sign up with this email: <strong style="color: #1E1A16;">${email}</strong>
+                                <strong style="color: #4A8C3F;">2.</strong> Sign in with this email: <strong style="color: #1E1A16;">${email}</strong>
                               </p>
                             </td>
                           </tr>
                           <tr>
                             <td style="padding: 6px 0;">
                               <p style="margin: 0; font-size: 13px; color: #8C857C; line-height: 1.6;">
-                                <strong style="color: #4A8C3F;">3.</strong> Enter the invite code above when prompted
+                                <strong style="color: #4A8C3F;">3.</strong> Tap <strong style="color: #1E1A16;">Accept</strong> on the ${orgName} invite that appears on your home screen
                               </p>
                             </td>
                           </tr>
@@ -410,7 +409,6 @@ async function sendMessage(
   phoneOrEmail: string,
   inviterName: string,
   orgName: string,
-  inviteCode: string,
   method: "sms" | "whatsapp",
 ): Promise<{ success: boolean; error?: string }> {
   try {
@@ -421,9 +419,9 @@ async function sendMessage(
 
     const message = `Hi! ${inviterName} invited you to join ${orgName} on HerdTrackr.
 
-Your invite code: ${inviteCode}
+Get the app (iPhone): https://apps.apple.com/za/app/herdtrackr/id6760476630
 
-Download the app and enter this code to join the team. Valid for 7 days.`
+Sign in with this number/email, then tap Accept on the invite that appears on your home screen. Valid for 7 days.`
 
     const body = method === "whatsapp"
       ? {

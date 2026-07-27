@@ -119,6 +119,7 @@ export const LoginScreen: FC<LoginScreenProps> = ({ navigation }) => {
         containerStyle={themed($textField)}
         autoCapitalize="none"
         autoComplete="email"
+        textContentType="username"
         autoCorrect={false}
         keyboardType="email-address"
         label="Email"

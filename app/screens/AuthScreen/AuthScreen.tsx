@@ -245,6 +245,7 @@ export function AuthScreen() {
             keyboardType="email-address"
             autoCapitalize="none"
             autoComplete="email"
+            textContentType="username"
             autoCorrect={false}
             helper={error || (emailTouched ? validationError : "")}
             status={error || (emailTouched && validationError) ? "error" : undefined}

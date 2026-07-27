@@ -1,7 +1,7 @@
 import React, { useState } from "react"
 import { View, ViewStyle, TextStyle, ScrollView, Pressable, FlatList, Alert } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
-import { Screen, Text, Button, Icon, TextField } from "@/components"
+import { Screen, Text, Button, Icon, TextField, FriendlyEmpty } from "@/components"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { AppStackScreenProps } from "@/navigators"
@@ -255,6 +255,26 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
         {renderHeader()}
         <View style={themed($content)}>
           <Text>{t("teamScreen.loading")}</Text>
+        </View>
+      </Screen>
+    )
+  }
+
+  // No farm at all (e.g. after leaving your only farm). A "team" is the members
+  // of a farm, so there's nothing to manage until you belong to one — show a
+  // friendly create-a-farm state rather than the "not a member" sync error.
+  if (!currentOrg) {
+    return (
+      <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={themed($container)}>
+        {renderHeader()}
+        <View style={themed($content)}>
+          <FriendlyEmpty
+            icon="account-group-outline"
+            heading={t("teamScreen.noFarm.title")}
+            content={t("teamScreen.noFarm.subtitle")}
+            buttonText={t("teamScreen.noFarm.button")}
+            onButtonPress={() => navigation.navigate("OrgSetup")}
+          />
         </View>
       </Screen>
     )

@@ -4,6 +4,7 @@ import { database } from "@/db"
 import { Organization, LivestockType } from "@/db/models/Organization"
 import { OrganizationMember } from "@/db/models/OrganizationMember"
 import { useAuth } from "./AuthContext"
+import { supabase } from "@/services/supabase"
 import { seedDefaultSchedules } from "@/services/defaultSchedules"
 import { logDatabaseOperation, setOrgContext, captureException, measureDatabaseQuery } from "@/services/sentry"
 
@@ -22,6 +23,7 @@ export type DatabaseContextType = {
   isOrgLoading: boolean
   createOrganization: (params: CreateOrgParams) => Promise<Organization>
   switchOrganization: (orgId: string) => Promise<void>
+  leaveOrganization: (orgId: string) => Promise<{ success: boolean; error?: string }>
   resetDatabase: () => Promise<void>
 }
 
@@ -220,6 +222,54 @@ export const DatabaseProvider: FC<PropsWithChildren> = ({ children }) => {
     }
   }, [])
 
+  // Leave a farm. The server RPC enforces the last-admin guard; on success we
+  // soft-delete the local membership row so the membership observer drops/
+  // switches currentOrg immediately and AutoSync pushes the change up.
+  const leaveOrganization = useCallback(async (orgId: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const { data, error } = await supabase.rpc("leave_organization", { org_id_param: orgId })
+
+      if (error) {
+        console.error("[DatabaseContext] leave_organization RPC failed:", error)
+        return { success: false, error: error.message }
+      }
+
+      const result = data as { success: boolean; error?: string } | null
+      if (!result?.success) {
+        return { success: false, error: result?.error || "Could not leave farm" }
+      }
+
+      // Mirror the soft-delete locally so the observer reacts without waiting for
+      // the next pull (and so the row is queued for push).
+      const localMemberships = await database
+        .get<OrganizationMember>("organization_members")
+        .query(Q.where("organization_id", orgId), Q.where("user_id", user?.id ?? ""))
+        .fetch()
+
+      if (localMemberships.length > 0) {
+        await database.write(async () => {
+          for (const m of localMemberships) {
+            await m.update((row) => {
+              row.isActive = false
+              row.isDeleted = true
+            })
+          }
+        })
+      }
+
+      logDatabaseOperation("update", { table: "organization_members", recordId: orgId })
+      return { success: true }
+    } catch (error) {
+      console.error("[DatabaseContext] Failed to leave organization:", error)
+      captureException(error as Error, {
+        component: "DatabaseContext",
+        operation: "leaveOrganization",
+        orgId,
+      })
+      return { success: false, error: "Could not leave farm" }
+    }
+  }, [user])
+
   const resetDatabase = useCallback(async () => {
     try {
       console.warn("[DatabaseContext] ⚠️  RESETTING DATABASE - ALL DATA WILL BE DELETED")
@@ -247,7 +297,7 @@ export const DatabaseProvider: FC<PropsWithChildren> = ({ children }) => {
   }, [])
 
   return (
-    <DatabaseContext.Provider value={{ currentOrg, isOrgLoading, createOrganization, switchOrganization, resetDatabase }}>
+    <DatabaseContext.Provider value={{ currentOrg, isOrgLoading, createOrganization, switchOrganization, leaveOrganization, resetDatabase }}>
       {children}
     </DatabaseContext.Provider>
   )
