@@ -1,8 +1,9 @@
 import { FC, useCallback, useState, useMemo, useEffect } from "react"
 import { Alert, Pressable, View, ViewStyle, TextStyle, ScrollView } from "react-native"
+import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
 
-import { Screen, Text, TextField, Button, Icon } from "@/components"
+import { Screen, Text, TextField, Button, Icon, DateField } from "@/components"
 import { PhotoPicker } from "@/components/PhotoPicker"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -36,10 +37,11 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
   const latestWeight = useMemo(() => {
     if (weightRecords.length === 0) return null
     const sorted = [...weightRecords].sort((a, b) => b.recordDate.getTime() - a.recordDate.getTime())
-    return sorted[0].weight
+    return sorted[0].weightKg
   }, [weightRecords])
 
   const [recordType, setRecordType] = useState<HealthRecordType>(protocolId ? "vaccination" : "treatment")
+  const [recordDate, setRecordDate] = useState<Date | null>(new Date())
   const [selectedProtocolId, setSelectedProtocolId] = useState<string | null>(protocolId || null)
   const [showProtocolPicker, setShowProtocolPicker] = useState(false)
   const [description, setDescription] = useState("")
@@ -124,6 +126,16 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
   }, [protocolId, protocols, calculatedDosage])
 
   const handleSave = useCallback(async () => {
+    if (!recordDate) {
+      Alert.alert("Date required", "Please enter the date this health record occurred.")
+      return
+    }
+
+    if (recordDate.getTime() > Date.now()) {
+      Alert.alert("Invalid date", "Health records cannot be dated in the future.")
+      return
+    }
+
     if (!description.trim()) {
       Alert.alert(t("healthRecordFormScreen.alerts.required.title"), t("healthRecordFormScreen.alerts.required.message"))
       return
@@ -138,7 +150,7 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
     try {
       const record = await createHealthRecord({
         animalId,
-        recordDate: new Date(),
+        recordDate,
         recordType,
         description: description.trim(),
         productName: productName.trim() || undefined,
@@ -158,7 +170,7 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
       Alert.alert(t("healthRecordFormScreen.alerts.saveError.title"), t("healthRecordFormScreen.alerts.saveError.message"))
     }
     setIsSubmitting(false)
-  }, [animalId, recordType, description, productName, dosage, administeredBy, notes, photos, currentOrg, createHealthRecord, navigation, t])
+  }, [animalId, recordDate, recordType, description, productName, dosage, administeredBy, notes, photos, currentOrg, createHealthRecord, navigation, t])
 
   const uploadPhotosInBackground = async (recordId: string, photosToUpload: PhotoWithMetadata[]) => {
     try {
@@ -206,6 +218,13 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
       </View>
 
       <View style={themed($form)}>
+        <DateField
+          label="Record date"
+          value={recordDate}
+          onChange={setRecordDate}
+          containerStyle={themed($dateField)}
+        />
+
         <Text preset="formLabel" text={t("healthRecordFormScreen.typeLabel")} />
         <View style={themed($typeRow)}>
           {RECORD_TYPES.map((type) => {
@@ -254,7 +273,7 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
                 style={themed($selectProtocolButton)}
                 onPress={() => setShowProtocolPicker(!showProtocolPicker)}
               >
-                <Icon icon="medical" size={20} color="#666" />
+                <MaterialCommunityIcons name="medical-bag" size={20} color="#666" />
                 <Text style={themed($selectProtocolText)}>
                   {t("healthRecordFormScreen.protocol.selectButton", { count: relevantProtocols.length })}
                 </Text>
@@ -369,6 +388,10 @@ const $headerRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   alignItems: "center",
   marginTop: spacing.md,
   marginBottom: spacing.lg,
+})
+
+const $dateField: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  marginBottom: spacing.md,
 })
 
 const $form: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -535,7 +558,7 @@ const $noProtocolsButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
 
 const $noProtocolsText: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 14,
-  color: colors.palette.accent600,
+  color: colors.palette.accent500,
   textAlign: "center",
   lineHeight: 20,
 })

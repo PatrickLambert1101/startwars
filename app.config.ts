@@ -3,7 +3,7 @@ import { ExpoConfig, ConfigContext } from "@expo/config"
 /**
  * Use tsx/cjs here so we can use TypeScript for our Config Plugins
  * and not have to compile them to JavaScript.
- * 
+ *
  * See https://docs.expo.dev/config-plugins/plugins/#add-typescript-support-and-convert-to-dynamic-app-config
  */
 import "tsx/cjs"
@@ -16,9 +16,21 @@ import "tsx/cjs"
  */
 module.exports = ({ config }: ConfigContext): Partial<ExpoConfig> => {
   const existingPlugins = config.plugins ?? []
+  const androidMapsApiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_API_KEY
 
   return {
     ...config,
+    android: {
+      ...config.android,
+      ...(androidMapsApiKey
+        ? {
+            config: {
+              ...config.android?.config,
+              googleMaps: { apiKey: androidMapsApiKey },
+            },
+          }
+        : {}),
+    },
     ios: {
       ...config.ios,
       // This privacyManifests is to get you started.

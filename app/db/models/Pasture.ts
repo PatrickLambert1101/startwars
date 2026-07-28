@@ -7,6 +7,8 @@ export class Pasture extends Model {
   static associations = {
     organizations: { type: "belongs_to" as const, key: "organization_id" },
     pasture_movements: { type: "has_many" as const, foreignKey: "pasture_id" },
+    pasture_activities: { type: "has_many" as const, foreignKey: "pasture_id" },
+    pasture_boundaries: { type: "has_many" as const, foreignKey: "pasture_id" },
     animals: { type: "has_many" as const, foreignKey: "current_pasture_id" },
   }
 
@@ -35,6 +37,8 @@ export class Pasture extends Model {
 
   @relation("organizations", "organization_id") organization: any
   @children("pasture_movements") movements!: Query<Model>
+  @children("pasture_activities") activities!: Query<Model>
+  @children("pasture_boundaries") boundaries!: Query<Model>
   @children("animals") currentAnimals!: Query<Model>
 
   get isOccupied(): boolean {

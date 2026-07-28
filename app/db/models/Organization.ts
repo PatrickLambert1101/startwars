@@ -24,6 +24,8 @@ export class Organization extends Model {
     health_records: { type: "has_many" as const, foreignKey: "organization_id" },
     weight_records: { type: "has_many" as const, foreignKey: "organization_id" },
     breeding_records: { type: "has_many" as const, foreignKey: "organization_id" },
+    pasture_activities: { type: "has_many" as const, foreignKey: "organization_id" },
+    pasture_boundaries: { type: "has_many" as const, foreignKey: "organization_id" },
   }
 
   @field("name") name!: string

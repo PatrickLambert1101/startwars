@@ -11,6 +11,15 @@ export type { ProtocolType } from "./TreatmentProtocol"
 export { Pasture } from "./Pasture"
 export { PastureMovement } from "./PastureMovement"
 export type { MovementType } from "./PastureMovement"
+export {
+  PastureActivity,
+  PASTURE_ACTIVITY_LABELS,
+  PASTURE_ACTIVITY_TYPES,
+  TICK_LOAD_OPTIONS,
+} from "./PastureActivity"
+export type { PastureActivityType } from "./PastureActivity"
+export { PastureBoundary } from "./PastureBoundary"
+export type { PastureBoundarySource } from "./PastureBoundary"
 export { OrganizationMember } from "./OrganizationMember"
 export type { MemberRole } from "./OrganizationMember"
 export { VaccinationSchedule } from "./VaccinationSchedule"

@@ -382,12 +382,115 @@ export const migrations = schemaMigrations({
         },
       ],
     },
+    {
+      toVersion: 19,
+      steps: [
+        {
+          type: "create_table",
+          schema: tableSchema({
+            name: "pasture_activities",
+            columns: [
+              { name: "organization_id", type: "string", isIndexed: true },
+              { name: "pasture_id", type: "string", isIndexed: true },
+              { name: "activity_date", type: "number" },
+              { name: "activity_type", type: "string" },
+              { name: "target_species", type: "string", isOptional: true },
+              { name: "area_hectares", type: "number", isOptional: true },
+              { name: "performed_by", type: "string", isOptional: true },
+              { name: "notes", type: "string", isOptional: true },
+              { name: "photos", type: "string", isOptional: true },
+              { name: "created_by_user_id", type: "string", isOptional: true },
+              { name: "created_by_name", type: "string", isOptional: true },
+              { name: "created_at", type: "number" },
+              { name: "updated_at", type: "number" },
+              { name: "is_deleted", type: "boolean" },
+            ],
+          }),
+        },
+      ],
+    },
+    {
+      toVersion: 20,
+      steps: [
+        {
+          type: "add_columns",
+          table: "pasture_activities",
+          columns: [
+            { name: "tick_load_score", type: "number", isOptional: true },
+            { name: "animals_inspected", type: "number", isOptional: true },
+          ],
+        },
+      ],
+    },
+    {
+      toVersion: 21,
+      steps: [
+        {
+          type: "create_table",
+          schema: tableSchema({
+            name: "pasture_boundaries",
+            columns: [
+              { name: "organization_id", type: "string", isIndexed: true },
+              { name: "pasture_id", type: "string", isIndexed: true },
+              { name: "boundary_geojson", type: "string" },
+              { name: "boundary_source", type: "string" },
+              { name: "boundary_source_name", type: "string", isOptional: true },
+              { name: "centroid_latitude", type: "number" },
+              { name: "centroid_longitude", type: "number" },
+              { name: "calculated_area_hectares", type: "number" },
+              { name: "boundary_updated_at", type: "number" },
+              { name: "created_at", type: "number" },
+              { name: "updated_at", type: "number" },
+              { name: "is_deleted", type: "boolean" },
+            ],
+          }),
+        },
+      ],
+    },
   ],
 })
 
 export const schema = appSchema({
-  version: 18,
+  version: 21,
   tables: [
+    tableSchema({
+      name: "pasture_boundaries",
+      columns: [
+        { name: "organization_id", type: "string", isIndexed: true },
+        { name: "pasture_id", type: "string", isIndexed: true },
+        { name: "boundary_geojson", type: "string" },
+        { name: "boundary_source", type: "string" },
+        { name: "boundary_source_name", type: "string", isOptional: true },
+        { name: "centroid_latitude", type: "number" },
+        { name: "centroid_longitude", type: "number" },
+        { name: "calculated_area_hectares", type: "number" },
+        { name: "boundary_updated_at", type: "number" },
+        { name: "created_at", type: "number" },
+        { name: "updated_at", type: "number" },
+        { name: "is_deleted", type: "boolean" },
+      ],
+    }),
+    tableSchema({
+      name: "pasture_activities",
+      columns: [
+        { name: "organization_id", type: "string", isIndexed: true },
+        { name: "pasture_id", type: "string", isIndexed: true },
+        { name: "activity_date", type: "number" },
+        { name: "activity_type", type: "string" },
+        { name: "target_species", type: "string", isOptional: true },
+        { name: "area_hectares", type: "number", isOptional: true },
+        { name: "performed_by", type: "string", isOptional: true },
+        { name: "notes", type: "string", isOptional: true },
+        { name: "photos", type: "string", isOptional: true },
+        { name: "tick_load_score", type: "number", isOptional: true },
+        { name: "animals_inspected", type: "number", isOptional: true },
+        { name: "created_by_user_id", type: "string", isOptional: true },
+        { name: "created_by_name", type: "string", isOptional: true },
+        { name: "created_at", type: "number" },
+        { name: "updated_at", type: "number" },
+        { name: "is_deleted", type: "boolean" },
+      ],
+    }),
     tableSchema({
       name: "report_templates",
       columns: [

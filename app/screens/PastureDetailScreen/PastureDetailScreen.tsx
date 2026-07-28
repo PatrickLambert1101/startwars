@@ -1,13 +1,32 @@
-import React from "react"
-import { View, ViewStyle, TextStyle, ScrollView, Pressable, FlatList, Alert, Image, ImageStyle } from "react-native"
+import {
+  View,
+  ViewStyle,
+  TextStyle,
+  ScrollView,
+  Pressable,
+  FlatList,
+  Alert,
+  Image,
+  ImageStyle,
+} from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
+
 import { Screen, Text, Button, Icon } from "@/components"
+import { Animal, PastureMovement, PASTURE_ACTIVITY_LABELS, PastureActivity } from "@/db/models"
+import { usePastureActivities, usePastureActivityActions } from "@/hooks/usePastureActivities"
+import { usePastureBoundary } from "@/hooks/usePastureBoundaries"
+import {
+  usePasture,
+  usePastureStats,
+  usePastureAnimals,
+  usePastureMovements,
+  usePastureActions,
+} from "@/hooks/usePastures"
+import { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-import { AppStackScreenProps } from "@/navigators"
-import { usePasture, usePastureStats, usePastureAnimals, usePastureMovements, usePastureActions } from "@/hooks/usePastures"
-import { Animal, PastureMovement } from "@/db/models"
 import { formatDate } from "@/utils/formatDate"
+import { formatBoundaryArea } from "@/utils/pastureBoundary"
 
 interface PastureDetailScreenProps extends AppStackScreenProps<"PastureDetail"> {}
 
@@ -17,8 +36,14 @@ export function PastureDetailScreen({ navigation, route }: PastureDetailScreenPr
   const stats = usePastureStats(pastureId)
   const { animals } = usePastureAnimals(pastureId)
   const { movements } = usePastureMovements(pastureId)
+  const { activities } = usePastureActivities(pastureId)
+  const { boundary } = usePastureBoundary(pastureId)
+  const { deleteActivity } = usePastureActivityActions()
   const { moveAnimalsOut, moveAllAnimalsOut, togglePastureActive } = usePastureActions()
-  const { themed, theme: { colors } } = useAppTheme()
+  const {
+    themed,
+    theme: { colors },
+  } = useAppTheme()
 
   const handleEdit = () => {
     navigation.navigate("PastureForm", { pastureId })
@@ -30,6 +55,40 @@ export function PastureDetailScreen({ navigation, route }: PastureDetailScreenPr
 
   const handleScanOut = () => {
     navigation.navigate("MovementForm", { pastureId, movementType: "move_out" })
+  }
+
+  const handleAddActivity = () => {
+    navigation.navigate("PastureActivityForm", { pastureId })
+  }
+
+  const handleViewAllActivity = () => {
+    navigation.navigate("PastureActivityList", { pastureId })
+  }
+
+  const handleLocation = () => {
+    navigation.navigate("PastureBoundary", { pastureId })
+  }
+
+  const handleDeleteActivity = (activity: PastureActivity) => {
+    Alert.alert(
+      "Delete activity?",
+      `${PASTURE_ACTIVITY_LABELS[activity.activityType]} on ${formatDate(activity.activityDate.toISOString(), "PP")} will be removed.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteActivity(activity.id)
+            } catch (error) {
+              console.error("[PastureActivity] Failed to delete:", error)
+              Alert.alert("Could not delete activity", "Please try again.")
+            }
+          },
+        },
+      ],
+    )
   }
 
   const handleMoveAnimalOut = async (animal: Animal) => {
@@ -87,10 +146,10 @@ export function PastureDetailScreen({ navigation, route }: PastureDetailScreenPr
 
   const statusColor =
     pasture.statusColor === "green"
-      ? colors.palette.success500
+      ? colors.palette.primary500
       : pasture.statusColor === "yellow"
-      ? colors.palette.warning500
-      : colors.palette.angry500
+        ? colors.palette.accent500
+        : colors.palette.angry500
 
   const renderAnimal = ({ item: animal }: { item: Animal }) => (
     <View style={themed($animalRow)}>
@@ -115,7 +174,8 @@ export function PastureDetailScreen({ navigation, route }: PastureDetailScreenPr
       </View>
       <View style={themed($movementInfo)}>
         <Text style={themed($movementText)}>
-          Animal {movement.animalId.slice(0, 8)} {movement.movementType === "move_in" ? "moved in" : "moved out"}
+          Animal {movement.animalId.slice(0, 8)}{" "}
+          {movement.movementType === "move_in" ? "moved in" : "moved out"}
         </Text>
         <Text style={themed($movementDate)}>
           {movement.movementDate ? formatDate(movement.movementDate.toISOString(), "PPp") : "N/A"}
@@ -164,9 +224,44 @@ export function PastureDetailScreen({ navigation, route }: PastureDetailScreenPr
             <Text style={themed($statLabel)}>Days Grazed</Text>
           </View>
           <View style={themed($statCard)}>
-            <Text style={themed($statValue)}>{stats.totalMovementsIn + stats.totalMovementsOut}</Text>
+            <Text style={themed($statValue)}>
+              {stats.totalMovementsIn + stats.totalMovementsOut}
+            </Text>
             <Text style={themed($statLabel)}>Movements</Text>
           </View>
+        </View>
+
+        {/* Location & Boundary */}
+        <View style={themed($section)}>
+          <Text style={themed($sectionTitle)}>Location & Boundary</Text>
+          <Pressable onPress={handleLocation} style={themed($locationCard)}>
+            <View style={themed($locationIcon)}>
+              <MaterialCommunityIcons
+                name={boundary ? "map-marker-radius" : "map-marker-plus-outline"}
+                size={25}
+                color={colors.palette.primary600}
+              />
+            </View>
+            <View style={themed($locationInfo)}>
+              <Text style={themed($locationTitle)}>
+                {boundary ? "Pasture boundary mapped" : "Add pasture boundary"}
+              </Text>
+              <Text style={themed($locationMeta)}>
+                {boundary
+                  ? `${formatBoundaryArea(boundary.calculatedAreaHectares)} • ${
+                      boundary.boundarySource === "draw"
+                        ? "Drawn in app"
+                        : `Imported ${boundary.boundarySource.toUpperCase()}`
+                    }`
+                  : "Draw on the map or import a KML/KMZ file"}
+              </Text>
+            </View>
+            <MaterialCommunityIcons
+              name="chevron-right"
+              size={22}
+              color={colors.palette.neutral500}
+            />
+          </Pressable>
         </View>
 
         {/* Current Animals */}
@@ -206,6 +301,94 @@ export function PastureDetailScreen({ navigation, route }: PastureDetailScreenPr
           </View>
         )}
 
+        {/* Pasture Activity Log */}
+        <View style={themed($section)}>
+          <View style={themed($sectionHeader)}>
+            <Text style={themed($sectionTitle)}>Recent Pasture Activity</Text>
+            <Pressable onPress={handleAddActivity} style={themed($addActivityButton)}>
+              <MaterialCommunityIcons name="plus" size={16} color={colors.palette.primary600} />
+              <Text style={themed($addActivityText)}>Log activity</Text>
+            </Pressable>
+          </View>
+
+          {activities.length === 0 ? (
+            <Text style={themed($emptyActivityText)}>
+              No burning or vegetation-clearing work recorded yet.
+            </Text>
+          ) : (
+            activities.slice(0, 3).map((activity) => (
+              <View key={activity.id} style={themed($activityRow)}>
+                <View style={themed($activityIcon)}>
+                  <MaterialCommunityIcons
+                    name={
+                      activity.activityType === "burning"
+                        ? "fire"
+                        : activity.activityType === "tick_observation"
+                          ? "bug-outline"
+                          : "tree-outline"
+                    }
+                    size={20}
+                    color={
+                      activity.activityType === "burning"
+                        ? colors.palette.accent500
+                        : activity.activityType === "tick_observation"
+                          ? colors.palette.angry500
+                          : colors.palette.primary500
+                    }
+                  />
+                </View>
+                <View style={themed($activityInfo)}>
+                  <Text style={themed($activityTitle)}>
+                    {PASTURE_ACTIVITY_LABELS[activity.activityType]}
+                  </Text>
+                  <Text style={themed($activityMeta)}>
+                    {[
+                      formatDate(activity.activityDate.toISOString(), "PP"),
+                      activity.tickLoadScore !== null
+                        ? `Tick load ${activity.tickLoadScore}/5`
+                        : null,
+                      activity.animalsInspected ? `${activity.animalsInspected} inspected` : null,
+                      activity.areaHectares ? `${activity.areaHectares} ha` : null,
+                      activity.targetSpecies || null,
+                    ]
+                      .filter(Boolean)
+                      .join(" • ")}
+                  </Text>
+                  {!!activity.notes && (
+                    <Text style={themed($activityNotes)} numberOfLines={2}>
+                      {activity.notes}
+                    </Text>
+                  )}
+                </View>
+                <Pressable
+                  accessibilityLabel={`Delete ${PASTURE_ACTIVITY_LABELS[activity.activityType]} activity`}
+                  onPress={() => handleDeleteActivity(activity)}
+                  style={themed($deleteActivityButton)}
+                >
+                  <MaterialCommunityIcons
+                    name="delete-outline"
+                    size={19}
+                    color={colors.palette.neutral500}
+                  />
+                </Pressable>
+              </View>
+            ))
+          )}
+
+          {activities.length > 0 && (
+            <Pressable onPress={handleViewAllActivity} style={themed($viewAllActivityButton)}>
+              <Text style={themed($viewAllActivityText)}>
+                View all activity ({activities.length})
+              </Text>
+              <MaterialCommunityIcons
+                name="chevron-right"
+                size={20}
+                color={colors.palette.primary600}
+              />
+            </Pressable>
+          )}
+        </View>
+
         {/* Pasture Details */}
         <View style={themed($section)}>
           <Text style={themed($sectionTitle)}>Pasture Details</Text>
@@ -244,8 +427,10 @@ export function PastureDetailScreen({ navigation, route }: PastureDetailScreenPr
               <Text style={themed($detailValue)}>
                 {[
                   pasture.hasSaltBlocks && "Salt Blocks",
-                  pasture.hasMineralFeeders && "Mineral Feeders"
-                ].filter(Boolean).join(", ")}
+                  pasture.hasMineralFeeders && "Mineral Feeders",
+                ]
+                  .filter(Boolean)
+                  .join(", ")}
               </Text>
             </View>
           )}
@@ -289,11 +474,19 @@ export function PastureDetailScreen({ navigation, route }: PastureDetailScreenPr
         {/* Actions */}
         <View style={themed($actionsSection)}>
           <Pressable onPress={handleScanIn} style={themed($scanButton)}>
-            <Image source={require("@/assets/icons/herdtrackr-hex/movement-in.png")} style={$scanButtonIcon} resizeMode="contain" />
+            <Image
+              source={require("@/assets/icons/herdtrackr-hex/movement-in.png")}
+              style={$scanButtonIcon}
+              resizeMode="contain"
+            />
             <Text text="Scan Animals In" style={themed($scanButtonText)} />
           </Pressable>
           <Pressable onPress={handleScanOut} style={themed($scanButtonOutline)}>
-            <Image source={require("@/assets/icons/herdtrackr-hex/movement-out.png")} style={$scanButtonIcon} resizeMode="contain" />
+            <Image
+              source={require("@/assets/icons/herdtrackr-hex/movement-out.png")}
+              style={$scanButtonIcon}
+              resizeMode="contain"
+            />
             <Text text="Scan Animals Out" style={themed($scanButtonOutlineText)} />
           </Pressable>
           <Button
@@ -438,6 +631,40 @@ const $sectionTitle: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   marginBottom: spacing.sm,
 })
 
+const $locationCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.sm,
+  padding: spacing.sm,
+  borderRadius: 10,
+  backgroundColor: colors.palette.primary100,
+})
+
+const $locationIcon: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  width: 42,
+  height: 42,
+  borderRadius: 21,
+  alignItems: "center",
+  justifyContent: "center",
+  backgroundColor: colors.palette.neutral100,
+})
+
+const $locationInfo: ThemedStyle<ViewStyle> = () => ({
+  flex: 1,
+})
+
+const $locationTitle: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.text,
+  fontSize: 14,
+  fontWeight: "700",
+})
+
+const $locationMeta: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.textDim,
+  fontSize: 12,
+  marginTop: 2,
+})
+
 const $moveAllButton: ThemedStyle<ViewStyle> = () => ({
   minHeight: 32,
   paddingVertical: 4,
@@ -491,7 +718,7 @@ const $movementRow: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   gap: spacing.sm,
 })
 
-const $movementIcon: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+const $movementIcon: ThemedStyle<ViewStyle> = ({ colors }) => ({
   width: 32,
   height: 32,
   borderRadius: 16,
@@ -524,6 +751,89 @@ const $moreText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   color: colors.palette.neutral600,
   textAlign: "center",
   marginTop: spacing.xs,
+})
+
+const $addActivityButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.xxs,
+  backgroundColor: colors.palette.primary100,
+  borderRadius: 16,
+  paddingHorizontal: spacing.sm,
+  paddingVertical: spacing.xs,
+})
+
+const $addActivityText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.palette.primary600,
+  fontSize: 12,
+  fontWeight: "600",
+})
+
+const $emptyActivityText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.textDim,
+  fontSize: 13,
+  lineHeight: 19,
+})
+
+const $activityRow: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flexDirection: "row",
+  alignItems: "flex-start",
+  gap: spacing.sm,
+  paddingVertical: spacing.sm,
+  borderBottomWidth: 1,
+  borderBottomColor: colors.palette.neutral200,
+})
+
+const $activityIcon: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  width: 34,
+  height: 34,
+  borderRadius: 17,
+  alignItems: "center",
+  justifyContent: "center",
+  backgroundColor: colors.palette.neutral200,
+})
+
+const $activityInfo: ThemedStyle<ViewStyle> = () => ({
+  flex: 1,
+})
+
+const $activityTitle: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.text,
+  fontSize: 14,
+  fontWeight: "600",
+})
+
+const $activityMeta: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.textDim,
+  fontSize: 12,
+  marginTop: 2,
+})
+
+const $activityNotes: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.textDim,
+  fontSize: 12,
+  lineHeight: 17,
+  marginTop: 4,
+})
+
+const $deleteActivityButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  padding: spacing.xxs,
+})
+
+const $viewAllActivityButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "center",
+  marginTop: spacing.sm,
+  paddingTop: spacing.sm,
+  borderTopWidth: 1,
+  borderTopColor: colors.palette.neutral200,
+})
+
+const $viewAllActivityText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.palette.primary600,
+  fontSize: 13,
+  fontWeight: "600",
 })
 
 const $detailRow: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({

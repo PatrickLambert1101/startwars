@@ -1,17 +1,21 @@
-import React, { useMemo } from "react"
+import { type FC, useMemo } from "react"
 import { View, ViewStyle, TextStyle, FlatList, Pressable, Image, ImageStyle } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
+
 import { Screen, Text, Button, AppHeader } from "@/components"
+import { Pasture } from "@/db/models"
+import { usePastures } from "@/hooks/usePastures"
+import type { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-import { usePastures } from "@/hooks/usePastures"
-import { Pasture } from "@/db/models"
-import type { MainTabScreenProps } from "@/navigators"
 
-export const PasturesScreen: React.FC<MainTabScreenProps<"Pastures">> = ({ navigation }) => {
+export const PasturesScreen: FC<MainTabScreenProps<"Pastures">> = ({ navigation }) => {
   const { t } = useTranslation()
-  const { themed, theme: { colors } } = useAppTheme()
+  const {
+    themed,
+    theme: { colors },
+  } = useAppTheme()
   const { pastures, isLoading } = usePastures()
 
   const stats = useMemo(() => {
@@ -39,11 +43,12 @@ export const PasturesScreen: React.FC<MainTabScreenProps<"Pastures">> = ({ navig
   }
 
   const renderPastureCard = ({ item: pasture }: { item: Pasture }) => {
-    const statusColor = pasture.statusColor === "green"
-      ? colors.palette.success500
-      : pasture.statusColor === "yellow"
-      ? colors.palette.warning500
-      : colors.palette.angry500
+    const statusColor =
+      pasture.statusColor === "green"
+        ? colors.palette.primary500
+        : pasture.statusColor === "yellow"
+          ? colors.palette.accent500
+          : colors.palette.angry500
 
     return (
       <Pressable onPress={() => handlePressPassture(pasture)} style={themed($card)}>
@@ -82,31 +87,33 @@ export const PasturesScreen: React.FC<MainTabScreenProps<"Pastures">> = ({ navig
                   {
                     width: `${pasture.grazingProgress}%`,
                     backgroundColor: statusColor,
-                  }
+                  },
                 ]}
               />
             </View>
             <Text style={themed($progressText)}>
-              {t("pasturesScreen.card.daysUntilRotation", { days: pasture.targetGrazingDays - pasture.daysGrazed })}
+              {t("pasturesScreen.card.daysUntilRotation", {
+                days: pasture.targetGrazingDays - pasture.daysGrazed,
+              })}
             </Text>
           </View>
         )}
 
         <View style={themed($cardDetails)}>
           {pasture.forageType && (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <View style={$detailPill}>
               <MaterialCommunityIcons name="grass" size={14} color={colors.textDim} />
               <Text style={themed($cardDetail)}>{pasture.forageType}</Text>
             </View>
           )}
           {pasture.waterSource && (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <View style={$detailPill}>
               <MaterialCommunityIcons name="water" size={14} color={colors.textDim} />
               <Text style={themed($cardDetail)}>{pasture.waterSource}</Text>
             </View>
           )}
           {pasture.sizeHectares && (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <View style={$detailPill}>
               <MaterialCommunityIcons name="ruler-square" size={14} color={colors.textDim} />
               <Text style={themed($cardDetail)}>{pasture.sizeHectares} ha</Text>
             </View>
@@ -120,7 +127,24 @@ export const PasturesScreen: React.FC<MainTabScreenProps<"Pastures">> = ({ navig
     <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={themed($container)}>
       <AppHeader title={t("pasturesScreen.title")} showSettings={true} />
       <View style={themed($header)}>
-        <Button text={t("pasturesScreen.createButton")} onPress={handleCreatePasture} style={themed($createButton)} />
+        <Button
+          text="View all on map"
+          onPress={() => navigation.navigate("PasturesMap")}
+          style={themed($mapButton)}
+          LeftAccessory={({ style }) => (
+            <MaterialCommunityIcons
+              name="map-outline"
+              size={18}
+              color={colors.text}
+              style={style}
+            />
+          )}
+        />
+        <Button
+          text={t("pasturesScreen.createButton")}
+          onPress={handleCreatePasture}
+          style={themed($createButton)}
+        />
       </View>
 
       {/* Stats Summary */}
@@ -151,10 +175,13 @@ export const PasturesScreen: React.FC<MainTabScreenProps<"Pastures">> = ({ navig
             resizeMode="contain"
           />
           <Text style={themed($emptyTitle)}>{t("pasturesScreen.empty.title")}</Text>
-          <Text style={themed($emptyDescription)}>
-            {t("pasturesScreen.empty.description")}
-          </Text>
-          <Button text={t("pasturesScreen.empty.button")} preset="filled" onPress={handleCreatePasture} style={themed($emptyButton)} />
+          <Text style={themed($emptyDescription)}>{t("pasturesScreen.empty.description")}</Text>
+          <Button
+            text={t("pasturesScreen.empty.button")}
+            preset="filled"
+            onPress={handleCreatePasture}
+            style={themed($emptyButton)}
+          />
         </View>
       ) : (
         <FlatList
@@ -178,18 +205,22 @@ const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   justifyContent: "space-between",
   alignItems: "center",
+  gap: spacing.sm,
   marginTop: spacing.md,
   marginBottom: spacing.sm,
-})
-
-const $headerTitle: ThemedStyle<TextStyle> = () => ({
-  flex: 1,
 })
 
 const $createButton: ThemedStyle<ViewStyle> = () => ({
   minHeight: 36,
   paddingVertical: 6,
   paddingHorizontal: 16,
+})
+
+const $mapButton: ThemedStyle<ViewStyle> = () => ({
+  flex: 1,
+  minHeight: 36,
+  paddingVertical: 6,
+  paddingHorizontal: 12,
 })
 
 const $statsRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -321,6 +352,12 @@ const $cardDetails: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexWrap: "wrap",
   gap: spacing.sm,
 })
+
+const $detailPill: ViewStyle = {
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 4,
+}
 
 const $cardDetail: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 12,

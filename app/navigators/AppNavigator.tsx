@@ -5,46 +5,49 @@
 import { NavigationContainer } from "@react-navigation/native"
 import { createNativeStackNavigator } from "@react-navigation/native-stack"
 
+import { LoadingScreen } from "@/components"
 import Config from "@/config"
 import { useAuth } from "@/context/AuthContext"
-import { useDatabase } from "@/context/DatabaseContext"
-import { ErrorBoundary } from "@/screens/ErrorScreen/ErrorBoundary"
-import { LoadingScreen } from "@/components"
-import { AuthScreen } from "@/screens/AuthScreen"
-import { LandingScreen } from "@/screens/LandingScreen"
-import { LoginScreen } from "@/screens/LoginScreen"
-import { TeamScreen } from "@/screens/TeamScreen"
-import { SettingsScreen } from "@/screens/SettingsScreen"
 import { AnimalDetailScreen } from "@/screens/AnimalDetailScreen/AnimalDetailScreen"
 import { AnimalFormScreen } from "@/screens/AnimalFormScreen"
-import { BulkAnimalAddScreen } from "@/screens/BulkAnimalAddScreen"
-import { HealthRecordFormScreen } from "@/screens/HealthRecordFormScreen"
-import { WeightRecordFormScreen } from "@/screens/WeightRecordFormScreen"
+import { AuthScreen } from "@/screens/AuthScreen"
 import { BreedingRecordFormScreen } from "@/screens/BreedingRecordFormScreen"
-import { TreatmentProtocolsScreen } from "@/screens/TreatmentProtocolsScreen"
-import { ProtocolFormScreen } from "@/screens/ProtocolFormScreen"
-import { ProtocolDetailScreen } from "@/screens/ProtocolDetailScreen"
-import { VaccinationScheduleScreen } from "@/screens/VaccinationScheduleScreen"
-import { VaccinationScheduleFormScreen } from "@/screens/VaccinationScheduleFormScreen"
-import { PendingVaccinationsScreen } from "@/screens/PendingVaccinationsScreen"
-import { ReportsScreen } from "@/screens/ReportsScreen"
-import { ReportBuilderScreen } from "@/screens/ReportBuilderScreen"
-import { ReportViewerScreen } from "@/screens/ReportViewerScreen"
+import { BulkAnimalAddScreen } from "@/screens/BulkAnimalAddScreen"
+import { CustomerCenterScreen } from "@/screens/CustomerCenterScreen"
+import { ErrorBoundary } from "@/screens/ErrorScreen/ErrorBoundary"
+import { HealthRecordFormScreen } from "@/screens/HealthRecordFormScreen"
+import { IconGalleryScreen } from "@/screens/IconGalleryScreen"
+import { LandingScreen } from "@/screens/LandingScreen"
+import { LoginScreen } from "@/screens/LoginScreen"
+import { MovementFormScreen } from "@/screens/MovementFormScreen"
+import { OrgSetupScreen } from "@/screens/OrgSetupScreen"
+import { PastureActivityFormScreen } from "@/screens/PastureActivityFormScreen"
+import { PastureActivityListScreen } from "@/screens/PastureActivityListScreen"
+import { PastureBoundaryScreen } from "@/screens/PastureBoundaryScreen"
 import { PastureDetailScreen } from "@/screens/PastureDetailScreen"
 import { PastureFormScreen } from "@/screens/PastureFormScreen"
+import { PasturesMapScreen } from "@/screens/PasturesMapScreen"
 import { PastureWizardScreen } from "@/screens/PastureWizardScreen"
-import { MovementFormScreen } from "@/screens/MovementFormScreen"
-import { TagScannerScreen } from "@/screens/TagScannerScreen"
-import { OrgSetupScreen } from "@/screens/OrgSetupScreen"
-import { UpgradeScreen } from "@/screens/UpgradeScreen"
 import { PaywallScreen } from "@/screens/PaywallScreen"
-import { CustomerCenterScreen } from "@/screens/CustomerCenterScreen"
-import { IconGalleryScreen } from "@/screens/IconGalleryScreen"
+import { PendingVaccinationsScreen } from "@/screens/PendingVaccinationsScreen"
+import { ProtocolDetailScreen } from "@/screens/ProtocolDetailScreen"
+import { ProtocolFormScreen } from "@/screens/ProtocolFormScreen"
+import { ReportBuilderScreen } from "@/screens/ReportBuilderScreen"
+import { ReportsScreen } from "@/screens/ReportsScreen"
+import { ReportViewerScreen } from "@/screens/ReportViewerScreen"
+import { SettingsScreen } from "@/screens/SettingsScreen"
+import { TagScannerScreen } from "@/screens/TagScannerScreen"
+import { TeamScreen } from "@/screens/TeamScreen"
+import { TreatmentProtocolsScreen } from "@/screens/TreatmentProtocolsScreen"
+import { UpgradeScreen } from "@/screens/UpgradeScreen"
+import { VaccinationScheduleFormScreen } from "@/screens/VaccinationScheduleFormScreen"
+import { VaccinationScheduleScreen } from "@/screens/VaccinationScheduleScreen"
+import { WeightRecordFormScreen } from "@/screens/WeightRecordFormScreen"
 import { useAppTheme } from "@/theme/context"
 
 import { MainTabNavigator } from "./MainTabNavigator"
-import { navigationRef, useBackButtonHandler } from "./navigationUtilities"
 import type { AppStackParamList, NavigationProps } from "./navigationTypes"
+import { navigationRef, useBackButtonHandler } from "./navigationUtilities"
 
 const exitRoutes = Config.exitRoutes
 
@@ -94,6 +97,10 @@ const AppStack = () => {
           <Stack.Screen name="ReportViewer" component={ReportViewerScreen} />
           <Stack.Screen name="PastureDetail" component={PastureDetailScreen} />
           <Stack.Screen name="PastureForm" component={PastureFormScreen} />
+          <Stack.Screen name="PastureActivityForm" component={PastureActivityFormScreen} />
+          <Stack.Screen name="PastureActivityList" component={PastureActivityListScreen} />
+          <Stack.Screen name="PastureBoundary" component={PastureBoundaryScreen} />
+          <Stack.Screen name="PasturesMap" component={PasturesMapScreen} />
           <Stack.Screen name="PastureWizard" component={PastureWizardScreen} />
           <Stack.Screen name="MovementForm" component={MovementFormScreen} />
           <Stack.Screen name="TagScanner" component={TagScannerScreen} />

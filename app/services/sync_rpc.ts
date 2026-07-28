@@ -31,6 +31,7 @@ const EXTRA_DATE_FIELDS = new Set<string>([
   "treatment_date",
   "measurement_date",
   "record_date",
+  "activity_date",
 ])
 
 /**

@@ -11,12 +11,14 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack"
 export type MainTabParamList = {
   Dashboard: undefined
   HerdList: undefined
-  Chute: {
-    mode?: "single"
-    animalId?: string
-    protocolId?: string
-    vaccinationId?: string
-  } | undefined
+  Chute:
+    | {
+        mode?: "single"
+        animalId?: string
+        protocolId?: string
+        vaccinationId?: string
+      }
+    | undefined
   Pastures: undefined
   Calendar: undefined
   Breeding: undefined
@@ -34,7 +36,12 @@ export type AppStackParamList = {
   AnimalDetail: { animalId: string }
   AnimalForm: { mode: "create" | "edit"; animalId?: string }
   BulkAnimalAdd: undefined
-  HealthRecordForm: { animalId: string; recordId?: string; protocolId?: string; vaccinationId?: string }
+  HealthRecordForm: {
+    animalId: string
+    recordId?: string
+    protocolId?: string
+    vaccinationId?: string
+  }
   WeightRecordForm: { animalId: string; recordId?: string }
   BreedingRecordForm: { animalId: string; recordId?: string }
   TreatmentProtocols: undefined
@@ -49,6 +56,10 @@ export type AppStackParamList = {
   ReportViewer: { templateId?: string; adHocConfig?: string; title?: string }
   PastureDetail: { pastureId: string }
   PastureForm: { pastureId?: string }
+  PastureActivityForm: { pastureId: string }
+  PastureActivityList: { pastureId: string }
+  PastureBoundary: { pastureId: string }
+  PasturesMap: undefined
   PastureWizard: undefined
   MovementForm: { pastureId?: string; movementType?: "move_in" | "move_out" }
   TagScanner: { onTagScanned?: (tagNumber: string) => void }
@@ -68,5 +79,6 @@ export type MainTabScreenProps<T extends keyof MainTabParamList> = CompositeScre
   AppStackScreenProps<keyof AppStackParamList>
 >
 
-export interface NavigationProps
-  extends Partial<ComponentProps<typeof NavigationContainer<AppStackParamList>>> {}
+export interface NavigationProps extends Partial<
+  ComponentProps<typeof NavigationContainer<AppStackParamList>>
+> {}
