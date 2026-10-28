@@ -12,6 +12,8 @@ interface MeasurementInputProps {
   label: string
   value: string
   onChangeText: (value: string) => void
+  context?: string
+  helper?: string
   unit?: string
   integer?: boolean
   counter?: boolean
@@ -24,6 +26,8 @@ export function MeasurementInput({
   value,
   onChangeText,
   unit,
+  context,
+  helper,
   integer = false,
   counter = false,
   disabled = false,
@@ -35,18 +39,15 @@ export function MeasurementInput({
   const insets = useSafeAreaInsets()
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState("")
-  const [replaceOnDigit, setReplaceOnDigit] = useState(false)
   const key = (digit: string) => {
-    const base = replaceOnDigit ? "" : draft
+    const base = draft
     const next = digit === "." && base === "" ? "0." : base + digit
     if ((integer ? /^\d{0,8}$/ : /^\d{0,8}(\.\d{0,2})?$/).test(next)) {
       setDraft(next.replace(/^0+(?=\d)/, ""))
-      setReplaceOnDigit(false)
     }
   }
   const adjust = (amount: number) => {
     setDraft(String(Math.min(99999999, Math.max(0, Number(draft || 0) + amount))))
-    setReplaceOnDigit(false)
   }
   const action = (
     text: string,
@@ -84,7 +85,6 @@ export function MeasurementInput({
         onPress={() => {
           Keyboard.dismiss()
           setDraft(value)
-          setReplaceOnDigit(true)
           setOpen(true)
         }}
         style={[styles.display, { borderColor: colors.border, backgroundColor: colors.background }]}
@@ -108,7 +108,10 @@ export function MeasurementInput({
             ]}
           >
             <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
+              {context ? <Text text={context} preset="bold" size="lg" /> : null}
               <Text text={label} preset="subheading" />
+              {helper ? <Text text={helper} size="sm" /> : null}
+              <Text text={t("uxFixes.editingHint")} size="xs" />
               <View style={styles.display}>
                 <Text
                   text={draft || "—"}
@@ -137,12 +140,11 @@ export function MeasurementInput({
               ))}
               <View style={styles.row}>
                 {integer ? <View style={styles.flex} /> : action(".", () => key("."))}
-                {action("0", () => key("0"), integer ? t("measurementInput.recordZero") : "0")}
+                {action("0", () => key("0"))}
                 {action(
                   "⌫",
                   () => {
                     setDraft(draft.slice(0, -1))
-                    setReplaceOnDigit(false)
                   },
                   t("measurementInput.backspace"),
                 )}
@@ -152,7 +154,6 @@ export function MeasurementInput({
                   text={t("measurementInput.clear")}
                   onPress={() => {
                     setDraft("")
-                    setReplaceOnDigit(false)
                   }}
                   style={styles.flex}
                 />

@@ -14,8 +14,9 @@ import {
 import { parseImportDate } from "@/services/dataImport/valueParsing"
 
 describe("data import schema", () => {
-  it("ships import history and external pedigree fields in schema v23", () => {
-    expect(schema.version).toBe(23)
+  it("ships import, pedigree and explicit vaccination-history fields", () => {
+    expect(schema.version).toBeGreaterThanOrEqual(25)
+    expect(schema.tables.animals.columns.vaccination_history).toBeDefined()
     expect(schema.tables.grazing_periods).toBeDefined()
     expect(schema.tables.data_import_batches).toBeDefined()
     expect(schema.tables.animals.columns.external_sire_reference).toBeDefined()
@@ -347,5 +348,14 @@ describe("grazing history validation", () => {
     expect(preview[0].issues).toEqual(
       expect.arrayContaining([expect.objectContaining({ code: "overlap", severity: "warning" })]),
     )
+  })
+})
+
+describe("import vaccination confidence", () => {
+  it.each([["", "unknown"], ["Unknown", "unknown"], ["maybe", "unknown"], ["Yes", "current"], ["No", "needs_review"]])("keeps %s as %s", (value, history) => {
+    const sheet = rowsToSpreadsheetSheet("Animals", [["Tag", "Breed", "Vaccinations current"], ["C-1", "Bonsmara", value]])!
+    const mapping = autoMapColumns(sheet.headers, ANIMAL_IMPORT_FIELDS)
+    const rows = validateAnimalImport(sheet.rows, mapping, [], "Animals")
+    expect(rows[0].record?.vaccinationHistory).toBe(history)
   })
 })

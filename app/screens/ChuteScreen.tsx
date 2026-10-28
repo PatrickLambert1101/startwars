@@ -1,3 +1,4 @@
+import { useSaveGuard } from "@/hooks/useSaveGuard"
 import { FC, useCallback, useEffect, useRef, useState } from "react"
 import { Alert, FlatList, Image, ImageStyle, Pressable, ScrollView, TextInput, View, ViewStyle, TextStyle, ActivityIndicator } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
@@ -19,7 +20,7 @@ import { WeightRecord } from "@/db/models/WeightRecord"
 import { HealthRecord, HealthRecordType } from "@/db/models/HealthRecord"
 import { useDatabase } from "@/context/DatabaseContext"
 import { useSubscription } from "@/context/SubscriptionContext"
-import { useWeightRecordActions, useHealthRecordActions } from "@/hooks/useRecords"
+import { useWeightRecordActions, useHealthRecordActions, useCombinedRecordActions } from "@/hooks/useRecords"
 import { useActiveProtocols } from "@/hooks/useProtocols"
 import { useScheduledVaccinations } from "@/hooks/useVaccinationSchedules"
 import { useRfidReader } from "@/hooks/useRfidReader"
@@ -69,6 +70,14 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
   )
   const { hasFeature } = useSubscription()
   const { createWeightRecord } = useWeightRecordActions()
+  const { createWeightAndTreatment } = useCombinedRecordActions()
+  const { isSaving, runSave } = useSaveGuard()
+  const [lastSaved, setLastSaved] = useState("")
+  const confirmSaved = useCallback((animal: string, value: string) => {
+    const receipt = t("uxFixes.savedAnimal", { animal, value })
+    setLastSaved(receipt)
+    Toast.show({ type: "success", text1: t("uxFixes.savedLocally"), text2: receipt })
+  }, [t])
   const { createHealthRecord } = useHealthRecordActions()
   const { protocols } = useActiveProtocols()
 
@@ -87,7 +96,9 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
 
   // Scan state
   const [rfidInput, setRfidInput] = useState("")
-  const [scannedAnimal, setScannedAnimal] = useState<Animal | null>(null)
+  const [sessionAnimal, setScannedAnimal] = useState<Animal | null>(null)
+  // Never let a retained draft target an animal from the previously selected farm.
+  const scannedAnimal = sessionAnimal?.organizationId === currentOrg?.id ? sessionAnimal : null
   const [isSearching, setIsSearching] = useState(false)
 
   // Debug RFID state (kept below the state it reads — referencing it above the
@@ -125,7 +136,27 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
   // Session log
   const [processedLog, setProcessedLog] = useState<ProcessedEntry[]>([])
 
-  // Reset screen when leaving (blur pattern like access-scanner)
+  const sessionOrgIdRef = useRef(currentOrg?.id)
+  useEffect(() => {
+    if (sessionOrgIdRef.current === currentOrg?.id) return
+    sessionOrgIdRef.current = currentOrg?.id
+    setSessionMode(null)
+    setSelectedProtocol(null)
+    setProtocolFilter("all")
+    setScannedAnimal(null)
+    setRfidInput("")
+    setWeightValue("")
+    setConditionScore("")
+    setConditionValue("")
+    setTreatmentDesc("")
+    setProductName("")
+    setDosage("")
+    setProcessedLog([])
+    setLastSaved("")
+    clearScannedTag()
+  }, [currentOrg?.id, clearScannedTag])
+
+  // Keep batch drafts when visiting another tab. Route-driven entries reset on exit.
   useFocusEffect(
     useCallback(() => {
       // Discard any RFID event this mounted tab received while it was hidden.
@@ -142,7 +173,11 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
 
       // Cleanup function runs when screen loses focus
       return () => {
-        console.log("[Chute] Cleaning up state on blur (leaving screen)")
+        if (!hasRouteSelection) {
+          clearScannedTag()
+          return
+        }
+        console.log("[Chute] Cleaning up route-driven state on blur")
         setSessionMode(null)
         setSelectedProtocol(null)
         setProtocolFilter("all")
@@ -367,72 +402,78 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
   }, [clearScannedTag])
 
   const handleSaveWeight = useCallback(async () => {
-    if (!scannedAnimal) return
+    await runSave(async () => {
+      if (!scannedAnimal) return
 
-    const kg = parseFloat(weightValue)
-    if (isNaN(kg) || kg <= 0) {
-      Alert.alert(t("common.invalid"), t("chuteScreen.weight.invalidWeight"))
-      return
-    }
+      const kg = parseFloat(weightValue)
+      if (isNaN(kg) || kg <= 0) {
+        Alert.alert(t("common.invalid"), t("chuteScreen.weight.invalidWeight"))
+        return
+      }
 
-    const cs = conditionScore ? parseInt(conditionScore, 10) : undefined
-    if (cs !== undefined && (isNaN(cs) || cs < 1 || cs > 9)) {
-      Alert.alert(t("common.invalid"), t("chuteScreen.weight.invalidConditionScore"))
-      return
-    }
+      const cs = conditionScore ? parseInt(conditionScore, 10) : undefined
+      if (cs !== undefined && (isNaN(cs) || cs < 1 || cs > 9)) {
+        Alert.alert(t("common.invalid"), t("chuteScreen.weight.invalidConditionScore"))
+        return
+      }
 
-    try {
-      await createWeightRecord({
-        animalId: scannedAnimal.id,
-        recordDate: new Date(),
-        weightKg: kg,
-        conditionScore: cs,
-      })
+      try {
+        await createWeightRecord({
+          animalId: scannedAnimal.id,
+          recordDate: new Date(),
+          weightKg: kg,
+          conditionScore: cs,
+        })
 
-      setProcessedLog((prev) => [{
-        id: `${Date.now()}`,
-        animalName: scannedAnimal.displayName,
-        action: "weight",
-        value: `${kg} kg${cs ? ` (CS: ${cs})` : ""}`,
-        timestamp: new Date(),
-      }, ...prev])
+        setProcessedLog((prev) => [{
+          id: `${Date.now()}`,
+          animalName: scannedAnimal.displayName,
+          action: "weight",
+          value: `${kg} kg${cs ? ` (CS: ${cs})` : ""}`,
+          timestamp: new Date(),
+        }, ...prev])
 
-      resetForNextAnimal()
-    } catch {
-      Alert.alert(t("common.error"), t("common.failedToSave"))
-    }
-  }, [scannedAnimal, weightValue, conditionScore, createWeightRecord, resetForNextAnimal, t])
+        confirmSaved(scannedAnimal.displayName, `${kg} kg`)
+        resetForNextAnimal()
+      } catch {
+        Alert.alert(t("common.error"), t("common.failedToSave"))
+      }
+    })
+  }, [runSave, confirmSaved, scannedAnimal, weightValue, conditionScore, createWeightRecord, resetForNextAnimal, t])
 
   const handleSaveCondition = useCallback(async () => {
-    if (!scannedAnimal) return
+    await runSave(async () => {
+      if (!scannedAnimal) return
 
-    const score = parseInt(conditionValue, 10)
-    if (isNaN(score) || score < 1 || score > 9) {
-      Alert.alert(t("common.invalid"), t("chuteScreen.weight.invalidConditionScore"))
-      return
-    }
+      const score = parseInt(conditionValue, 10)
+      if (isNaN(score) || score < 1 || score > 9) {
+        Alert.alert(t("common.invalid"), t("chuteScreen.weight.invalidConditionScore"))
+        return
+      }
 
-    try {
-      await createHealthRecord({
-        animalId: scannedAnimal.id,
-        recordDate: new Date(),
-        recordType: "condition_score",
-        description: `Condition score: ${score}/9`,
-      })
+      try {
+        await createHealthRecord({
+          animalId: scannedAnimal.id,
+          recordDate: new Date(),
+          recordType: "condition_score",
+          description: `Condition score: ${score}/9`,
+        })
 
-      setProcessedLog((prev) => [{
-        id: `${Date.now()}`,
-        animalName: scannedAnimal.displayName,
-        action: "condition",
-        value: `${score}/9`,
-        timestamp: new Date(),
-      }, ...prev])
+        setProcessedLog((prev) => [{
+          id: `${Date.now()}`,
+          animalName: scannedAnimal.displayName,
+          action: "condition",
+          value: `${score}/9`,
+          timestamp: new Date(),
+        }, ...prev])
 
-      resetForNextAnimal()
-    } catch {
-      Alert.alert(t("common.error"), t("common.failedToSave"))
-    }
-  }, [scannedAnimal, conditionValue, createHealthRecord, resetForNextAnimal, t])
+        confirmSaved(scannedAnimal.displayName, `${score}/9`)
+        resetForNextAnimal()
+      } catch {
+        Alert.alert(t("common.error"), t("common.failedToSave"))
+      }
+    })
+  }, [runSave, confirmSaved, scannedAnimal, conditionValue, createHealthRecord, resetForNextAnimal, t])
 
   const handleClearAnimal = useCallback(() => {
     resetForNextAnimal()
@@ -503,74 +544,78 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
   )
 
   const handleApplyProtocol = useCallback(async () => {
-    if (!scannedAnimal || !selectedProtocol) return
+    await runSave(async () => {
+      if (!scannedAnimal || !selectedProtocol) return
 
-    try {
-      await createHealthRecord({
-        animalId: scannedAnimal.id,
-        recordDate: new Date(),
-        recordType: protocolRecordType(selectedProtocol),
-        description: selectedProtocol.name,
-        productName: selectedProtocol.productName,
-        dosage: selectedProtocol.dosage,
-        protocolId: selectedProtocol.id,
-        vaccinationId: vaccinationId,
-      })
-
-      // If there's a vaccination ID, mark it as administered
-      if (vaccinationId) {
-        try {
-          const vaccination = await database.get<ScheduledVaccination>("scheduled_vaccinations").find(vaccinationId)
-          await database.write(async () => {
-            await vaccination.update((v: any) => {
-              v.status = "administered"
-              v.administeredDate = new Date()
-            })
-          })
-        } catch (error) {
-          console.error("[Chute] Failed to update vaccination status:", error)
-        }
-      }
-
-      setProcessedLog((prev) => [{
-        id: `${Date.now()}`,
-        animalName: scannedAnimal.displayName,
-        action: "protocol" as any,
-        value: selectedProtocol.name,
-        timestamp: new Date(),
-      }, ...prev])
-
-      // In single mode, navigate back to animal detail
-      if (isSingleMode && preSelectedAnimalId) {
-        // Clear params before navigating back
-        navigation.setParams({
-          mode: undefined,
-          animalId: undefined,
-          protocolId: undefined,
-          vaccinationId: undefined,
-          requestId: undefined,
+      try {
+        await createHealthRecord({
+          animalId: scannedAnimal.id,
+          recordDate: new Date(),
+          recordType: protocolRecordType(selectedProtocol),
+          description: selectedProtocol.name,
+          productName: selectedProtocol.productName,
+          dosage: selectedProtocol.dosage,
+          protocolId: selectedProtocol.id,
+          vaccinationId: vaccinationId,
         })
-        navigation.navigate("AnimalDetail", { animalId: preSelectedAnimalId })
-      } else {
-        resetForNextAnimal()
+
+        // If there's a vaccination ID, mark it as administered
+        if (vaccinationId) {
+          try {
+            const vaccination = await database.get<ScheduledVaccination>("scheduled_vaccinations").find(vaccinationId)
+            await database.write(async () => {
+              await vaccination.update((v: any) => {
+                v.status = "administered"
+                v.administeredDate = new Date()
+              })
+            })
+          } catch (error) {
+            console.error("[Chute] Failed to update vaccination status:", error)
+          }
+        }
+
+        setProcessedLog((prev) => [{
+          id: `${Date.now()}`,
+          animalName: scannedAnimal.displayName,
+          action: "protocol" as any,
+          value: selectedProtocol.name,
+          timestamp: new Date(),
+        }, ...prev])
+
+        confirmSaved(scannedAnimal.displayName, selectedProtocol.name)
+        // In single mode, navigate back to animal detail
+        if (isSingleMode && preSelectedAnimalId) {
+          // Clear params before navigating back
+          navigation.setParams({
+            mode: undefined,
+            animalId: undefined,
+            protocolId: undefined,
+            vaccinationId: undefined,
+            requestId: undefined,
+          })
+          navigation.navigate("AnimalDetail", { animalId: preSelectedAnimalId })
+        } else {
+          resetForNextAnimal()
+        }
+      } catch {
+        Alert.alert(t("common.error"), t("common.failedToSave"))
       }
-    } catch {
-      Alert.alert(t("common.error"), t("common.failedToSave"))
-    }
-  }, [scannedAnimal, selectedProtocol, vaccinationId, isSingleMode, preSelectedAnimalId, createHealthRecord, resetForNextAnimal, navigation, t])
+    })
+  }, [runSave, confirmSaved, scannedAnimal, selectedProtocol, vaccinationId, isSingleMode, preSelectedAnimalId, createHealthRecord, resetForNextAnimal, navigation, t])
 
   const activeMode = sessionMode
 
   // ─── No session mode selected — show mode picker ───
   if (!sessionMode) {
     return (
-      <Screen preset="fixed" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
+      <Screen preset="scroll" contentContainerStyle={[themed($container), { flex: undefined, flexGrow: 1 }]} safeAreaEdges={["top"]}>
         <AppHeader title={t("chuteScreen.title")} showSettings={true} />
         <Text text={t("chuteScreen.selectMode")} style={themed($subtitle)} />
 
         <View style={themed($modePickerArea)}>
           <Pressable
             onPress={() => setSessionMode("weight")}
+            accessibilityRole="button"
             style={[themed($modeCard), { borderColor: "#739134" }]}
           >
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -581,6 +626,7 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
           </Pressable>
           <Pressable
             onPress={() => setSessionMode("protocol")}
+            accessibilityRole="button"
             style={[themed($modeCard), { borderColor: "#10B981" }]}
           >
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -591,6 +637,7 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
           </Pressable>
           <Pressable
             onPress={() => setSessionMode("weight_and_treatment")}
+            accessibilityRole="button"
             style={[themed($modeCard), { borderColor: "#8B5CF6" }]}
           >
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -599,6 +646,10 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
               <Text preset="subheading" text={t("chuteScreen.modes.weightAndTreatment.title")} style={{ color: "#8B5CF6" }} />
             </View>
             <Text size="xs" text={t("chuteScreen.modes.weightAndTreatment.description")} style={themed($dimText)} />
+          </Pressable>
+          <Pressable onPress={() => setSessionMode("condition")} accessibilityRole="button" style={themed($modeCard)}>
+            <Text preset="subheading" text={t("chuteScreen.modes.condition.title")} />
+            <Text size="xs" text={t("chuteScreen.modes.condition.description")} style={themed($dimText)} />
           </Pressable>
         </View>
 
@@ -625,6 +676,7 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
         </View>
         <Button
           text={isSingleMode ? t("common.cancel") : t("chuteScreen.session.endSession")}
+          disabled={isSaving}
           preset="default"
           onPress={() => {
             if (isSingleMode && preSelectedAnimalId) {
@@ -647,6 +699,7 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
         />
       </View>
 
+      {lastSaved ? <View accessibilityLiveRegion="polite"><Text text={lastSaved} size="sm" /></View> : null}
       {!scannedAnimal ? (
         /* ─── SCAN PHASE ─── */
         <View style={themed($scanArea)}>
@@ -679,7 +732,7 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
               containerStyle={themed($scanInput)}
               autoCapitalize="characters"
               autoFocus={!hasRfidHardware}
-              onSubmitEditing={handleScanSubmit}
+              onSubmitEditing={({ nativeEvent }) => lookupAnimal(nativeEvent.text)}
             />
             <View style={themed($scanButtons)}>
               <ScanTagButton
@@ -787,17 +840,21 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
                 <MeasurementInput
                   label={t("chuteScreen.weight.newWeightLabel")}
                   unit="kg"
+                  disabled={isSaving}
+                  context={scannedAnimal.displayName}
+                  helper={weightHistory[0] ? t("uxFixes.previousMeasurement", { value: weightHistory[0].weightKg, date: format(weightHistory[0].recordDate, "dd MMM yyyy") }) : undefined}
                   value={weightValue}
                   onChangeText={setWeightValue}
                 />
                 <ConditionScoreInput
+                  disabled={isSaving}
                   label={t("chuteScreen.weight.conditionScoreLabel")}
                   value={conditionScore}
                   onChangeText={setConditionScore}
                 />
                 <View style={themed($formButtons)}>
-                  <Button text={t("common.skip")} preset="default" onPress={handleClearAnimal} />
-                  <Button text={t("chuteScreen.weight.saveAndNext")} preset="reversed" onPress={handleSaveWeight} style={themed($saveNextButton)} />
+                  <Button text={t("common.skip")} preset="default" disabled={isSaving} onPress={handleClearAnimal} />
+                  <Button text={t("chuteScreen.weight.saveAndNext")} preset="reversed" disabled={isSaving} onPress={handleSaveWeight} style={themed($saveNextButton)} />
                 </View>
               </View>
             </View>
@@ -814,11 +871,15 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
                 <Text preset="bold" text={t("chuteScreen.weightAndTreatment.step1")} size="md" style={{ color: "#739134" }} />
                 <MeasurementInput
                   unit="kg"
+                  disabled={isSaving}
+                  context={scannedAnimal.displayName}
+                  helper={weightHistory[0] ? t("uxFixes.previousMeasurement", { value: weightHistory[0].weightKg, date: format(weightHistory[0].recordDate, "dd MMM yyyy") }) : undefined}
                   label={t("chuteScreen.weightAndTreatment.weightLabel")}
                   value={weightValue}
                   onChangeText={setWeightValue}
                 />
                 <ConditionScoreInput
+                  disabled={isSaving}
                   label={t("chuteScreen.weightAndTreatment.conditionScoreLabel")}
                   value={conditionScore}
                   onChangeText={setConditionScore}
@@ -896,58 +957,54 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
               </View>
 
               <View style={themed($formButtons)}>
-                <Button text={t("common.skip")} preset="default" onPress={handleClearAnimal} />
+                <Button text={t("common.skip")} preset="default" disabled={isSaving} onPress={handleClearAnimal} />
                 <Button
                   text={t("chuteScreen.weightAndTreatment.saveBoth")}
                   preset="reversed"
-                  disabled={!selectedProtocol || !weightValue}
+                  disabled={isSaving || !selectedProtocol || !weightValue}
                   onPress={async () => {
-                    // Validate weight
-                    const kg = parseFloat(weightValue)
-                    if (isNaN(kg) || kg <= 0) {
-                      Alert.alert(t("common.invalid"), t("chuteScreen.weight.invalidWeight"))
-                      return
-                    }
+                    await runSave(async () => {
+                      // Validate weight
+                      const kg = parseFloat(weightValue)
+                      if (isNaN(kg) || kg <= 0) {
+                        Alert.alert(t("common.invalid"), t("chuteScreen.weight.invalidWeight"))
+                        return
+                      }
 
-                    if (!selectedProtocol) {
-                      Alert.alert(t("common.required"), t("chuteScreen.weightAndTreatment.required"))
-                      return
-                    }
+                      if (!selectedProtocol) {
+                        Alert.alert(t("common.required"), t("chuteScreen.weightAndTreatment.required"))
+                        return
+                      }
 
-                    const cs = conditionScore ? parseInt(conditionScore, 10) : undefined
+                      const cs = conditionScore ? parseInt(conditionScore, 10) : undefined
 
-                    try {
-                      // Save weight first
-                      await createWeightRecord({
-                        animalId: scannedAnimal.id,
-                        recordDate: new Date(),
-                        weightKg: kg,
-                        conditionScore: cs,
-                      })
+                      try {
+                        await createWeightAndTreatment({
+                          animalId: scannedAnimal.id,
+                          recordDate: new Date(),
+                          weightKg: kg,
+                          conditionScore: cs,
+                          recordType: protocolRecordType(selectedProtocol),
+                          description: selectedProtocol.name,
+                          productName: selectedProtocol.productName,
+                          dosage: selectedProtocol.dosage,
+                          protocolId: selectedProtocol.id,
+                        })
+                        confirmSaved(scannedAnimal.displayName, `${kg} kg · ${selectedProtocol.name}`)
 
-                      // Save treatment with protocol
-                      await createHealthRecord({
-                        animalId: scannedAnimal.id,
-                        recordDate: new Date(),
-                        recordType: protocolRecordType(selectedProtocol),
-                        description: selectedProtocol.name,
-                        productName: selectedProtocol.productName,
-                        dosage: selectedProtocol.dosage,
-                        protocolId: selectedProtocol.id,
-                      })
+                        setProcessedLog((prev) => [{
+                          id: `${Date.now()}`,
+                          animalName: scannedAnimal.displayName,
+                          action: "weight_and_treatment" as any,
+                          value: `${kg}kg + ${selectedProtocol.name}`,
+                          timestamp: new Date(),
+                        }, ...prev])
 
-                      setProcessedLog((prev) => [{
-                        id: `${Date.now()}`,
-                        animalName: scannedAnimal.displayName,
-                        action: "weight_and_treatment" as any,
-                        value: `${kg}kg + ${selectedProtocol.name}`,
-                        timestamp: new Date(),
-                      }, ...prev])
-
-                      resetForNextAnimal()
-                    } catch {
-                      Alert.alert(t("common.error"), t("common.failedToSave"))
-                    }
+                        resetForNextAnimal()
+                      } catch {
+                        Alert.alert(t("common.error"), t("common.failedToSave"))
+                      }
+                    })
                   }}
                   style={themed($saveNextButton)}
                 />
@@ -960,13 +1017,14 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
             <View style={themed($actionSection)}>
               <View style={themed($formCard)}>
                 <ConditionScoreInput
+                  disabled={isSaving}
                   label={t("chuteScreen.weight.conditionScoreLabel")}
                   value={conditionValue}
                   onChangeText={setConditionValue}
                 />
                 <View style={themed($formButtons)}>
-                  <Button text={t("common.skip")} preset="default" onPress={handleClearAnimal} />
-                  <Button text={t("chuteScreen.weight.saveAndNext")} preset="reversed" onPress={handleSaveCondition} style={themed($saveNextButton)} />
+                  <Button text={t("common.skip")} preset="default" disabled={isSaving} onPress={handleClearAnimal} />
+                  <Button text={t("chuteScreen.weight.saveAndNext")} preset="reversed" disabled={isSaving} onPress={handleSaveCondition} style={themed($saveNextButton)} />
                 </View>
               </View>
             </View>
@@ -1009,7 +1067,7 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
                       ))}
                     </View>
                   )}
-                  <Button text={t("common.cancel")} preset="default" onPress={handleClearAnimal} style={{ marginTop: spacing.sm }} />
+                  <Button text={t("common.cancel")} preset="default" disabled={isSaving} onPress={handleClearAnimal} style={{ marginTop: spacing.sm }} />
                 </View>
               ) : (
                 /* Protocol selected - show calculated dosage */
@@ -1068,7 +1126,7 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
                     <Button
                       text={isSingleMode ? t("chuteScreen.protocol.apply") : t("chuteScreen.protocol.applyAndNext")}
                       preset="reversed"
-                      onPress={handleApplyProtocol}
+                      disabled={isSaving} onPress={handleApplyProtocol}
                       style={themed($saveNextButton)}
                     />
                   </View>

@@ -53,6 +53,7 @@ export type Database = {
           status: string
           tags: string | null
           updated_at: string
+          vaccination_history: string | null
           visual_tag: string | null
         }
         Insert: {
@@ -84,6 +85,7 @@ export type Database = {
           status?: string
           tags?: string | null
           updated_at?: string
+          vaccination_history?: string | null
           visual_tag?: string | null
         }
         Update: {
@@ -115,6 +117,7 @@ export type Database = {
           status?: string
           tags?: string | null
           updated_at?: string
+          vaccination_history?: string | null
           visual_tag?: string | null
         }
         Relationships: [

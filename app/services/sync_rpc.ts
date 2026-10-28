@@ -10,6 +10,7 @@ import { synchronize, SyncPullArgs, SyncPushArgs } from "@nozbe/watermelondb/syn
 import { database, schema } from "@/db"
 import { supabase } from "@/services/supabase"
 import { reclassifyExistingCreatedRows, SyncChangeRow } from "@/services/syncChangeNormalization"
+import { SyncRpcError, syncErrorMessage } from "@/utils/syncFailures"
 
 // ---- Sync types ----------------------------------------------------------
 
@@ -104,13 +105,21 @@ async function pullChanges({ lastPulledAt }: SyncPullArgs) {
   })
 
   if (error) {
-    console.error("[Sync] Pull error:", error)
-    throw new Error(`Sync pull failed: ${error.message}`)
+    throw new SyncRpcError("pull", error)
   }
 
-  if (!data) {
-    console.warn("[Sync] No data returned from sync_pull")
-    return { changes: {}, timestamp: Date.now() }
+  // Only a valid server checkpoint can advance WatermelonDB's pull cursor.
+  // Inventing a device timestamp for an empty response could skip real records.
+  if (
+    !data ||
+    !data.changes ||
+    typeof data.changes !== "object" ||
+    Array.isArray(data.changes) ||
+    !Number.isSafeInteger(data.timestamp) ||
+    data.timestamp <= 0 ||
+    data.timestamp < lastPulledAtMs
+  ) {
+    throw new Error("Sync pull returned an invalid response; checkpoint was not advanced")
   }
 
   if (__DEV__) {
@@ -202,16 +211,17 @@ async function pushChanges({ changes }: SyncPushArgs) {
     }
   }
 
-  const { data: pushResult, error } = await supabase.rpc("sync_push", { changes: supabaseChanges })
+  const { data: pushResult, error } = await supabase.rpc("sync_push", {
+    changes: supabaseChanges,
+  })
 
   if (error) {
-    console.error("[Sync] Push error:", error)
-    throw new Error(`Sync push failed: ${error.message}`)
+    throw new SyncRpcError("push", error)
   }
 
-  if (pushResult && !pushResult.success) {
-    console.error("[Sync] Push returned errors:", pushResult.errors)
-    throw new Error(`Sync push failed with ${pushResult.error_count} error(s)`)
+  // A missing acknowledgement must leave local records pending for retry.
+  if (!pushResult || pushResult.success !== true || pushResult.error_count > 0) {
+    throw new Error("Sync push was not acknowledged; local changes remain pending")
   }
 }
 
@@ -285,7 +295,13 @@ function watermelonToSupabase(record: Model | SyncRow): SyncRow {
 /**
  * Main sync function — call this from UI.
  */
-export async function syncDatabase(): Promise<{ success: boolean; error?: string }> {
+export interface SyncResult {
+  success: boolean
+  error?: string
+  cause?: unknown
+}
+
+async function runDatabaseSync(): Promise<SyncResult> {
   try {
     if (__DEV__) console.log("[Sync] Starting synchronization...")
 
@@ -299,8 +315,21 @@ export async function syncDatabase(): Promise<{ success: boolean; error?: string
     if (__DEV__) console.log("[Sync] Synchronization complete!")
 
     return { success: true }
-  } catch (error: any) {
-    console.error("[Sync] Synchronization failed:", error)
-    return { success: false, error: error?.message || "Sync failed" }
+  } catch (error: unknown) {
+    // The sync hook owns reporting, retry policy and user-facing status.
+    return { success: false, error: syncErrorMessage(error), cause: error }
   }
+}
+
+// All callers share the same WatermelonDB operation, including refresh gestures.
+let syncInFlight: Promise<SyncResult> | null = null
+export function syncDatabase(): Promise<SyncResult> {
+  if (syncInFlight) return syncInFlight
+  const operation = runDatabaseSync()
+  syncInFlight = operation
+  const release = () => {
+    if (syncInFlight === operation) syncInFlight = null
+  }
+  void operation.then(release, release)
+  return operation
 }

@@ -1,3 +1,7 @@
+import { useSaveGuard } from "@/hooks/useSaveGuard"
+import { useUnsavedChanges } from "@/hooks/useUnsavedChanges"
+import { useAnimal } from "@/hooks/useAnimals"
+import Toast from "react-native-toast-message"
 import { FC, useCallback, useState } from "react"
 import { Alert, View, ViewStyle, TextStyle } from "react-native"
 
@@ -29,61 +33,65 @@ export const WeightRecordFormScreen: FC<AppStackScreenProps<"WeightRecordForm">>
   const [conditionScore, setConditionScore] = useState("")
   const [notes, setNotes] = useState("")
   const [photos, setPhotos] = useState<PhotoWithMetadata[]>([])
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const { isSaving: isSubmitting, runSave } = useSaveGuard()
+  const { animal } = useAnimal(animalId)
+  const markSaved = useUnsavedChanges(Boolean(weight || conditionScore || notes || photos.length), isSubmitting)
 
   const handleSave = useCallback(async () => {
-    const kg = parseFloat(weight)
-    if (isNaN(kg) || kg <= 0) {
-      Alert.alert(
-        t("weightRecordFormScreen.alerts.invalidWeight.title"),
-        t("weightRecordFormScreen.alerts.invalidWeight.message"),
-      )
-      return
-    }
-
-    const cs = conditionScore ? parseInt(conditionScore, 10) : undefined
-    if (cs !== undefined && (isNaN(cs) || cs < 1 || cs > 9)) {
-      Alert.alert(
-        t("weightRecordFormScreen.alerts.invalidConditionScore.title"),
-        t("weightRecordFormScreen.alerts.invalidConditionScore.message"),
-      )
-      return
-    }
-
-    if (!currentOrg) {
-      Alert.alert(
-        t("weightRecordFormScreen.alerts.noOrganization.title"),
-        t("weightRecordFormScreen.alerts.noOrganization.message"),
-      )
-      return
-    }
-
-    setIsSubmitting(true)
-    try {
-      // Create record first to get the record ID
-      const record = await createWeightRecord({
-        animalId,
-        recordDate: new Date(),
-        weightKg: kg,
-        conditionScore: cs,
-        notes: notes.trim() || undefined,
-      })
-
-      // Upload photos if any (background upload)
-      if (photos.length > 0) {
-        uploadPhotosInBackground(record.id, photos)
+    await runSave(async () => {
+      const kg = parseFloat(weight)
+      if (isNaN(kg) || kg <= 0) {
+        Alert.alert(
+          t("weightRecordFormScreen.alerts.invalidWeight.title"),
+          t("weightRecordFormScreen.alerts.invalidWeight.message"),
+        )
+        return
       }
 
-      navigation.goBack()
-    } catch (error) {
-      console.error("Failed to save weight record:", error)
-      Alert.alert(
-        t("weightRecordFormScreen.alerts.saveError.title"),
-        t("weightRecordFormScreen.alerts.saveError.message"),
-      )
-    }
-    setIsSubmitting(false)
-  }, [animalId, weight, conditionScore, notes, photos, currentOrg, createWeightRecord, navigation, t])
+      const cs = conditionScore ? parseInt(conditionScore, 10) : undefined
+      if (cs !== undefined && (isNaN(cs) || cs < 1 || cs > 9)) {
+        Alert.alert(
+          t("weightRecordFormScreen.alerts.invalidConditionScore.title"),
+          t("weightRecordFormScreen.alerts.invalidConditionScore.message"),
+        )
+        return
+      }
+
+      if (!currentOrg) {
+        Alert.alert(
+          t("weightRecordFormScreen.alerts.noOrganization.title"),
+          t("weightRecordFormScreen.alerts.noOrganization.message"),
+        )
+        return
+      }
+
+      try {
+        // Create record first to get the record ID
+        const record = await createWeightRecord({
+          animalId,
+          recordDate: new Date(),
+          weightKg: kg,
+          conditionScore: cs,
+          notes: notes.trim() || undefined,
+        })
+
+        // Upload photos if any (background upload)
+        if (photos.length > 0) {
+          uploadPhotosInBackground(record.id, photos)
+        }
+
+        markSaved()
+        Toast.show({ type: "success", text1: t("uxFixes.savedLocally"), text2: `${animal?.displayName ?? ""} · ${kg} kg` })
+        navigation.goBack()
+      } catch (error) {
+        console.error("Failed to save weight record:", error)
+        Alert.alert(
+          t("weightRecordFormScreen.alerts.saveError.title"),
+          t("weightRecordFormScreen.alerts.saveError.message"),
+        )
+      }
+    })
+  }, [runSave, markSaved, animal, animalId, weight, conditionScore, notes, photos, currentOrg, createWeightRecord, navigation, t])
 
   const uploadPhotosInBackground = async (recordId: string, photosToUpload: PhotoWithMetadata[]) => {
     try {
@@ -139,10 +147,17 @@ export const WeightRecordFormScreen: FC<AppStackScreenProps<"WeightRecordForm">>
     }
   }
 
+  const animalTag = animal?.visualTag || animal?.rfidTag
+  const animalContext = animal
+    ? [animal.displayName, animalTag !== animal.displayName ? animalTag : ""]
+        .filter(Boolean)
+        .join(" · ")
+    : undefined
+
   return (
     <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
       <View style={themed($headerRow)}>
-        <Button text={t("weightRecordFormScreen.cancelButton")} preset="default" onPress={() => navigation.goBack()} />
+        <Button text={t("weightRecordFormScreen.cancelButton")} preset="default" disabled={isSubmitting} onPress={() => navigation.goBack()} />
         <Text preset="heading" text={t("weightRecordFormScreen.title")} />
         <View style={{ width: 60 }} />
       </View>
@@ -150,16 +165,20 @@ export const WeightRecordFormScreen: FC<AppStackScreenProps<"WeightRecordForm">>
       <View style={themed($form)}>
         <MeasurementInput
           unit="kg"
+          context={animalContext}
+          disabled={isSubmitting}
           label={t("weightRecordFormScreen.fields.weight.label")}
           value={weight}
           onChangeText={setWeight}
         />
         <ConditionScoreInput
+          disabled={isSubmitting}
           label={t("weightRecordFormScreen.fields.conditionScore.label")}
           value={conditionScore}
           onChangeText={setConditionScore}
         />
         <TextField
+          editable={!isSubmitting}
           label={t("weightRecordFormScreen.fields.notes.label")}
           value={notes}
           onChangeText={setNotes}
@@ -178,6 +197,7 @@ export const WeightRecordFormScreen: FC<AppStackScreenProps<"WeightRecordForm">>
           text={isSubmitting ? t("weightRecordFormScreen.buttons.saving") : t("weightRecordFormScreen.buttons.save")}
           preset="reversed"
           style={themed($saveButton)}
+          disabled={isSubmitting}
           onPress={handleSave}
         />
       </View>

@@ -1,11 +1,12 @@
 import { useEffect, useRef } from "react"
 import { AppState, AppStateStatus } from "react-native"
 import * as Network from "expo-network"
-import { database } from "@/db"
-import { useSyncContext } from "@/context/SyncContext"
+import { Q } from "@nozbe/watermelondb"
+
 import { useAuth } from "@/context/AuthContext"
 import { useDatabase } from "@/context/DatabaseContext"
-import { Q } from "@nozbe/watermelondb"
+import { useSyncContext } from "@/context/SyncContext"
+import { database } from "@/db"
 
 /**
  * AutoSync component - triggers background sync automatically
@@ -29,7 +30,11 @@ export function AutoSync() {
 
   // Run initial sync when user logs in
   useEffect(() => {
-    if (isAuthenticated && !hasRunInitialSync.current) {
+    if (!isAuthenticated) {
+      hasRunInitialSync.current = false
+      return
+    }
+    if (!hasRunInitialSync.current) {
       if (__DEV__) console.log("[AutoSync] Running initial sync on app load")
       queueSync()
       hasRunInitialSync.current = true
@@ -51,7 +56,8 @@ export function AutoSync() {
         .subscribe((count) => {
           const lastCount = lastCountsRef.current[tableName]
           if (lastCount !== undefined && lastCount !== count) {
-            if (__DEV__) console.log(`[AutoSync] Detected create/delete in ${tableName}, queuing sync...`)
+            if (__DEV__)
+              console.log(`[AutoSync] Detected create/delete in ${tableName}, queuing sync...`)
             queueSync()
           }
           lastCountsRef.current[tableName] = count
@@ -83,19 +89,33 @@ export function AutoSync() {
     if (!isAuthenticated) return
 
     let lastNetworkState: boolean | null = null
+    let active = true
+    let reportedNetworkFailure = false
     const checkInterval = setInterval(async () => {
-      const networkState = await Network.getNetworkStateAsync()
-      const isOnline = networkState.isConnected && networkState.isInternetReachable
+      try {
+        const networkState = await Network.getNetworkStateAsync()
+        if (!active) return
+        const isOnline = networkState.isConnected && networkState.isInternetReachable
 
-      // Only sync when we transition from offline to online (not on first check)
-      if (isOnline && lastNetworkState === false) {
-        if (__DEV__) console.log("[AutoSync] Network reconnected, queuing sync...")
-        queueSync()
+        // Unknown reachability must not erase a known offline state.
+        if (isOnline === undefined || isOnline === null) return
+        if (isOnline && lastNetworkState === false) {
+          if (__DEV__) console.log("[AutoSync] Network reconnected, queuing sync...")
+          queueSync()
+        }
+        lastNetworkState = isOnline
+        reportedNetworkFailure = false
+      } catch {
+        // A failed connectivity probe is not an unhandled app exception.
+        if (active && __DEV__ && !reportedNetworkFailure) {
+          console.warn("[AutoSync] Network status unavailable; will check again")
+          reportedNetworkFailure = true
+        }
       }
-      lastNetworkState = isOnline
-    }, 30_000) // expo-network has no event listener; poll every 30s
+    }, 30_000)
 
     return () => {
+      active = false
       clearInterval(checkInterval)
     }
   }, [isAuthenticated, queueSync])
@@ -140,10 +160,13 @@ export function AutoSync() {
     if (!isAuthenticated) return
 
     if (__DEV__) console.log("[AutoSync] Starting periodic sync (every 3 minutes)")
-    const interval = setInterval(() => {
-      if (__DEV__) console.log("[AutoSync] Periodic sync triggered")
-      queueSync()
-    }, 3 * 60 * 1000) // 3 minutes
+    const interval = setInterval(
+      () => {
+        if (__DEV__) console.log("[AutoSync] Periodic sync triggered")
+        queueSync()
+      },
+      3 * 60 * 1000,
+    ) // 3 minutes
 
     return () => {
       clearInterval(interval)

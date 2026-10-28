@@ -1,3 +1,4 @@
+import { getVaccinationHistory } from "@/utils/vaccinationHistory"
 import { type ComponentProps, type FC, type ReactNode, useCallback, useEffect, useState } from "react"
 import { Alert, Pressable, ScrollView, View, ViewStyle, TextStyle } from "react-native"
 import { format, formatDistanceStrict } from "date-fns"
@@ -641,6 +642,10 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
 
       {activeTab === "vaccinations" && (
         <View style={themed($section)}>
+          <Text preset="formLabel" text={t("uxFixes.historyLabel")} />
+          <Text text={t(`uxFixes.${getVaccinationHistory(animal) === "current" ? "historyCurrent" : getVaccinationHistory(animal) === "needs_review" ? "historyReview" : "historyUnknown"}`)} />
+          {!animal.vaccinationHistory && <Text text={t("uxFixes.historyLegacyHelp")} size="xs" />}
+          <Button text={t("uxFixes.reviewHistoryAction")} onPress={() => navigation.navigate("AnimalForm", { mode: "edit", animalId })} />
           {/* Vaccinations Section */}
           <Text preset="subheading" text="Vaccination Schedule" style={themed($sectionTitle)} />
           {vaccinations.length === 0 ? (

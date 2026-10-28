@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react"
 import { useAuth } from "@/context/AuthContext"
 import { useSyncContext } from "@/context/SyncContext"
 import { supabase } from "@/services/supabase"
+import { isSyncTransportFailure } from "@/utils/syncFailures"
 
 export interface PendingInvite {
   id: string
@@ -38,8 +39,12 @@ export function usePendingInvites() {
     try {
       const { data, error } = await supabase.rpc("list_pending_invites")
       if (error) {
-        console.error("[Invites] Failed to load pending invites:", error)
-        setInvites([])
+        if (isSyncTransportFailure(error)) {
+          if (__DEV__) console.log("[Invites] Offline; keeping previously loaded invites")
+        } else {
+          console.error("[Invites] Failed to load pending invites:", error)
+          setInvites([])
+        }
       } else {
         setInvites(
           (data ?? []).map((i: any) => ({
@@ -53,8 +58,12 @@ export function usePendingInvites() {
         )
       }
     } catch (err) {
-      console.error("[Invites] Error loading pending invites:", err)
-      setInvites([])
+      if (isSyncTransportFailure(err)) {
+        if (__DEV__) console.log("[Invites] Offline; keeping previously loaded invites")
+      } else {
+        console.error("[Invites] Error loading pending invites:", err)
+        setInvites([])
+      }
     }
 
     setIsLoading(false)

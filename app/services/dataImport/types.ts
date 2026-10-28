@@ -77,6 +77,7 @@ export interface AnimalImportRecord {
   dateOfBirth?: Date
   status: AnimalStatus
   vaccinationsUpToDate: boolean
+  vaccinationHistory?: "current" | "needs_review" | "unknown"
   registrationNumber?: string
   herdTag?: string
   notes?: string

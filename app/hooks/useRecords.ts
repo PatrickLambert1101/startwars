@@ -1,3 +1,4 @@
+import { saveWeightAndTreatment, type CombinedRecordingData } from "@/services/combinedRecording"
 import { useEffect, useState } from "react"
 import { Q } from "@nozbe/watermelondb"
 import { database } from "@/db"
@@ -259,4 +260,14 @@ export function useBreedingRecordActions() {
   }
 
   return { createBreedingRecord }
+}
+
+export function useCombinedRecordActions() {
+  const { currentOrg } = useDatabase()
+  const { user } = useAuth()
+  const createWeightAndTreatment = async (data: CombinedRecordingData) => {
+    if (!currentOrg) throw new Error("No organization selected")
+    return saveWeightAndTreatment(database, currentOrg.id, { id: user?.id, name: user?.email }, data)
+  }
+  return { createWeightAndTreatment }
 }

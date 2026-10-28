@@ -518,11 +518,17 @@ export const migrations = schemaMigrations({
         { name: "tick_count", type: "number", isOptional: true },
       ] })],
     },
+    {
+      toVersion: 25,
+      steps: [addColumns({ table: "animals", columns: [
+        { name: "vaccination_history", type: "string", isOptional: true },
+      ] })],
+    },
   ],
 })
 
 export const schema = appSchema({
-  version: 24,
+  version: 25,
   tables: [
     tableSchema({
       name: "data_import_batches",
@@ -658,6 +664,7 @@ export const schema = appSchema({
         { name: "registration_number", type: "string", isOptional: true },
         { name: "current_pasture_id", type: "string", isOptional: true, isIndexed: true },
         { name: "status", type: "string" }, // active | sold | deceased | transferred
+        { name: "vaccination_history", type: "string", isOptional: true },
         { name: "vaccinations_up_to_date", type: "boolean" }, // true = don't back-fill past-due shots
         { name: "herd_tag", type: "string", isOptional: true, isIndexed: true }, // Group/herd identifier like "23-C", "XYZ"
         { name: "notes", type: "string", isOptional: true },

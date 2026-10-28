@@ -44,9 +44,10 @@ import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import type { DashboardActivityItem } from "@/utils/dashboardActivity"
+import { getDashboardConfidence } from "@/utils/dashboardConfidence"
 import { getPastureMapStatus } from "@/utils/pastureMapStatus"
 
-type AnimalQuickAction = "treatment" | "breeding"
+type AnimalQuickAction = "weight" | "treatment" | "breeding"
 
 const ACTIVITY_ICONS: Record<
   DashboardActivityItem["kind"],
@@ -71,7 +72,7 @@ export const DashboardScreen: FC<MainTabScreenProps<"Dashboard">> = ({ navigatio
   const { activities: pastureActivities, isLoading: pastureActivitiesLoading } =
     useAllPastureActivities()
   const { currentOrg, isOrgLoading, switchOrganization, leaveOrganization } = useDatabase()
-  const { status: syncStatus, lastSynced, error: syncError, sync } = useSyncContext()
+  const { status: syncStatus, lastSynced, sync } = useSyncContext()
   const { user } = useAuth()
   const { invites: pendingInvites, accept: acceptInvite } = usePendingInvites()
   const { vaccinations: pendingVaccinations, isLoading: vaccinationsLoading } =
@@ -199,7 +200,9 @@ export const DashboardScreen: FC<MainTabScreenProps<"Dashboard">> = ({ navigatio
       if (!animal || !animalQuickAction) return
       const action = animalQuickAction
       setAnimalQuickAction(null)
-      if (action === "treatment") {
+      if (action === "weight") {
+        navigation.navigate("WeightRecordForm", { animalId: animal.id })
+      } else if (action === "treatment") {
         navigation.navigate("HealthRecordForm", { animalId: animal.id })
       } else {
         navigation.navigate("BreedingRecordForm", { animalId: animal.id })
@@ -351,6 +354,8 @@ export const DashboardScreen: FC<MainTabScreenProps<"Dashboard">> = ({ navigatio
     vaccinationsNeedingAttention === 0 &&
     pastureAlerts.length === 0
 
+  const confidence = getDashboardConfidence({ lastSynced, syncStatus, historiesToReview: stats.historiesToReview, activeSchedules: stats.activeSchedules })
+
   const syncStatusText =
     syncStatus === "syncing"
       ? "Syncing farm data…"
@@ -441,8 +446,8 @@ export const DashboardScreen: FC<MainTabScreenProps<"Dashboard">> = ({ navigatio
                   size="xs"
                   style={syncStatus === "error" ? { color: colors.error } : themed($dimText)}
                 />
-                {syncStatus === "error" && syncError ? (
-                  <Text text={syncError} size="xxs" numberOfLines={1} style={themed($dimText)} />
+                {syncStatus === "error" ? (
+                  <Text text={t("uxFixes.syncHelp")} size="xxs" style={themed($dimText)} />
                 ) : null}
               </View>
             </Pressable>
@@ -457,20 +462,22 @@ export const DashboardScreen: FC<MainTabScreenProps<"Dashboard">> = ({ navigatio
                 vaccinationsLoading) && <ActivityIndicator size="small" color={colors.tint} />}
             </View>
 
-            {allCaughtUp && (
-              <View style={themed($caughtUpCard)}>
+            {(allCaughtUp || (!statsLoading && confidence !== "localSummary")) && (
+              <View style={[themed($caughtUpCard), confidence !== "localSummary" && { backgroundColor: colors.palette.accent100 }]}>
                 <MaterialCommunityIcons
-                  name="check-circle-outline"
+                  name={confidence === "localSummary" ? "check-circle-outline" : confidence === "syncProblem" ? "cloud-alert" : "information-outline"}
                   size={24}
-                  color={colors.palette.primary500}
+                  color={confidence === "localSummary" ? colors.palette.primary500 : colors.text}
                 />
                 <View style={themed($alertText)}>
-                  <Text preset="bold" text="Nothing urgent right now" />
+                  <Text preset="bold" text={t(`uxFixes.dashboard.${confidence}.title`)} />
                   <Text
-                    text="Calving, vaccination and pasture alerts are all clear."
+                    text={t(`uxFixes.dashboard.${confidence}.message`, { count: stats.historiesToReview })}
                     size="xs"
                     style={themed($dimText)}
                   />
+                  {confidence === "setUpSchedules" && <Button text={t("uxFixes.scheduleAction")} onPress={() => navigation.navigate("VaccinationSchedules")} />}
+                  {confidence === "reviewHistory" && <Button text={t("uxFixes.openHerd")} onPress={() => navigation.navigate("HerdList", {})} />}
                 </View>
               </View>
             )}
@@ -604,6 +611,77 @@ export const DashboardScreen: FC<MainTabScreenProps<"Dashboard">> = ({ navigatio
           </View>
 
           <View style={themed($section)}>
+            <Text preset="subheading" text="Quick actions" />
+            <View style={themed($quickActionGrid)}>
+              {hasRfidHardware ? (
+                <Pressable
+                  onPress={handleRfidQuickActionPress}
+                  style={[
+                    themed($quickActionButton),
+                    { backgroundColor: colors.tint, borderColor: colors.tint },
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel="Scan cow with RFID"
+                >
+                  {isRfidScanning ? (
+                    <ActivityIndicator size="small" color={colors.palette.neutral100} />
+                  ) : (
+                    <MaterialCommunityIcons
+                      name="access-point"
+                      size={23}
+                      color={colors.palette.neutral100}
+                    />
+                  )}
+                  <Text
+                    text={isRfidScanning ? "Scanning for RFID…" : "Scan cow with RFID"}
+                    preset="bold"
+                    size="sm"
+                    style={themed($primaryQuickActionText)}
+                  />
+                </Pressable>
+              ) : (
+                <ScanTagButton
+                  label="Scan cow"
+                  onTagScanned={handleDashboardScan}
+                  style={[
+                    themed($quickActionButton),
+                    { backgroundColor: colors.tint, borderColor: colors.tint },
+                  ]}
+                />
+              )}
+              <Pressable accessibilityRole="button" onPress={() => setAnimalQuickAction("weight")} style={themed($quickActionButton)}>
+                <MaterialCommunityIcons name="scale" size={23} color={colors.tint} />
+                <Text text={t("chuteScreen.modes.weight.title")} preset="bold" size="sm" />
+              </Pressable>
+              <Pressable
+                onPress={() => setAnimalQuickAction("treatment")}
+                style={themed($quickActionButton)}
+              >
+                <MaterialCommunityIcons name="medical-bag" size={23} color={colors.tint} />
+                <Text text="Record treatment" preset="bold" size="sm" />
+              </Pressable>
+              <Pressable accessibilityRole="button" onPress={() => navigation.navigate("AnimalForm", { mode: "create" })} style={themed($quickActionButton)}>
+                <MaterialCommunityIcons name="plus" size={23} color={colors.tint} />
+                <Text text={t("herdListScreen.addButton")} preset="bold" size="sm" />
+              </Pressable>
+              <Pressable
+                onPress={() => navigation.navigate("MovementForm", {})}
+                style={themed($quickActionButton)}
+              >
+                <MaterialCommunityIcons name="swap-horizontal" size={25} color={colors.tint} />
+                <Text text="Move animals" preset="bold" size="sm" />
+              </Pressable>
+              <Pressable
+                onPress={() => setAnimalQuickAction("breeding")}
+                style={themed($quickActionButton)}
+              >
+                <MaterialCommunityIcons name="heart-plus-outline" size={23} color={colors.tint} />
+                <Text text="Record breeding" preset="bold" size="sm" />
+              </Pressable>
+            </View>
+          </View>
+
+          <View style={themed($section)}>
             <Text preset="subheading" text="Herd snapshot" />
             <View style={themed($statsRow)}>
               <Pressable onPress={handleActiveAnimalsPress} style={themed($statCard)}>
@@ -645,71 +723,10 @@ export const DashboardScreen: FC<MainTabScreenProps<"Dashboard">> = ({ navigatio
             </View>
           </View>
 
-          <View style={themed($section)}>
-            <HerdInsightsCard />
-          </View>
+
 
           <View style={themed($section)}>
-            <Text preset="subheading" text="Quick actions" />
-            <View style={themed($quickActionGrid)}>
-              {hasRfidHardware ? (
-                <Pressable
-                  onPress={handleRfidQuickActionPress}
-                  style={[
-                    themed($quickActionButton),
-                    { backgroundColor: colors.tint, borderColor: colors.tint },
-                  ]}
-                  accessibilityRole="button"
-                  accessibilityLabel="Scan cow with RFID"
-                >
-                  {isRfidScanning ? (
-                    <ActivityIndicator size="small" color={colors.palette.neutral100} />
-                  ) : (
-                    <MaterialCommunityIcons
-                      name="access-point"
-                      size={23}
-                      color={colors.palette.neutral100}
-                    />
-                  )}
-                  <Text
-                    text={isRfidScanning ? "Scanning for RFID…" : "Scan cow with RFID"}
-                    preset="bold"
-                    size="sm"
-                    style={themed($primaryQuickActionText)}
-                  />
-                </Pressable>
-              ) : (
-                <ScanTagButton
-                  label="Scan cow"
-                  onTagScanned={handleDashboardScan}
-                  style={[
-                    themed($quickActionButton),
-                    { backgroundColor: colors.tint, borderColor: colors.tint },
-                  ]}
-                />
-              )}
-              <Pressable
-                onPress={() => setAnimalQuickAction("treatment")}
-                style={themed($quickActionButton)}
-              >
-                <MaterialCommunityIcons name="medical-bag" size={23} color={colors.tint} />
-                <Text text="Record treatment" preset="bold" size="sm" />
-              </Pressable>
-              <Pressable
-                onPress={() => navigation.navigate("MovementForm", {})}
-                style={themed($quickActionButton)}
-              >
-                <MaterialCommunityIcons name="swap-horizontal" size={25} color={colors.tint} />
-                <Text text="Move animals" preset="bold" size="sm" />
-              </Pressable>
-              <Pressable
-                onPress={() => setAnimalQuickAction("breeding")}
-                style={themed($quickActionButton)}
-              >
-                <MaterialCommunityIcons name="heart-plus-outline" size={23} color={colors.tint} />
-                <Text text="Record breeding" preset="bold" size="sm" />
-              </Pressable>
-            </View>
+            <HerdInsightsCard />
           </View>
 
           <View style={themed($section)}>
@@ -794,7 +811,7 @@ export const DashboardScreen: FC<MainTabScreenProps<"Dashboard">> = ({ navigatio
         title={
           animalQuickAction === "breeding"
             ? "Choose female to breed"
-            : "Choose animal for treatment"
+            : animalQuickAction === "weight" ? t("uxFixes.chooseAnimalForWeight") : "Choose animal for treatment"
         }
         allowClear={false}
       />

@@ -1,5 +1,8 @@
+import { useSaveGuard } from "@/hooks/useSaveGuard"
+import { VaccinationHistoryInput } from "@/components/VaccinationHistoryInput"
+import type { VaccinationHistory } from "@/utils/vaccinationHistory"
 import { FC, useCallback, useEffect, useRef, useState } from "react"
-import { Alert, FlatList, Pressable, TextInput, View, ViewStyle, TextStyle, Modal, ScrollView, Switch } from "react-native"
+import { Alert, FlatList, Pressable, TextInput, View, ViewStyle, TextStyle, Modal, ScrollView, } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
 
@@ -62,7 +65,7 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
   const [notesTemplate, setNotesTemplate] = useState("")
   // Batch-wide, like the other template fields: a bulk intake is normally one
   // mob with the same vaccination history. Defaults true, as on the single form.
-  const [vaccinationsUpToDate, setVaccinationsUpToDate] = useState(true)
+  const [vaccinationHistory, setVaccinationHistory] = useState<VaccinationHistory>("unknown")
   const [tagType, setTagType] = useState<"visual" | "rfid">("visual")
 
   // Entry phase
@@ -74,7 +77,7 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
   const [photoPickerKey, setPhotoPickerKey] = useState(0) // Key to force PhotoPicker reset
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
   const [addedAnimals, setAddedAnimals] = useState<AddedAnimal[]>([])
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const { isSaving: isSubmitting, runSave } = useSaveGuard()
   const [showCurrentSexPicker, setShowCurrentSexPicker] = useState(false)
 
   // Modals
@@ -132,112 +135,112 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
   }, [])
 
   const handleQuickAdd = useCallback(async () => {
-    // Get tag based on selected tag type
-    const enteredTag = currentTag.trim()
-    const scannedRfid = currentRfidTag.trim()
+    await runSave(async () => {
+      // Get tag based on selected tag type
+      const enteredTag = currentTag.trim()
+      const scannedRfid = currentRfidTag.trim()
 
-    // Determine which tag to use based on tag type
-    let visualTag = ""
-    let rfidTag = ""
+      // Determine which tag to use based on tag type
+      let visualTag = ""
+      let rfidTag = ""
 
-    if (tagType === "visual") {
-      // For visual tags, use the manually entered tag
-      visualTag = enteredTag
-      // RFID can still be set if available
-      rfidTag = scannedRfid
-    } else {
-      // For RFID tags, use the scanned RFID
-      rfidTag = scannedRfid
-      // Visual can still be set if manually entered, without prefix
-      visualTag = enteredTag
-    }
-
-    if (!visualTag && !rfidTag) {
-      Alert.alert(
-        t("bulkAnimalAddScreen.alerts.tagRequired.title"),
-        t("bulkAnimalAddScreen.alerts.tagRequired.message")
-      )
-      return
-    }
-
-    if (!currentOrg) {
-      Alert.alert(
-        t("common.error"),
-        t("bulkAnimalAddScreen.alerts.noOrganization.message")
-      )
-      return
-    }
-
-    setIsSubmitting(true)
-    try {
-      const data: AnimalFormData = {
-        rfidTag: rfidTag || "",
-        visualTag: visualTag || "",
-        breed: breed.trim(),
-        sex: currentSex || sex, // Use current sex override if set, otherwise use default
-        dateOfBirth: dateOfBirth || undefined,
-        status: "active" as AnimalStatus,
-        vaccinationsUpToDate,
-        notes: notesTemplate.trim() || undefined,
-        tags: tags.length > 0 ? JSON.stringify(tags) : null,
-      }
-
-      await createAnimal(data)
-
-      // TODO: Handle photos, weight, and pasture assignment after animal creation
-      // For now, just add the animal with basic data for speed
-
-      // Add to log
-      const newEntry: AddedAnimal = {
-        tempId: Date.now().toString(),
-        visualTag: visualTag || rfidTag,
-        rfidTag: rfidTag || "",
-        timestamp: new Date(),
-      }
-      setAddedAnimals(prev => [newEntry, ...prev])
-
-      // Clear inputs for next entry
-      setCurrentTag("")
-      setCurrentRfidTag("")
-      setCurrentSex(null) // Reset sex override
-      setCurrentWeight("")
-      setCurrentPhotos([])
-      setPhotoPickerKey(prev => prev + 1) // Force PhotoPicker to reset
-
-      // Refocus input
-      tagInputRef.current?.focus()
-    } catch (e) {
-      if (e instanceof DuplicateTagError) {
-        // Inputs are intentionally left as-is (the clear step above is skipped
-        // on throw) so the farmer can correct the tag without re-entering.
-        Alert.alert(
-          t("animalFormScreen.alerts.validation.duplicateTag.title"),
-          t(`animalFormScreen.alerts.validation.duplicateTag.${e.tagKind}Message`, {
-            tag: e.tagValue,
-            name: e.existingName,
-          }),
-        )
-        tagInputRef.current?.focus()
-      } else if (e instanceof AnimalLimitError) {
-        // Hit the free cap mid-batch — offer to upgrade rather than keep failing.
-        Alert.alert(
-          t("animalFormScreen.alerts.animalLimit.title"),
-          t("animalFormScreen.alerts.animalLimit.message", { limit: e.limit }),
-          [
-            { text: t("common.cancel"), style: "cancel" },
-            {
-              text: t("animalFormScreen.alerts.animalLimit.upgrade"),
-              onPress: () => navigation.navigate("Paywall"),
-            },
-          ],
-        )
+      if (tagType === "visual") {
+        // For visual tags, use the manually entered tag
+        visualTag = enteredTag
+        // RFID can still be set if available
+        rfidTag = scannedRfid
       } else {
-        console.error("Failed to add animal:", e)
-        Alert.alert(t("common.error"), t("bulkAnimalAddScreen.alerts.addError.message"))
+        // For RFID tags, use the scanned RFID
+        rfidTag = scannedRfid
+        // Visual can still be set if manually entered, without prefix
+        visualTag = enteredTag
       }
-    }
-    setIsSubmitting(false)
-  }, [currentTag, currentRfidTag, tagType, tags, breed, sex, dateOfBirth, vaccinationsUpToDate, notesTemplate, currentOrg, createAnimal, t])
+
+      if (!visualTag && !rfidTag) {
+        Alert.alert(
+          t("bulkAnimalAddScreen.alerts.tagRequired.title"),
+          t("bulkAnimalAddScreen.alerts.tagRequired.message")
+        )
+        return
+      }
+
+      if (!currentOrg) {
+        Alert.alert(
+          t("common.error"),
+          t("bulkAnimalAddScreen.alerts.noOrganization.message")
+        )
+        return
+      }
+
+      try {
+        const data: AnimalFormData = {
+          rfidTag: rfidTag || "",
+          visualTag: visualTag || "",
+          breed: breed.trim(),
+          sex: currentSex || sex, // Use current sex override if set, otherwise use default
+          dateOfBirth: dateOfBirth || undefined,
+          status: "active" as AnimalStatus,
+          vaccinationHistory,
+          notes: notesTemplate.trim() || undefined,
+          tags: tags.length > 0 ? JSON.stringify(tags) : null,
+        }
+
+        await createAnimal(data)
+
+        // TODO: Handle photos, weight, and pasture assignment after animal creation
+        // For now, just add the animal with basic data for speed
+
+        // Add to log
+        const newEntry: AddedAnimal = {
+          tempId: Date.now().toString(),
+          visualTag: visualTag || rfidTag,
+          rfidTag: rfidTag || "",
+          timestamp: new Date(),
+        }
+        setAddedAnimals(prev => [newEntry, ...prev])
+
+        // Clear inputs for next entry
+        setCurrentTag("")
+        setCurrentRfidTag("")
+        setCurrentSex(null) // Reset sex override
+        setCurrentWeight("")
+        setCurrentPhotos([])
+        setPhotoPickerKey(prev => prev + 1) // Force PhotoPicker to reset
+
+        // Refocus input
+        tagInputRef.current?.focus()
+      } catch (e) {
+        if (e instanceof DuplicateTagError) {
+          // Inputs are intentionally left as-is (the clear step above is skipped
+          // on throw) so the farmer can correct the tag without re-entering.
+          Alert.alert(
+            t("animalFormScreen.alerts.validation.duplicateTag.title"),
+            t(`animalFormScreen.alerts.validation.duplicateTag.${e.tagKind}Message`, {
+              tag: e.tagValue,
+              name: e.existingName,
+            }),
+          )
+          tagInputRef.current?.focus()
+        } else if (e instanceof AnimalLimitError) {
+          // Hit the free cap mid-batch — offer to upgrade rather than keep failing.
+          Alert.alert(
+            t("animalFormScreen.alerts.animalLimit.title"),
+            t("animalFormScreen.alerts.animalLimit.message", { limit: e.limit }),
+            [
+              { text: t("common.cancel"), style: "cancel" },
+              {
+                text: t("animalFormScreen.alerts.animalLimit.upgrade"),
+                onPress: () => navigation.navigate("Paywall"),
+              },
+            ],
+          )
+        } else {
+          console.error("Failed to add animal:", e)
+          Alert.alert(t("common.error"), t("bulkAnimalAddScreen.alerts.addError.message"))
+        }
+      }
+    })
+  }, [runSave, currentTag, currentRfidTag, tagType, tags, breed, sex, dateOfBirth, vaccinationHistory, notesTemplate, currentOrg, createAnimal, t])
 
   const handleFinish = useCallback(() => {
     if (addedAnimals.length === 0) {
@@ -359,27 +362,7 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
             multiline
           />
 
-          {/* Applies to every animal in this batch. */}
-          <View style={themed($vaccStatusRow)}>
-            <View style={themed($vaccStatusText)}>
-              <Text preset="formLabel" text={t("animalFormScreen.fields.vaccinationsUpToDate.label")} />
-              <Text
-                size="xxs"
-                style={themed($vaccStatusHelp)}
-                text={
-                  vaccinationsUpToDate
-                    ? t("animalFormScreen.fields.vaccinationsUpToDate.helpOn")
-                    : t("animalFormScreen.fields.vaccinationsUpToDate.helpOff")
-                }
-              />
-            </View>
-            <Switch
-              value={vaccinationsUpToDate}
-              onValueChange={setVaccinationsUpToDate}
-              trackColor={{ false: "#D1D5DB", true: colors.palette.primary500 }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
+          <VaccinationHistoryInput value={vaccinationHistory} onChange={setVaccinationHistory} disabled={isSubmitting} />
 
           <Button
             text={t("bulkAnimalAddScreen.setup.startButton")}

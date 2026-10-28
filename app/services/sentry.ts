@@ -1,5 +1,7 @@
-import * as Sentry from "@sentry/react-native"
 import { Platform } from "react-native"
+import * as Sentry from "@sentry/react-native"
+
+import { isSyncTransportFailure } from "@/utils/syncFailures"
 
 const SENTRY_DSN = process.env.EXPO_PUBLIC_SENTRY_DSN
 
@@ -10,14 +12,13 @@ export function initSentry() {
     return
   }
 
-  console.log("[Sentry] Initializing with DSN:", SENTRY_DSN)
+  if (__DEV__) console.log("[Sentry] Initializing")
 
   Sentry.init({
     dsn: SENTRY_DSN,
 
-    // Enable debug to see what's being sent (useful for troubleshooting)
-    // Set to false in production once everything works
-    debug: true,
+    // Opt in locally when diagnosing the SDK; never enable SDK debug in releases.
+    debug: __DEV__ && process.env.EXPO_PUBLIC_SENTRY_DEBUG === "true",
 
     // Environment
     environment: __DEV__ ? "development" : "production",
@@ -39,13 +40,8 @@ export function initSentry() {
     // Filter out noisy errors
     beforeSend(event, hint) {
       // Filter out console instrumentation errors
-      if (event.logger === 'console') {
+      if (event.logger === "console") {
         return null
-      }
-
-      // Log what we're about to send in dev
-      if (__DEV__) {
-        console.log("[Sentry] Sending event:", event.message || event.exception)
       }
 
       // Filter out specific errors you don't care about
@@ -54,7 +50,7 @@ export function initSentry() {
         const message = String(error.message)
 
         // Ignore network timeout errors in development
-        if (__DEV__ && message.includes("Network request failed")) {
+        if (__DEV__ && isSyncTransportFailure(error)) {
           return null
         }
 
@@ -63,17 +59,14 @@ export function initSentry() {
           return null
         }
 
-        // Ignore RevenueCat configuration warnings
-        if (message.includes("RevenueCat") || message.includes("offerings")) {
-          return null
-        }
+        // Payment errors must remain visible, including RevenueCat failures.
       }
 
       return event
     },
 
     // Enrich events with additional context
-    beforeBreadcrumb(breadcrumb, hint) {
+    beforeBreadcrumb(breadcrumb, _hint) {
       // Add timestamp to all breadcrumbs for better debugging
       breadcrumb.data = {
         ...breadcrumb.data,
@@ -109,7 +102,7 @@ export function logDatabaseOperation(
     error?: Error
     duration?: number
     query?: string
-  }
+  },
 ) {
   // Only add breadcrumb in dev or if there's an error
   // This reduces overhead in production for successful operations
@@ -153,14 +146,15 @@ export function logSyncOperation(
     recordsPushed?: number
     conflicts?: number
     error?: Error
+    level?: "warning" | "error"
     duration?: number
     lastPulledAt?: Date | null
-  }
+  },
 ) {
   Sentry.addBreadcrumb({
     category: "sync",
     message: `Sync ${operation}`,
-    level: details.error ? "error" : "info",
+    level: details.error ? (details.level ?? "error") : "info",
     data: {
       operation,
       recordsPulled: details.recordsPulled,
@@ -173,13 +167,8 @@ export function logSyncOperation(
     },
   })
 
-  const emoji = details.error ? "❌" : "🔄"
-  const prefix = `[Sync:${operation}]`
-  if (details.error) {
-    console.error(emoji, prefix, details.error)
-  } else {
-    console.log(emoji, prefix, details)
-  }
+  // Breadcrumbs keep every attempt; the caller reports a failure once.
+  if (__DEV__) console.log(`[Sync:${operation}]`, details.error?.message ?? details)
 }
 
 /**
@@ -192,7 +181,7 @@ export function logAuthOperation(
     userId?: string
     error?: Error
     method?: "password" | "magic-link" | "otp"
-  }
+  },
 ) {
   Sentry.addBreadcrumb({
     category: "auth",
@@ -256,7 +245,7 @@ export function captureException(error: Error, context?: Record<string, any>) {
   Sentry.captureException(error, {
     contexts: context ? { extra: context } : undefined,
   })
-  console.error("[Sentry] Exception captured:", error, context)
+  if (__DEV__) console.log("[Sentry] Exception reported:", error.message)
 }
 
 /**
@@ -275,7 +264,7 @@ export function startTransaction(name: string, operation: string) {
 export async function measureDatabaseQuery<T>(
   queryName: string,
   table: string,
-  queryFn: () => Promise<T>
+  queryFn: () => Promise<T>,
 ): Promise<T> {
   const startTime = Date.now()
 

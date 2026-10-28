@@ -289,13 +289,14 @@ export function validateAnimalImport(
     }
 
     const vaccinationCell = mappedCell(row, mapping, "vaccinationsUpToDate")
+    const explicitUnknown = ["unknown", "not known", "unsure"].includes(cellText(vaccinationCell).toLowerCase())
     const vaccinations = parseImportBoolean(vaccinationCell, true)
-    if (cellText(vaccinationCell) && !vaccinations.recognized) {
+    if (cellText(vaccinationCell) && !explicitUnknown && !vaccinations.recognized) {
       issues.push(
         issue(
           "warning",
           "unknown_vaccination_status",
-          `Vaccination value “${cellText(vaccinationCell)}” was not recognised; Yes will be used.`,
+          `Vaccination value “${cellText(vaccinationCell)}” was not recognised; history will be marked Unknown.`,
         ),
       )
     }
@@ -337,6 +338,8 @@ export function validateAnimalImport(
             dateOfBirth: dateOfBirth ?? undefined,
             status: status.value,
             vaccinationsUpToDate: vaccinations.value,
+            vaccinationHistory: !cellText(vaccinationCell) || !vaccinations.recognized
+              ? "unknown" as const : vaccinations.value ? "current" as const : "needs_review" as const,
             registrationNumber:
               cellText(mappedCell(row, mapping, "registrationNumber")) || undefined,
             herdTag: cellText(mappedCell(row, mapping, "herdTag")) || undefined,

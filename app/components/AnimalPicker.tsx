@@ -156,15 +156,27 @@ const VisibleAnimalPicker: FC<AnimalPickerProps> = ({
     onClose()
   }
 
-  const renderAnimal = ({ item }: { item: Animal }) => (
-    <Pressable style={themed($animalItem)} onPress={() => handleSelect(item)}>
-      <View style={themed($animalInfo)}>
-        <Text text={item.displayName} preset="bold" />
-        <Text text={`${item.breed} | ${item.sexLabel}`} size="xs" style={themed($dimText)} />
-      </View>
-      <MaterialCommunityIcons name="chevron-right" size={24} color={colors.textDim} />
-    </Pressable>
-  )
+  const renderAnimal = ({ item }: { item: Animal }) => {
+    const tag = item.visualTag || item.rfidTag
+    const secondaryTag = tag && tag !== item.displayName ? tag : ""
+    return (
+      <Pressable
+        style={themed($animalItem)}
+        onPress={() => handleSelect(item)}
+        accessibilityRole="button"
+        accessibilityLabel={[item.displayName, secondaryTag, item.breed, item.sexLabel]
+          .filter(Boolean)
+          .join(", ")}
+      >
+        <View style={themed($animalInfo)}>
+          <Text text={item.displayName} preset="bold" />
+          {secondaryTag ? <Text text={secondaryTag} size="sm" /> : null}
+          <Text text={`${item.breed} | ${item.sexLabel}`} size="xs" style={themed($dimText)} />
+        </View>
+        <MaterialCommunityIcons name="chevron-right" size={24} color={colors.textDim} />
+      </Pressable>
+    )
+  }
 
   return (
     <Modal

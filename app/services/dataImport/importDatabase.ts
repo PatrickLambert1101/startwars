@@ -270,7 +270,8 @@ export async function executeAnimalImport(
       animal.registrationNumber = row.registrationNumber ?? null
       animal.currentPastureId = null
       animal.status = row.status
-      animal.vaccinationsUpToDate = row.vaccinationsUpToDate
+      animal.vaccinationHistory = row.vaccinationHistory ?? "unknown"
+      animal.vaccinationsUpToDate = animal.vaccinationHistory !== "needs_review"
       animal.herdTag = row.herdTag ?? null
       animal.notes = row.notes ?? null
       animal.photos = null

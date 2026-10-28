@@ -1,4 +1,60 @@
 const en = {
+  uxFixes: {
+    chooseAnimalForWeight: "Choose animal to weigh",
+    openHerd: "Open herd records",
+    historyLegacyHelp: "This is an existing setting. Review the history to confirm it.",
+    discardTitle: "Discard unsaved changes?",
+    discardMessage: "Your changes have not been saved. Keep editing or discard them.",
+    keepEditing: "Keep editing",
+    discard: "Discard changes",
+    savedLocally: "Saved on this device",
+    savedAnimal: "{{animal}} · {{value}} saved. Cloud sync is separate.",
+    syncHelp: "Records on this device are available. Check your connection and tap to retry sync.",
+    historyLabel: "Vaccination history",
+    historyCurrent: "Current",
+    historyReview: "Needs review",
+    historyUnknown: "Unknown",
+    historyCurrentHelp:
+      "You have confirmed the history is current. Past doses will not be added as overdue.",
+    historyReviewHelp:
+      "Review the history. The app may schedule past-due doses from active schedules.",
+    historyUnknownHelp:
+      "Past vaccination history is unconfirmed. Past doses will not be assumed missed; future scheduling continues.",
+    reviewHistoryAction: "Review vaccination history",
+    scheduleAction: "Set up vaccination schedules",
+    editingHint:
+      "Digits are added at the end. Use backspace to correct a digit, or Clear to enter a new value.",
+    previousMeasurement: "Previous: {{value}} kg · {{date}}",
+    dashboard: {
+      firstSync: {
+        title: "Sync to check your latest tasks",
+        message:
+          "The summary uses records on this device. Other farm records may not have arrived yet.",
+      },
+      syncProblem: {
+        title: "Showing records on this device",
+        message: "Sync has not completed. New tasks or changes from other devices may be missing.",
+      },
+      reviewHistory: {
+        title: "Vaccination history needs review",
+        message:
+          "{{count}} animals have unknown or unconfirmed vaccination history. An empty task list does not confirm they are current.",
+        message_one:
+          "{{count}} animal has unknown or unconfirmed vaccination history. An empty task list does not confirm it is current.",
+        message_other:
+          "{{count}} animals have unknown or unconfirmed vaccination history. An empty task list does not confirm they are current.",
+      },
+      setUpSchedules: {
+        title: "Vaccination schedules are not set up",
+        message: "No active schedules were found. Set them up to see scheduled vaccination tasks.",
+      },
+      localSummary: {
+        title: "No alerts in these records",
+        message:
+          "This summary uses recorded calvings, vaccinations and pasture observations. Check the sync time above.",
+      },
+    },
+  },
   measurementInput: {
     tapToEnter: "Tap to enter",
     notRecorded: "Not recorded",

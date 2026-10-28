@@ -1,3 +1,4 @@
+import { getVaccinationHistory } from "@/utils/vaccinationHistory"
 import { useEffect, useState } from "react"
 import { Q } from "@nozbe/watermelondb"
 import { addDays, startOfDay } from "date-fns"
@@ -9,6 +10,8 @@ import { Animal } from "@/db/models/Animal"
 import { BreedingRecord } from "@/db/models/BreedingRecord"
 
 export type DashboardStats = {
+  historiesToReview: number
+  activeSchedules: number
   activeCount: number
   assignedToPastureCount: number
   dueToCalve: number
@@ -23,6 +26,8 @@ export type DashboardStats = {
 export function useDashboardStats() {
   const { currentOrg } = useDatabase()
   const [stats, setStats] = useState<DashboardStats>({
+    historiesToReview: 0,
+    activeSchedules: 0,
     activeCount: 0,
     assignedToPastureCount: 0,
     dueToCalve: 0,
@@ -33,6 +38,8 @@ export function useDashboardStats() {
   useEffect(() => {
     if (!currentOrg) {
       setStats({
+        historiesToReview: 0,
+        activeSchedules: 0,
         activeCount: 0,
         assignedToPastureCount: 0,
         dueToCalve: 0,
@@ -44,6 +51,8 @@ export function useDashboardStats() {
 
     setIsLoading(true)
     setStats({
+      historiesToReview: 0,
+      activeSchedules: 0,
       activeCount: 0,
       assignedToPastureCount: 0,
       dueToCalve: 0,
@@ -62,7 +71,7 @@ export function useDashboardStats() {
     // alerts cannot include animals that have since been sold or deceased.
     const activeAnimals$ = animals
       .query(orgClause, notDeleted, Q.where("status", "active"))
-      .observe()
+      .observeWithColumns(["current_pasture_id", "vaccination_history", "vaccinations_up_to_date"])
     const dueToCalve$ = breeding
       .query(
         orgClause,
@@ -72,13 +81,21 @@ export function useDashboardStats() {
       )
       .observe()
 
-    const sub = combineLatest([activeAnimals$, dueToCalve$]).subscribe(
-      ([activeAnimals, dueRecords]) => {
+    const activeSchedules$ = database
+      .get("vaccination_schedules")
+      .query(orgClause, notDeleted, Q.where("is_active", true))
+      .observeCount()
+    const sub = combineLatest([activeAnimals$, dueToCalve$, activeSchedules$]).subscribe(
+      ([activeAnimals, dueRecords, activeSchedules]) => {
         const activeAnimalIds = new Set(activeAnimals.map((animal) => animal.id))
         const actionableCalvings = dueRecords.filter(
           (record) => record.expectedCalvingDate !== null && activeAnimalIds.has(record.animalId),
         )
         setStats({
+          historiesToReview: activeAnimals.filter(
+            (animal) => !animal.vaccinationHistory || getVaccinationHistory(animal) !== "current",
+          ).length,
+          activeSchedules,
           activeCount: activeAnimals.length,
           assignedToPastureCount: activeAnimals.filter((animal) => Boolean(animal.currentPastureId))
             .length,

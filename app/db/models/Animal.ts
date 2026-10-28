@@ -142,6 +142,7 @@ export class Animal extends Model {
    * True = the animal was already current on its shots when it was added, so
    * the scheduler must not back-fill vaccinations that fell due before then.
    */
+  @field("vaccination_history") vaccinationHistory!: string | null
   @field("vaccinations_up_to_date") vaccinationsUpToDate!: boolean
   @field("herd_tag") herdTag!: string | null
   @field("notes") notes!: string | null

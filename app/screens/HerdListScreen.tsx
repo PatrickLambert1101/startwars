@@ -30,12 +30,12 @@ import {
 } from "@/components"
 import type { FilterState } from "@/components"
 import { useDatabase } from "@/context/DatabaseContext"
+import { useSyncContext } from "@/context/SyncContext"
 import { database } from "@/db"
 import { Animal } from "@/db/models/Animal"
 import { useAnimalCount, useAnimalsQuery, useComputedAnimalFilters } from "@/hooks/useAnimals"
 import { useRfidReader } from "@/hooks/useRfidReader"
 import type { MainTabScreenProps } from "@/navigators/navigationTypes"
-import { syncDatabase } from "@/services/sync_rpc"
 import { STATUS_COLORS } from "@/theme/colors"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -52,6 +52,7 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation,
   const isFocused = useIsFocused()
   const { themed, theme } = useAppTheme()
   const { currentOrg } = useDatabase()
+  const { sync } = useSyncContext()
   const [search, setSearch] = useState("")
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(false)
@@ -166,13 +167,13 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation,
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true)
     try {
-      await syncDatabase()
+      await sync()
     } catch (error) {
       console.error("Failed to sync on refresh:", error)
     } finally {
       setIsRefreshing(false)
     }
-  }, [])
+  }, [sync])
 
   const handleDismissOnboarding = useCallback(async () => {
     try {

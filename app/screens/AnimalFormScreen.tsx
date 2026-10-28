@@ -1,5 +1,10 @@
-import { FC, useCallback, useEffect, useState } from "react"
-import { Alert, Pressable, View, ViewStyle, TextStyle, ActivityIndicator, Modal, FlatList, Platform, Switch } from "react-native"
+import { useSaveGuard } from "@/hooks/useSaveGuard"
+import { useUnsavedChanges } from "@/hooks/useUnsavedChanges"
+import { getVaccinationHistory, type VaccinationHistory } from "@/utils/vaccinationHistory"
+import { VaccinationHistoryInput } from "@/components/VaccinationHistoryInput"
+import Toast from "react-native-toast-message"
+import { FC, useCallback, useEffect, useRef, useState } from "react"
+import { Alert, Pressable, View, ViewStyle, TextStyle, ActivityIndicator, Modal, FlatList, Platform } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
 
@@ -57,9 +62,8 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
   const [breed, setBreed] = useState("")
   const [sex, setSex] = useState<AnimalSex>("female")
   const [status, setStatus] = useState<AnimalStatus>("active")
-  // Defaults true: most animals joining an established herd are already current,
-  // and back-filling their history as overdue shots is noise, not information.
-  const [vaccinationsUpToDate, setVaccinationsUpToDate] = useState(true)
+  const [vaccinationHistory, setVaccinationHistory] = useState<VaccinationHistory>("unknown")
+  const [historyReviewed, setHistoryReviewed] = useState(false)
   const [dateOfBirth, setDateOfBirth] = useState<Date | null>(null)
   const [registrationNumber, setRegistrationNumber] = useState("")
   const [herdTag, setHerdTag] = useState("")
@@ -76,7 +80,8 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
   const [photos, setPhotos] = useState<PhotoWithMetadata[]>([])
   const [tags, setTags] = useState<string[]>([])
   const [tagDraft, setTagDraft] = useState("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const { isSaving: isSubmitting, runSave } = useSaveGuard()
+  const hydratedAnimal = useRef<string | null>(null)
   const [breedPickerTarget, setBreedPickerTarget] = useState<BreedPickerTarget | null>(null)
   const [customBreed, setCustomBreed] = useState("")
   const [showSexPicker, setShowSexPicker] = useState(false)
@@ -104,14 +109,15 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
 
   // Pre-fill form when editing
   useEffect(() => {
-    if (animal && isEditing) {
+    if (animal && isEditing && hydratedAnimal.current !== animal.id) {
+      hydratedAnimal.current = animal.id
       setRfidTag(animal.rfidTag)
       setVisualTag(animal.visualTag)
       setName(animal.name || "")
       setBreed(animal.breed)
       setSex(animal.sex)
       setStatus(animal.status)
-      setVaccinationsUpToDate(animal.vaccinationsUpToDate)
+      setVaccinationHistory(getVaccinationHistory(animal))
       setDateOfBirth(animal.dateOfBirth || null)
       setRegistrationNumber(animal.registrationNumber || "")
       setHerdTag(animal.herdTag || "")
@@ -270,147 +276,179 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
     setBreedPickerTarget(null)
   }
 
+  const fingerprint = animalFormFingerprint({ rfidTag, visualTag, name, breed, sex, status, vaccinationHistory, historyReviewed, dateOfBirth, registrationNumber, herdTag, notes, sireId, dameId, sireSource, damSource, externalSireReference, externalSireBreed, externalDamReference, externalDamBreed, sourceName, photos, tags, tagDraft })
+  const initialFingerprint = useRef<string | null>(null)
+  if (initialFingerprint.current === null && currentOrg && (!isEditing || animal)) {
+    initialFingerprint.current = animalFormFingerprint({
+      rfidTag: animal?.rfidTag ?? route.params?.initialRfidTag ?? "",
+      visualTag: animal?.visualTag ?? route.params?.initialVisualTag ?? "",
+      name: animal?.name ?? "",
+      breed: animal?.breed ?? currentOrg?.defaultBreeds?.cattle ?? "",
+      sex: animal?.sex ?? (parentRole === "sire" ? "male" : "female"),
+      status: animal?.status ?? "active",
+      vaccinationHistory: animal ? getVaccinationHistory(animal) : "unknown",
+      historyReviewed: false,
+      dateOfBirth: animal?.dateOfBirth ?? null,
+      registrationNumber: animal?.registrationNumber ?? "",
+      herdTag: animal?.herdTag ?? "",
+      notes: animal?.notes ?? "",
+      sireId: animal?.sireId ?? null,
+      dameId: animal?.damId ?? null,
+      sireSource: animal?.externalSireReference || animal?.externalSireBreed ? "external" : "herd",
+      damSource: animal?.externalDamReference || animal?.externalDamBreed ? "external" : "herd",
+      externalSireReference: animal?.externalSireReference ?? "",
+      externalSireBreed: animal?.externalSireBreed ?? "",
+      externalDamReference: animal?.externalDamReference ?? "",
+      externalDamBreed: animal?.externalDamBreed ?? "",
+      sourceName: animal?.sourceName ?? "",
+      photos: parseFormArray(animal?.photos),
+      tags: parseFormArray(animal?.tags),
+      tagDraft: "",
+    })
+  }
+  const markSaved = useUnsavedChanges(initialFingerprint.current !== null && fingerprint !== initialFingerprint.current, isSubmitting)
+
   const handleSave = useCallback(async () => {
-    // Require at least one tag
-    // If device has RFID hardware: require RFID or Visual tag
-    // If no RFID hardware: only require Visual tag
-    if (hasRfidHardware) {
-      if (!rfidTag.trim() && !visualTag.trim()) {
-        Alert.alert(
-          t("animalFormScreen.alerts.validation.tagRequired.title"),
-          t("animalFormScreen.alerts.validation.tagRequired.message")
-        )
-        return
-      }
-    } else {
-      if (!visualTag.trim()) {
-        Alert.alert(
-          t("animalFormScreen.alerts.validation.tagRequired.title"),
-          "Please enter a visual tag number."
-        )
-        return
-      }
-    }
-    if (!breed.trim()) {
-      Alert.alert(
-        t("animalFormScreen.alerts.validation.breedRequired.title"),
-        t("animalFormScreen.alerts.validation.breedRequired.message")
-      )
-      return
-    }
-    if (!currentOrg) {
-      Alert.alert(
-        t("animalFormScreen.alerts.validation.noOrganization.title"),
-        t("animalFormScreen.alerts.validation.noOrganization.message")
-      )
-      return
-    }
-
-    // Duplicate tag (visual + RFID) is enforced in the data layer via
-    // createAnimal/updateAnimal, which throws DuplicateTagError — caught below.
-
-    setIsSubmitting(true)
-    try {
-      const tagsToSave = mergeTagsWithDraft(tags, tagDraft)
-      const tagsJson = tagsToSave.length > 0 ? JSON.stringify(tagsToSave) : null
-      console.log("[AnimalForm] Saving tags:", tagsToSave, "as JSON:", tagsJson)
-
-      const data: AnimalFormData = {
-        rfidTag: rfidTag.trim(),
-        visualTag: visualTag.trim(),
-        name: name.trim() || undefined,
-        breed: breed.trim(),
-        sex,
-        dateOfBirth: dateOfBirth || undefined,
-        sireId: sireSource === "herd" ? sireId : null,
-        damId: damSource === "herd" ? dameId : null,
-        externalSireReference:
-          sireSource === "external" ? externalSireReference.trim() || null : null,
-        externalSireBreed:
-          sireSource === "external" ? externalSireBreed.trim() || null : null,
-        externalDamReference:
-          damSource === "external" ? externalDamReference.trim() || null : null,
-        externalDamBreed:
-          damSource === "external" ? externalDamBreed.trim() || null : null,
-        sourceName: sourceName.trim() || null,
-        status,
-        vaccinationsUpToDate,
-        registrationNumber: registrationNumber.trim() || undefined,
-        herdTag: herdTag.trim() || undefined,
-        notes: notes.trim() || undefined,
-        tags: tagsJson,
-      }
-
-      let savedAnimalId: string
-      if (isEditing && animalId) {
-        console.log("[AnimalForm] Updating animal with data:", data)
-        await updateAnimal(animalId, data)
-        savedAnimalId = animalId
-      } else {
-        const newAnimal = await createAnimal(data)
-        savedAnimalId = newAnimal.id
-
-        if (linkAsParentOf && parentRole) {
-          await updateAnimal(
-            linkAsParentOf,
-            parentRole === "sire"
-              ? {
-                  sireId: newAnimal.id,
-                  externalSireReference: null,
-                  externalSireBreed: null,
-                }
-              : {
-                  damId: newAnimal.id,
-                  externalDamReference: null,
-                  externalDamBreed: null,
-                },
+    await runSave(async () => {
+      // Require at least one tag
+      // If device has RFID hardware: require RFID or Visual tag
+      // If no RFID hardware: only require Visual tag
+      if (hasRfidHardware) {
+        if (!rfidTag.trim() && !visualTag.trim()) {
+          Alert.alert(
+            t("animalFormScreen.alerts.validation.tagRequired.title"),
+            t("animalFormScreen.alerts.validation.tagRequired.message")
           )
+          return
+        }
+      } else {
+        if (!visualTag.trim()) {
+          Alert.alert(
+            t("animalFormScreen.alerts.validation.tagRequired.title"),
+            "Please enter a visual tag number."
+          )
+          return
         }
       }
-
-      // Upload new photos in background
-      const newPhotos = photos.filter(p => p.uploadStatus === "pending")
-      if (newPhotos.length > 0) {
-        uploadPhotosInBackground(savedAnimalId, newPhotos)
-      }
-
-      navigation.goBack()
-    } catch (e) {
-      if (e instanceof DuplicateTagError) {
-        // Reset here too: setIsSubmitting(false) below is bypassed by the return.
-        setIsSubmitting(false)
+      if (!breed.trim()) {
         Alert.alert(
-          t("animalFormScreen.alerts.validation.duplicateTag.title"),
-          t(`animalFormScreen.alerts.validation.duplicateTag.${e.tagKind}Message`, {
-            tag: e.tagValue,
-            name: e.existingName,
-          }),
+          t("animalFormScreen.alerts.validation.breedRequired.title"),
+          t("animalFormScreen.alerts.validation.breedRequired.message")
         )
         return
       }
-      if (e instanceof AnimalLimitError) {
-        setIsSubmitting(false)
+      if (!currentOrg) {
         Alert.alert(
-          t("animalFormScreen.alerts.animalLimit.title"),
-          t("animalFormScreen.alerts.animalLimit.message", { limit: e.limit }),
-          [
-            { text: t("common.cancel"), style: "cancel" },
-            {
-              text: t("animalFormScreen.alerts.animalLimit.upgrade"),
-              onPress: () => navigation.navigate("Paywall"),
-            },
-          ],
+          t("animalFormScreen.alerts.validation.noOrganization.title"),
+          t("animalFormScreen.alerts.validation.noOrganization.message")
         )
         return
       }
-      console.error("Failed to save animal:", e)
-      Alert.alert(
-        t("animalFormScreen.alerts.saveError.title"),
-        t("animalFormScreen.alerts.saveError.message")
-      )
-    }
-    setIsSubmitting(false)
-  }, [rfidTag, visualTag, name, breed, sex, dateOfBirth, sireId, dameId, sireSource, damSource, externalSireReference, externalSireBreed, externalDamReference, externalDamBreed, sourceName, status, vaccinationsUpToDate, registrationNumber, herdTag, notes, photos, tags, tagDraft, currentOrg, isEditing, animalId, linkAsParentOf, parentRole, createAnimal, updateAnimal, navigation, t, hasRfidHardware, animals])
+
+      // Duplicate tag (visual + RFID) is enforced in the data layer via
+      // createAnimal/updateAnimal, which throws DuplicateTagError — caught below.
+
+      try {
+        const tagsToSave = mergeTagsWithDraft(tags, tagDraft)
+        const tagsJson = tagsToSave.length > 0 ? JSON.stringify(tagsToSave) : null
+        console.log("[AnimalForm] Saving tags:", tagsToSave, "as JSON:", tagsJson)
+
+        const data: AnimalFormData = {
+          rfidTag: rfidTag.trim(),
+          visualTag: visualTag.trim(),
+          name: name.trim() || undefined,
+          breed: breed.trim(),
+          sex,
+          dateOfBirth: dateOfBirth || undefined,
+          sireId: sireSource === "herd" ? sireId : null,
+          damId: damSource === "herd" ? dameId : null,
+          externalSireReference:
+            sireSource === "external" ? externalSireReference.trim() || null : null,
+          externalSireBreed:
+            sireSource === "external" ? externalSireBreed.trim() || null : null,
+          externalDamReference:
+            damSource === "external" ? externalDamReference.trim() || null : null,
+          externalDamBreed:
+            damSource === "external" ? externalDamBreed.trim() || null : null,
+          sourceName: sourceName.trim() || null,
+          status,
+          vaccinationHistory: !isEditing || historyReviewed ? vaccinationHistory : (animal?.vaccinationHistory as VaccinationHistory | null) ?? undefined,
+          registrationNumber: registrationNumber.trim() || undefined,
+          herdTag: herdTag.trim() || undefined,
+          notes: notes.trim() || undefined,
+          tags: tagsJson,
+        }
+
+        let savedAnimalId: string
+        if (isEditing && animalId) {
+          console.log("[AnimalForm] Updating animal with data:", data)
+          await updateAnimal(animalId, data)
+          savedAnimalId = animalId
+        } else {
+          const newAnimal = await createAnimal(data)
+          savedAnimalId = newAnimal.id
+
+          if (linkAsParentOf && parentRole) {
+            await updateAnimal(
+              linkAsParentOf,
+              parentRole === "sire"
+                ? {
+                    sireId: newAnimal.id,
+                    externalSireReference: null,
+                    externalSireBreed: null,
+                  }
+                : {
+                    damId: newAnimal.id,
+                    externalDamReference: null,
+                    externalDamBreed: null,
+                  },
+            )
+          }
+        }
+
+        // Upload new photos in background
+        const newPhotos = photos.filter(p => p.uploadStatus === "pending")
+        if (newPhotos.length > 0) {
+          uploadPhotosInBackground(savedAnimalId, newPhotos)
+        }
+
+        markSaved()
+        Toast.show({ type: "success", text1: t("uxFixes.savedLocally"), text2: visualTag || rfidTag })
+        navigation.goBack()
+      } catch (e) {
+        if (e instanceof DuplicateTagError) {
+          // Reset here too: setIsSubmitting(false) below is bypassed by the return.
+          Alert.alert(
+            t("animalFormScreen.alerts.validation.duplicateTag.title"),
+            t(`animalFormScreen.alerts.validation.duplicateTag.${e.tagKind}Message`, {
+              tag: e.tagValue,
+              name: e.existingName,
+            }),
+          )
+          return
+        }
+        if (e instanceof AnimalLimitError) {
+          Alert.alert(
+            t("animalFormScreen.alerts.animalLimit.title"),
+            t("animalFormScreen.alerts.animalLimit.message", { limit: e.limit }),
+            [
+              { text: t("common.cancel"), style: "cancel" },
+              {
+                text: t("animalFormScreen.alerts.animalLimit.upgrade"),
+                onPress: () => navigation.navigate("Paywall"),
+              },
+            ],
+          )
+          return
+        }
+        console.error("Failed to save animal:", e)
+        Alert.alert(
+          t("animalFormScreen.alerts.saveError.title"),
+          t("animalFormScreen.alerts.saveError.message")
+        )
+      }
+    })
+  }, [runSave, markSaved, animal, rfidTag, visualTag, name, breed, sex, dateOfBirth, sireId, dameId, sireSource, damSource, externalSireReference, externalSireBreed, externalDamReference, externalDamBreed, sourceName, status, vaccinationHistory, historyReviewed, registrationNumber, herdTag, notes, photos, tags, tagDraft, currentOrg, isEditing, animalId, linkAsParentOf, parentRole, createAnimal, updateAnimal, navigation, t, hasRfidHardware, animals])
 
   const uploadPhotosInBackground = async (savedAnimalId: string, photosToUpload: PhotoWithMetadata[]) => {
     try {
@@ -474,7 +512,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
   return (
     <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
       <View style={themed($headerRow)}>
-        <Button text={t("animalFormScreen.buttons.cancel")} preset="default" onPress={() => navigation.goBack()} />
+        <Button text={t("animalFormScreen.buttons.cancel")} preset="default" disabled={isSubmitting} onPress={() => navigation.goBack()} />
         <Text
           preset="heading"
           text={
@@ -566,7 +604,9 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
           )}
           <View style={themed($tagInputRow)}>
             <TextField
+          editable={!isSubmitting}
               value={visualTag}
+              accessibilityLabel={t("animalFormScreen.fields.visualTag.label")}
               onChangeText={setVisualTag}
               placeholder={t("animalFormScreen.fields.visualTag.placeholder")}
               autoCorrect={false}
@@ -580,6 +620,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
         </View>
 
         <TextField
+          editable={!isSubmitting}
           label={t("animalFormScreen.fields.name.label")}
           value={name}
           onChangeText={setName}
@@ -619,28 +660,10 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
           </View>
         </View>
 
-        {/* Sits under date of birth: that's the moment the farmer has this
-            animal's history in mind, and it's what drives the back-fill. */}
-        <View style={themed($vaccStatusRow)}>
-          <View style={themed($vaccStatusText)}>
-            <Text preset="formLabel" text={t("animalFormScreen.fields.vaccinationsUpToDate.label")} />
-            <Text
-              size="xxs"
-              style={themed($vaccStatusHelp)}
-              text={
-                vaccinationsUpToDate
-                  ? t("animalFormScreen.fields.vaccinationsUpToDate.helpOn")
-                  : t("animalFormScreen.fields.vaccinationsUpToDate.helpOff")
-              }
-            />
-          </View>
-          <Switch
-            value={vaccinationsUpToDate}
-            onValueChange={setVaccinationsUpToDate}
-            trackColor={{ false: "#D1D5DB", true: colors.palette.primary500 }}
-            thumbColor="#FFFFFF"
-          />
-        </View>
+        <VaccinationHistoryInput value={vaccinationHistory} legacy={isEditing && !historyReviewed && !animal?.vaccinationHistory} disabled={isSubmitting} onChange={(history) => {
+          setVaccinationHistory(history)
+          setHistoryReviewed(true)
+        }} />
 
         {/* Lineage Section */}
         <View style={themed($lineageSection)}>
@@ -693,6 +716,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
             ) : (
               <View style={themed($externalParentFields)}>
                 <TextField
+          editable={!isSubmitting}
                   label="Sire ID or registration"
                   value={externalSireReference}
                   onChangeText={setExternalSireReference}
@@ -755,6 +779,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
             ) : (
               <View style={themed($externalParentFields)}>
                 <TextField
+          editable={!isSubmitting}
                   label="Dam ID or registration"
                   value={externalDamReference}
                   onChangeText={setExternalDamReference}
@@ -781,6 +806,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
         </View>
 
         <TextField
+          editable={!isSubmitting}
           label="Source farm or breeder (optional)"
           value={sourceName}
           onChangeText={setSourceName}
@@ -789,6 +815,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
         />
 
         <TextField
+          editable={!isSubmitting}
           label={t("animalFormScreen.fields.registrationNumber.label")}
           value={registrationNumber}
           onChangeText={setRegistrationNumber}
@@ -797,6 +824,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
         />
 
         <TextField
+          editable={!isSubmitting}
           label={t("animalFormScreen.fields.notes.label")}
           value={notes}
           onChangeText={setNotes}
@@ -849,6 +877,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
           text={isSubmitting ? t("animalFormScreen.buttons.saving") : isEditing ? t("animalFormScreen.buttons.save") : t("animalFormScreen.buttons.add")}
           preset="reversed"
           style={themed($saveButton)}
+          disabled={isSubmitting}
           onPress={handleSave}
         />
       </View>
@@ -865,6 +894,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
             <Text preset="heading" text={breedPickerTitle} size="md" />
             <View style={themed($customBreedBox)}>
               <TextField
+          editable={!isSubmitting}
                 label={
                   breedPickerTarget === "sire"
                     ? "Custom sire breed or cross"
@@ -932,6 +962,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
           <View style={themed($modalContent)}>
             <Text preset="heading" text={t("animalFormScreen.modals.sire.title")} size="md" />
             <TextField
+          editable={!isSubmitting}
               value={parentSearch}
               onChangeText={setParentSearch}
               placeholder={t("animalFormScreen.modals.sire.searchPlaceholder")}
@@ -968,6 +999,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
           <View style={themed($modalContent)}>
             <Text preset="heading" text={t("animalFormScreen.modals.dame.title")} size="md" />
             <TextField
+          editable={!isSubmitting}
               value={parentSearch}
               onChangeText={setParentSearch}
               placeholder={t("animalFormScreen.modals.dame.searchPlaceholder")}
@@ -1319,3 +1351,12 @@ const $hintTextSmall: ThemedStyle<TextStyle> = ({ colors }) => ({
 const $farmLabel: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.textDim,
 })
+
+function parseFormArray(value?: string | null): any[] {
+  try { const parsed = JSON.parse(value || "[]"); return Array.isArray(parsed) ? parsed : [] } catch { return [] }
+}
+function animalFormFingerprint(values: Record<string, any>): string {
+  return JSON.stringify({ ...values, dateOfBirth: values.dateOfBirth?.getTime() ?? null,
+    photos: values.photos.map((photo: any) => ({ id: photo.id ?? null, uri: photo.uri ?? null, localUri: photo.localUri ?? null, caption: photo.caption ?? "" })),
+  })
+}

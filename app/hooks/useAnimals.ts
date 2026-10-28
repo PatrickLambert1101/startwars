@@ -1,3 +1,4 @@
+import { skipsHistoricalVaccinations, type VaccinationHistory } from "@/utils/vaccinationHistory"
 import { useEffect, useState, useMemo } from "react"
 import { Q } from "@nozbe/watermelondb"
 import { database } from "@/db"
@@ -95,10 +96,11 @@ export type AnimalFormData = {
   status: AnimalStatus
   /**
    * True = already current on its shots, so the scheduler skips anything that
-   * fell due before now. Defaults to true — most animals being added to an
-   * established herd are already vaccinated.
+   * fell due before the animal joined the app. Kept for older clients; explicit
+   * vaccinationHistory determines the setting for new and reviewed animals.
    */
   vaccinationsUpToDate?: boolean
+  vaccinationHistory?: VaccinationHistory
   herdTag?: string
   notes?: string
   /** JSON-encoded array of tag strings (e.g. ["Breeding Stock"]), or null. */
@@ -347,7 +349,10 @@ export function useAnimalActions() {
         animal.sourceName = data.sourceName ?? null
         animal.registrationNumber = data.registrationNumber ?? null
         animal.status = data.status
-        animal.vaccinationsUpToDate = data.vaccinationsUpToDate ?? true
+        animal.vaccinationHistory = data.vaccinationHistory ?? (
+          data.vaccinationsUpToDate === undefined ? "unknown" : data.vaccinationsUpToDate ? "current" : "needs_review"
+        )
+        animal.vaccinationsUpToDate = skipsHistoricalVaccinations(animal.vaccinationHistory as VaccinationHistory)
         animal.herdTag = data.herdTag ?? null
         animal.notes = data.notes ?? null
         animal.tags = data.tags ?? null
@@ -390,7 +395,7 @@ export function useAnimalActions() {
       data.dateOfBirth !== undefined ||
       data.sex !== undefined ||
       data.status !== undefined ||
-      data.vaccinationsUpToDate !== undefined
+      data.vaccinationsUpToDate !== undefined || data.vaccinationHistory !== undefined
 
     await database.write(async () => {
       const animal = await database.get<Animal>("animals").find(animalId)
@@ -418,7 +423,13 @@ export function useAnimalActions() {
         if (data.sourceName !== undefined) a.sourceName = data.sourceName ?? null
         if (data.registrationNumber !== undefined) a.registrationNumber = data.registrationNumber ?? null
         if (data.status !== undefined) a.status = data.status
-        if (data.vaccinationsUpToDate !== undefined) a.vaccinationsUpToDate = data.vaccinationsUpToDate
+        if (data.vaccinationHistory !== undefined) {
+          a.vaccinationHistory = data.vaccinationHistory
+          a.vaccinationsUpToDate = skipsHistoricalVaccinations(data.vaccinationHistory)
+        } else if (data.vaccinationsUpToDate !== undefined) {
+          a.vaccinationsUpToDate = data.vaccinationsUpToDate
+          a.vaccinationHistory = data.vaccinationsUpToDate ? "current" : "needs_review"
+        }
         if (data.herdTag !== undefined) a.herdTag = data.herdTag ?? null
         if (data.notes !== undefined) a.notes = data.notes ?? null
         if (data.tags !== undefined) a.tags = data.tags ?? null

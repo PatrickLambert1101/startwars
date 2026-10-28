@@ -1,11 +1,17 @@
 import { useCallback, useState, useEffect, useRef } from "react"
 import AsyncStorage from "@react-native-async-storage/async-storage"
-import { syncDatabase } from "@/services/sync_rpc"
-import { logSyncOperation, startTransaction, captureException } from "@/services/sentry"
+
 import { useDatabase } from "@/context/DatabaseContext"
-import { supabase } from "@/services/supabase"
-import { calculateScheduledVaccinations } from "@/services/vaccinationScheduler"
 import { flushPhotoQueue } from "@/services/photoUploadQueue"
+import { logSyncOperation, captureException } from "@/services/sentry"
+import { supabase } from "@/services/supabase"
+import { syncDatabase, type SyncResult } from "@/services/sync_rpc"
+import { calculateScheduledVaccinations } from "@/services/vaccinationScheduler"
+import {
+  createSyncFailureGate,
+  isSyncTransportFailure,
+  syncErrorMessage,
+} from "@/utils/syncFailures"
 
 export type SyncStatus = "idle" | "syncing" | "success" | "error"
 export type SyncStage = "pulling" | "processing" | "pushing" | "complete"
@@ -13,10 +19,10 @@ export type SyncStage = "pulling" | "processing" | "pushing" | "complete"
 const SYNC_QUEUE_KEY = "sync_queue"
 
 // Sync timing constants
-const QUEUE_DEBOUNCE_MS = 10_000              // Debounce queued syncs (low-end devices)
-const PENDING_REQUEUE_DELAY_MS = 5_000        // Delay before running a sync queued during another sync
-const STATUS_RESET_DELAY_MS = 3_000           // Delay before clearing status UI after success/error
-const PROCESSING_DISPLAY_DELAY_MS = 300       // Artificial delay so users can see "processing" stage
+const QUEUE_DEBOUNCE_MS = 10_000 // Debounce queued syncs (low-end devices)
+const PENDING_REQUEUE_DELAY_MS = 5_000 // Delay before running a sync queued during another sync
+const STATUS_RESET_DELAY_MS = 3_000 // Delay before clearing status UI after success/error
+const PROCESSING_DISPLAY_DELAY_MS = 300 // Artificial delay so users can see "processing" stage
 const PERSISTED_QUEUE_MAX_AGE_MS = 5 * 60 * 1000
 
 // Exponential backoff for failed syncs
@@ -56,17 +62,35 @@ export function useSync() {
   const [retryCount, setRetryCount] = useState<number>(0)
   const [nextRetryAt, setNextRetryAt] = useState<Date | null>(null)
 
-  const isSyncingRef = useRef(false)
+  const inFlightRef = useRef<Promise<SyncResult> | null>(null)
   const pendingSyncRef = useRef(false)
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const hasCheckedQueue = useRef(false)
   const retryCountRef = useRef(0)
+  const failureGate = useRef(createSyncFailureGate())
+  const mountedRef = useRef(true)
+  const pendingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const statusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+      for (const timer of [syncTimeoutRef, retryTimeoutRef, pendingTimeoutRef, statusTimeoutRef]) {
+        if (timer.current) clearTimeout(timer.current)
+        timer.current = null
+      }
+    }
+  }, [])
 
   const scheduleRetry = useCallback((runSync: () => void) => {
-    const attempt = retryCountRef.current
+    // The failure count starts at one; retry delays are indexed from zero.
+    const attempt = retryCountRef.current - 1
     if (attempt >= MAX_RETRY_ATTEMPTS) {
-      if (__DEV__) console.warn(`[Sync] Max retry attempts (${MAX_RETRY_ATTEMPTS}) reached`)
+      if (__DEV__ && attempt === MAX_RETRY_ATTEMPTS) {
+        console.warn(`[Sync] Max retry attempts (${MAX_RETRY_ATTEMPTS}) reached`)
+      }
       setNextRetryAt(null)
       return
     }
@@ -83,172 +107,140 @@ export function useSync() {
     }, delay)
   }, [])
 
-  const performSync = useCallback(async (showStatus = true) => {
-    if (isSyncingRef.current) {
-      pendingSyncRef.current = true
-      if (__DEV__) console.log("[Sync] Already syncing, queuing another sync")
-      return { success: true }
-    }
-
-    isSyncingRef.current = true
-    if (showStatus) {
-      setStatus("syncing")
-      setError(null)
-      setProgress(0)
-      setStage("pulling")
-    }
-
-    const startTime = Date.now()
-    const transaction = startTransaction("database-sync", "sync")
-
-    if (__DEV__) console.log("[Sync] Starting sync operation...")
-
-    try {
-      if (showStatus) {
-        setStage("pulling")
-        setProgress(10)
+  const performSync = useCallback(
+    (showStatus = true): Promise<SyncResult> => {
+      if (!mountedRef.current)
+        return Promise.resolve({ success: false, error: "Sync no longer active" })
+      if (inFlightRef.current) {
+        pendingSyncRef.current = true
+        return inFlightRef.current
       }
-
-      const result = await syncDatabase()
-
-      if (showStatus) {
-        setStage("processing")
-        setProgress(60)
-      }
-
-      await new Promise(resolve => setTimeout(resolve, PROCESSING_DISPLAY_DELAY_MS))
-
-      if (showStatus) {
-        setStage("pushing")
-        setProgress(85)
-      }
-
-      if (showStatus) {
-        setStage("complete")
-        setProgress(100)
-      }
-
-      const duration = Date.now() - startTime
-
-      if (result.success) {
-        if (showStatus) setStatus("success")
-        setLastSynced(new Date())
-
-        retryCountRef.current = 0
-        setRetryCount(0)
+      const run = async (): Promise<SyncResult> => {
+        let succeeded = false
+        if (statusTimeoutRef.current) clearTimeout(statusTimeoutRef.current)
+        if (pendingTimeoutRef.current) clearTimeout(pendingTimeoutRef.current)
+        pendingTimeoutRef.current = null
+        if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current)
+        retryTimeoutRef.current = null
         setNextRetryAt(null)
-        if (retryTimeoutRef.current) {
-          clearTimeout(retryTimeoutRef.current)
-          retryTimeoutRef.current = null
+        if (showStatus) {
+          setStatus("syncing")
+          setError(null)
+          setProgress(10)
+          setStage("pulling")
+        }
+
+        const startTime = Date.now()
+        const fail = (failure: unknown) => {
+          const duration = Date.now() - startTime
+          const syncError =
+            failure instanceof Error ? failure : new Error(syncErrorMessage(failure))
+          setStatus("error")
+          setError(syncError.message)
+          setProgress(0)
+          setStage(null)
+          retryCountRef.current += 1
+          setRetryCount(retryCountRef.current)
+          scheduleRetry(() => performSync(false))
+
+          logSyncOperation("full-sync", {
+            error: syncError,
+            level: isSyncTransportFailure(failure) ? "warning" : "error",
+            duration,
+          })
+          if (failureGate.current.shouldReport(failure)) {
+            captureException(syncError, {
+              component: "useSync",
+              operation: "performSync",
+              duration,
+              retryAttempt: retryCountRef.current,
+            })
+          }
+          return { success: false, error: syncError.message }
         }
 
         try {
-          await AsyncStorage.removeItem(SYNC_QUEUE_KEY)
-        } catch (err) {
-          console.warn("[Sync] Failed to clear sync queue:", err)
-        }
+          const result = await syncDatabase()
+          if (!mountedRef.current) return result
+          if (!result.success)
+            return fail(result.cause ?? new Error(result.error ?? "Unknown sync error"))
 
-        if (__DEV__) console.log(`[Sync] Sync completed in ${duration}ms`)
-        logSyncOperation("full-sync", {
-          recordsPulled: result.pulled || 0,
-          recordsPushed: result.pushed || 0,
-          duration,
-          lastPulledAt: new Date(),
-        })
+          if (showStatus) {
+            setStage("processing")
+            setProgress(60)
+            await new Promise((resolve) => setTimeout(resolve, PROCESSING_DISPLAY_DELAY_MS))
+            if (!mountedRef.current) return result
+            setStage("complete")
+            setProgress(100)
+          }
 
-        // A pull can bring in animals created on someone else's device. Those
-        // animals have no scheduled vaccinations here, and nothing else would
-        // ever generate them — so they would silently never come due.
-        //
-        // This deliberately does not gate on a pulled-record count: syncDatabase
-        // resolves to { success, error } only, so any such check would be
-        // permanently false. Runs once per successful sync, not per record, and
-        // is fire-and-forget so a slow recalc never blocks the sync UI.
-        const orgForRecalc = currentOrgRef.current
-        if (orgForRecalc) {
-          calculateScheduledVaccinations(orgForRecalc.id).catch((err) => {
-            console.error("[Sync] Failed to recalculate vaccinations after pull:", err)
+          succeeded = true
+          // Recovery from a background retry must also clear the previous error.
+          setStatus("success")
+          setError(null)
+          setLastSynced(new Date())
+          retryCountRef.current = 0
+          setRetryCount(0)
+          failureGate.current.clear()
+
+          try {
+            await AsyncStorage.removeItem(SYNC_QUEUE_KEY)
+          } catch (err) {
+            console.warn("[Sync] Failed to clear sync queue:", err)
+          }
+
+          logSyncOperation("full-sync", {
+            duration: Date.now() - startTime,
+            lastPulledAt: new Date(),
           })
+
+          // A pull can bring animals from another device; update their schedules
+          // after every successful sync because the RPC does not return row counts.
+          const orgForRecalc = currentOrgRef.current
+          if (orgForRecalc) {
+            calculateScheduledVaccinations(orgForRecalc.id).catch((err) => {
+              console.error("[Sync] Failed to recalculate vaccinations after pull:", err)
+            })
+          }
+          flushPhotoQueue().catch((err) => {
+            console.error("[Sync] Failed to flush photo queue after sync:", err)
+          })
+
+          if (mountedRef.current) {
+            statusTimeoutRef.current = setTimeout(() => {
+              statusTimeoutRef.current = null
+              setStatus("idle")
+              setProgress(0)
+              setStage(null)
+            }, STATUS_RESET_DELAY_MS)
+          }
+          return result
+        } catch (failure) {
+          if (!mountedRef.current) return { success: false, error: syncErrorMessage(failure) }
+          return fail(failure)
+        } finally {
+          const pending = pendingSyncRef.current
+          pendingSyncRef.current = false
+          // On failure, the retry timer owns the next attempt. Queued requests must
+          // not create a second timer that bypasses the failure backoff.
+          if (mountedRef.current && succeeded && pending) {
+            pendingTimeoutRef.current = setTimeout(() => {
+              pendingTimeoutRef.current = null
+              performSync(false)
+            }, PENDING_REQUEUE_DELAY_MS)
+          }
         }
-
-        // We're online (the sync just succeeded), so drain any photos that
-        // couldn't be uploaded earlier — e.g. captured in the field offline.
-        // Fire-and-forget so a slow upload never blocks the sync UI.
-        flushPhotoQueue().catch((err) => {
-          console.error("[Sync] Failed to flush photo queue after sync:", err)
-        })
-
-        transaction?.setStatus({ code: 1 })
-        transaction?.finish()
-      } else {
-        setStatus("error")
-        setError(result.error ?? "Unknown error")
-
-        retryCountRef.current += 1
-        setRetryCount(retryCountRef.current)
-        scheduleRetry(() => performSync(false))
-
-        console.error(`[Sync] Sync failed after ${duration}ms (attempt ${retryCountRef.current}):`, result.error)
-        logSyncOperation("full-sync", { error: new Error(result.error || "Unknown sync error"), duration })
-        captureException(new Error(result.error || "Unknown sync error"), {
-          component: "useSync",
-          operation: "performSync",
-          duration,
-          retryAttempt: retryCountRef.current,
-        })
-
-        transaction?.setStatus({ code: 2 })
-        transaction?.finish()
       }
-
-      isSyncingRef.current = false
-
-      if (pendingSyncRef.current) {
-        pendingSyncRef.current = false
-        if (__DEV__) console.log(`[Sync] Processing queued sync in ${PENDING_REQUEUE_DELAY_MS}ms...`)
-        setTimeout(() => performSync(false), PENDING_REQUEUE_DELAY_MS)
+      const operation = run()
+      inFlightRef.current = operation
+      const release = () => {
+        if (inFlightRef.current === operation) inFlightRef.current = null
       }
-
-      if (showStatus && result.success) {
-        setTimeout(() => {
-          setStatus("idle")
-          setProgress(0)
-          setStage(null)
-        }, STATUS_RESET_DELAY_MS)
-      }
-
-      return result
-    } catch (error) {
-      if (showStatus) {
-        setProgress(0)
-        setStage(null)
-      }
-      const duration = Date.now() - startTime
-      console.error(`[Sync] Sync crashed after ${duration}ms:`, error)
-
-      isSyncingRef.current = false
-
-      const errorMessage = (error as Error).message
-      setStatus("error")
-      setError(errorMessage)
-      retryCountRef.current += 1
-      setRetryCount(retryCountRef.current)
-      scheduleRetry(() => performSync(false))
-
-      logSyncOperation("full-sync", { error: error as Error, duration })
-      captureException(error as Error, {
-        component: "useSync",
-        operation: "performSync",
-        duration,
-        retryAttempt: retryCountRef.current,
-      })
-
-      transaction?.setStatus({ code: 2 })
-      transaction?.finish()
-
-      return { success: false, error: errorMessage }
-    }
-  }, [scheduleRetry])
+      void operation.then(release, release)
+      return operation
+    },
+    [scheduleRetry],
+  )
 
   // Manual sync with full UI feedback
   const sync = useCallback(async () => {
@@ -259,7 +251,7 @@ export function useSync() {
   const queueSync = useCallback(() => {
     if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current)
 
-    AsyncStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify({ queuedAt: Date.now() })).catch(err => {
+    AsyncStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify({ queuedAt: Date.now() })).catch((err) => {
       console.warn("[Sync] Failed to persist sync queue:", err)
     })
 
@@ -306,21 +298,21 @@ export function useSync() {
 
     for (const table of REALTIME_TABLES) {
       channel = channel.on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table },
+        "postgres_changes",
+        { event: "*", schema: "public", table },
         (payload) => {
           if (__DEV__) console.log(`[Sync] Real-time change in ${table}:`, payload.eventType)
           queueSync()
-        }
+        },
       )
     }
 
     channel.subscribe((status, err) => {
-      if (status === 'SUBSCRIBED') {
+      if (status === "SUBSCRIBED") {
         if (__DEV__) console.log("[Sync] Real-time subscriptions active")
-      } else if (status === 'CHANNEL_ERROR' && err) {
+      } else if (status === "CHANNEL_ERROR" && err) {
         console.warn("[Sync] Real-time channel error (may recover):", err)
-      } else if (status === 'TIMED_OUT') {
+      } else if (status === "TIMED_OUT") {
         console.warn("[Sync] Real-time subscription timed out, will retry...")
       } else if (__DEV__) {
         console.log("[Sync] Channel status:", status)
@@ -333,5 +325,15 @@ export function useSync() {
     }
   }, [currentOrg, queueSync])
 
-  return { sync, queueSync, status, progress, stage, lastSynced, error, retryCount, nextRetryAt }
+  return {
+    sync,
+    queueSync,
+    status,
+    progress,
+    stage,
+    lastSynced,
+    error,
+    retryCount,
+    nextRetryAt,
+  }
 }

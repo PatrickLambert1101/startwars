@@ -10,9 +10,11 @@ export function ConditionScoreInput({
   label,
   value,
   onChangeText,
+  disabled = false,
 }: {
   label: string
   value: string
+  disabled?: boolean
   onChangeText: (value: string) => void
 }) {
   const {
@@ -35,7 +37,8 @@ export function ConditionScoreInput({
                 key={score}
                 accessibilityRole="button"
                 accessibilityLabel={`${label}: ${score}, ${description}`}
-                accessibilityState={{ selected }}
+                accessibilityState={{ selected, disabled }}
+                disabled={disabled}
                 onPress={() => {
                   Keyboard.dismiss()
                   onChangeText(String(score))
@@ -66,7 +69,11 @@ export function ConditionScoreInput({
         </View>
       ))}
       {value !== "" && (
-        <Button text={t("measurementInput.clear")} onPress={() => onChangeText("")} />
+        <Button
+          disabled={disabled}
+          text={t("measurementInput.clear")}
+          onPress={() => onChangeText("")}
+        />
       )}
     </View>
   )

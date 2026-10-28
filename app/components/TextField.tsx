@@ -13,9 +13,9 @@ import {
 
 import { isRTL } from "@/i18n"
 import { translate } from "@/i18n/translate"
-import type { ThemedStyle, ThemedStyleArray } from "@/theme/types"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
+import type { ThemedStyle, ThemedStyleArray } from "@/theme/types"
 
 import { Text, TextProps } from "./Text"
 
@@ -144,6 +144,11 @@ export const TextField = forwardRef(function TextField(props: TextFieldProps, re
     ? translate(placeholderTx, placeholderTxOptions)
     : placeholder
 
+  const inputAccessibilityLabel =
+    TextInputProps.accessibilityLabel ??
+    (labelTx ? translate(labelTx, labelTxOptions) : label) ??
+    placeholderContent
+
   const $containerStyles = [$containerStyleOverride]
 
   const $labelStyles = [$labelStyle, LabelTextProps?.style]
@@ -185,6 +190,7 @@ export const TextField = forwardRef(function TextField(props: TextFieldProps, re
 
   return (
     <TouchableOpacity
+      accessible={false}
       activeOpacity={1}
       style={$containerStyles}
       onPress={focusInput}
@@ -218,6 +224,7 @@ export const TextField = forwardRef(function TextField(props: TextFieldProps, re
           placeholder={placeholderContent}
           placeholderTextColor={colors.textDim}
           {...TextInputProps}
+          accessibilityLabel={inputAccessibilityLabel}
           editable={!disabled}
           style={themed($inputStyles)}
         />
