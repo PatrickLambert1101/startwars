@@ -7,6 +7,8 @@ import { useFocusEffect, useIsFocused } from "@react-navigation/native"
 import Toast from "react-native-toast-message"
 
 import { Screen, Text, TextField, Button, ScanTagButton, AppHeader } from "@/components"
+import { ConditionScoreInput } from "@/components/ConditionScoreInput"
+import { MeasurementInput } from "@/components/MeasurementInput"
 import { WeightChart } from "@/components/WeightChart"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -71,7 +73,6 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
   const { protocols } = useActiveProtocols()
 
   const rfidInputRef = useRef<TextInput>(null)
-  const weightInputRef = useRef<TextInput>(null)
   const scanTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // RFID scanner integration
@@ -783,22 +784,16 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
 
               {/* Weight entry */}
               <View style={themed($formCard)}>
-                <Text preset="formLabel" text={t("chuteScreen.weight.newWeightLabel")} />
-                <TextField
-                  ref={weightInputRef}
+                <MeasurementInput
+                  label={t("chuteScreen.weight.newWeightLabel")}
+                  unit="kg"
                   value={weightValue}
                   onChangeText={setWeightValue}
-                  placeholder={t("chuteScreen.weight.weightPlaceholder")}
-                  keyboardType="numeric"
-                  autoFocus
-                  onSubmitEditing={handleSaveWeight}
                 />
-                <TextField
+                <ConditionScoreInput
                   label={t("chuteScreen.weight.conditionScoreLabel")}
                   value={conditionScore}
                   onChangeText={setConditionScore}
-                  placeholder={t("chuteScreen.weight.conditionScorePlaceholder")}
-                  keyboardType="numeric"
                 />
                 <View style={themed($formButtons)}>
                   <Button text={t("common.skip")} preset="default" onPress={handleClearAnimal} />
@@ -817,20 +812,16 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
               )}
               <View style={themed($formCard)}>
                 <Text preset="bold" text={t("chuteScreen.weightAndTreatment.step1")} size="md" style={{ color: "#739134" }} />
-                <TextField
+                <MeasurementInput
+                  unit="kg"
                   label={t("chuteScreen.weightAndTreatment.weightLabel")}
                   value={weightValue}
                   onChangeText={setWeightValue}
-                  placeholder={t("chuteScreen.weight.weightPlaceholder")}
-                  keyboardType="numeric"
-                  autoFocus
                 />
-                <TextField
+                <ConditionScoreInput
                   label={t("chuteScreen.weightAndTreatment.conditionScoreLabel")}
                   value={conditionScore}
                   onChangeText={setConditionScore}
-                  placeholder={t("chuteScreen.weight.conditionScorePlaceholder")}
-                  keyboardType="numeric"
                 />
               </View>
 
@@ -968,31 +959,11 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
           {activeMode === "condition" && (
             <View style={themed($actionSection)}>
               <View style={themed($formCard)}>
-                <Text preset="formLabel" text={t("chuteScreen.weight.conditionScoreLabel")} />
-                <View style={themed($scoreGrid)}>
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((s) => (
-                    <Pressable
-                      key={s}
-                      onPress={() => setConditionValue(`${s}`)}
-                      style={[
-                        themed($scoreBtn),
-                        conditionValue === `${s}` && { backgroundColor: "#F59E0B", borderColor: "#F59E0B" },
-                      ]}
-                    >
-                      <Text
-                        preset="bold"
-                        text={`${s}`}
-                        size="lg"
-                        style={conditionValue === `${s}` ? { color: "#FFF" } : {}}
-                      />
-                      <Text
-                        text={s <= 3 ? t("chuteScreen.condition.labels.thin") : s <= 6 ? t("chuteScreen.condition.labels.moderate") : t("chuteScreen.condition.labels.fat")}
-                        size="xxs"
-                        style={conditionValue === `${s}` ? { color: "#FFF" } : themed($dimText)}
-                      />
-                    </Pressable>
-                  ))}
-                </View>
+                <ConditionScoreInput
+                  label={t("chuteScreen.weight.conditionScoreLabel")}
+                  value={conditionValue}
+                  onChangeText={setConditionValue}
+                />
                 <View style={themed($formButtons)}>
                   <Button text={t("common.skip")} preset="default" onPress={handleClearAnimal} />
                   <Button text={t("chuteScreen.weight.saveAndNext")} preset="reversed" onPress={handleSaveCondition} style={themed($saveNextButton)} />
@@ -1346,23 +1317,6 @@ const $historyDot: ThemedStyle<ViewStyle> = ({ colors }) => ({
   height: 6,
   borderRadius: 3,
   backgroundColor: colors.tint,
-})
-
-// Condition score grid
-const $scoreGrid: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flexDirection: "row",
-  flexWrap: "wrap",
-  gap: spacing.xs,
-})
-
-const $scoreBtn: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  width: "30%",
-  backgroundColor: colors.palette.neutral200,
-  borderRadius: 12,
-  paddingVertical: spacing.sm,
-  alignItems: "center",
-  borderWidth: 2,
-  borderColor: colors.palette.neutral300,
 })
 
 // Session log

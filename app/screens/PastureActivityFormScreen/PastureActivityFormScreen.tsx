@@ -2,6 +2,7 @@ import { FC, useState } from "react"
 import { Alert, Pressable, TextStyle, View, ViewStyle } from "react-native"
 
 import { Button, DateField, Icon, Screen, Text, TextField } from "@/components"
+import { MeasurementInput } from "@/components/MeasurementInput"
 import { PhotoPicker } from "@/components/PhotoPicker"
 import { useAuth } from "@/context/AuthContext"
 import { useDatabase } from "@/context/DatabaseContext"
@@ -43,7 +44,8 @@ export const PastureActivityFormScreen: FC<PastureActivityFormScreenProps> = ({
   const [performedBy, setPerformedBy] = useState("")
   const [notes, setNotes] = useState("")
   const [photos, setPhotos] = useState<PhotoWithMetadata[]>([])
-  const [tickLoadScore, setTickLoadScore] = useState(0)
+  const [tickLoadScore, setTickLoadScore] = useState<number | null>(null)
+  const [tickCount, setTickCount] = useState("")
   const [animalsInspected, setAnimalsInspected] = useState("")
   const [isSaving, setIsSaving] = useState(false)
 
@@ -68,6 +70,16 @@ export const PastureActivityFormScreen: FC<PastureActivityFormScreenProps> = ({
       return
     }
 
+    if (activityType === "tick_observation" && tickLoadScore === null) {
+      Alert.alert("Tick-load score required", "Select a score, including 0 if no ticks were found.")
+      return
+    }
+    const parsedTickCount = tickCount === "" ? undefined : Number(tickCount)
+    if (activityType === "tick_observation" && parsedTickCount !== undefined &&
+        (!Number.isSafeInteger(parsedTickCount) || parsedTickCount < 0 || parsedTickCount > 99999999)) {
+      Alert.alert("Invalid tick count", "Enter a whole number of ticks, or leave the count blank.")
+      return
+    }
     const parsedAnimalsInspected = animalsInspected.trim() ? Number(animalsInspected) : undefined
     if (
       activityType === "tick_observation" &&
@@ -89,7 +101,8 @@ export const PastureActivityFormScreen: FC<PastureActivityFormScreenProps> = ({
         areaHectares: activityType === "tick_observation" ? undefined : parsedArea,
         performedBy,
         notes,
-        tickLoadScore: activityType === "tick_observation" ? tickLoadScore : undefined,
+        tickLoadScore: activityType === "tick_observation" ? tickLoadScore ?? undefined : undefined,
+        tickCount: activityType === "tick_observation" ? parsedTickCount : undefined,
         animalsInspected: activityType === "tick_observation" ? parsedAnimalsInspected : undefined,
       })
       if (photos.length > 0) {
@@ -239,13 +252,18 @@ export const PastureActivityFormScreen: FC<PastureActivityFormScreenProps> = ({
             </View>
           </View>
 
-          <TextField
+          <MeasurementInput
+            label="Total ticks counted (optional)"
+            value={tickCount}
+            onChangeText={setTickCount}
+            integer counter
+          />
+          <Text text="Leave blank if not counted. Enter 0 when checked and none were found." style={themed($fieldHint)} />
+          <MeasurementInput
             label="Number of animals inspected"
             value={animalsInspected}
-            onChangeText={(text) => setAnimalsInspected(text.replace(/\D/g, ""))}
-            placeholder="e.g. 12"
-            keyboardType="number-pad"
-            containerStyle={themed($field)}
+            onChangeText={setAnimalsInspected}
+            integer counter
           />
         </>
       ) : (

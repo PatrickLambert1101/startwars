@@ -114,6 +114,7 @@ export const PastureActivityListScreen: FC<PastureActivityListScreenProps> = ({
       {(activity.areaHectares ||
         activity.targetSpecies ||
         activity.performedBy ||
+        activity.tickCount != null ||
         activity.tickLoadScore !== null ||
         activity.animalsInspected) && (
         <View style={themed($details)}>
@@ -126,6 +127,7 @@ export const PastureActivityListScreen: FC<PastureActivityListScreenProps> = ({
               style={themed($detailText)}
             />
           )}
+          {activity.tickCount != null && <Text text={`${activity.tickCount} ticks counted`} style={themed($detailText)} />}
           {!!activity.animalsInspected && (
             <Text
               text={`${activity.animalsInspected} animals inspected`}

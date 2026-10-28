@@ -2,6 +2,8 @@ import { FC, useCallback, useState } from "react"
 import { Alert, View, ViewStyle, TextStyle } from "react-native"
 
 import { Screen, Text, TextField, Button } from "@/components"
+import { ConditionScoreInput } from "@/components/ConditionScoreInput"
+import { MeasurementInput } from "@/components/MeasurementInput"
 import { PhotoPicker } from "@/components/PhotoPicker"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -146,20 +148,16 @@ export const WeightRecordFormScreen: FC<AppStackScreenProps<"WeightRecordForm">>
       </View>
 
       <View style={themed($form)}>
-        <TextField
+        <MeasurementInput
+          unit="kg"
           label={t("weightRecordFormScreen.fields.weight.label")}
           value={weight}
           onChangeText={setWeight}
-          placeholder={t("weightRecordFormScreen.fields.weight.placeholder")}
-          keyboardType="numeric"
-          autoFocus
         />
-        <TextField
+        <ConditionScoreInput
           label={t("weightRecordFormScreen.fields.conditionScore.label")}
           value={conditionScore}
           onChangeText={setConditionScore}
-          placeholder={t("weightRecordFormScreen.fields.conditionScore.placeholder")}
-          keyboardType="numeric"
         />
         <TextField
           label={t("weightRecordFormScreen.fields.notes.label")}

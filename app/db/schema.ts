@@ -512,11 +512,17 @@ export const migrations = schemaMigrations({
         }),
       ],
     },
+    {
+      toVersion: 24,
+      steps: [addColumns({ table: "pasture_activities", columns: [
+        { name: "tick_count", type: "number", isOptional: true },
+      ] })],
+    },
   ],
 })
 
 export const schema = appSchema({
-  version: 23,
+  version: 24,
   tables: [
     tableSchema({
       name: "data_import_batches",
@@ -586,6 +592,7 @@ export const schema = appSchema({
         { name: "performed_by", type: "string", isOptional: true },
         { name: "notes", type: "string", isOptional: true },
         { name: "photos", type: "string", isOptional: true },
+        { name: "tick_count", type: "number", isOptional: true },
         { name: "tick_load_score", type: "number", isOptional: true },
         { name: "animals_inspected", type: "number", isOptional: true },
         { name: "created_by_user_id", type: "string", isOptional: true },

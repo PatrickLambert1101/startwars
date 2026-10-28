@@ -1,4 +1,14 @@
 const en = {
+  measurementInput: {
+    tapToEnter: "Tap to enter",
+    notRecorded: "Not recorded",
+    clear: "Clear",
+    backspace: "Delete last digit",
+    addOne: "Add one",
+    addFive: "Add five",
+    subtractOne: "Subtract one",
+    recordZero: "Record zero",
+  },
   networkBanner: {
     offline: "You're offline",
     backOnline: "Back online",

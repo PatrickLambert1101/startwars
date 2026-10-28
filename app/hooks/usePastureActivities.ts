@@ -14,6 +14,7 @@ export interface PastureActivityFormData {
   areaHectares?: number
   performedBy?: string
   notes?: string
+  tickCount?: number
   tickLoadScore?: number
   animalsInspected?: number
 }
@@ -100,6 +101,7 @@ export function usePastureActivityActions() {
         activity.performedBy = data.performedBy?.trim() || null
         activity.notes = data.notes?.trim() || null
         activity.photos = null
+        activity.tickCount = data.tickCount ?? null
         activity.tickLoadScore = data.tickLoadScore ?? null
         activity.animalsInspected = data.animalsInspected ?? null
         activity.createdByUserId = user?.id ?? null

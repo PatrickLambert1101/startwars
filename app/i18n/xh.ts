@@ -1,4 +1,14 @@
 const xh = {
+  measurementInput: {
+    tapToEnter: "Cofa ukufaka",
+    notRecorded: "Akurekhodwanga",
+    clear: "Cima",
+    backspace: "Cima idijithi yokugqibela",
+    addOne: "Yongeza enye",
+    addFive: "Yongeza ezintlanu",
+    subtractOne: "Thabatha enye",
+    recordZero: "Rekhoda uziro",
+  },
   networkBanner: {
     offline: "Awuxhunyiwe kwi-intanethi",
     backOnline: "Uxhunywe kwakhona",

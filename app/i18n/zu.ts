@@ -1,4 +1,14 @@
 const zu = {
+  measurementInput: {
+    tapToEnter: "Thepha ukuze ufake",
+    notRecorded: "Akurekhodiwe",
+    clear: "Sula",
+    backspace: "Susa idijithi yokugcina",
+    addOne: "Engeza okukodwa",
+    addFive: "Engeza okuhlanu",
+    subtractOne: "Susa okukodwa",
+    recordZero: "Rekhoda iqanda",
+  },
   networkBanner: {
     offline: "Awuxhunywe ku-inthanethi",
     backOnline: "Usuxhunywe futhi",

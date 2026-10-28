@@ -1,4 +1,14 @@
 const nso = {
+  measurementInput: {
+    tapToEnter: "Kgotla go tsenya",
+    notRecorded: "Ga se ya rekotwa",
+    clear: "Phumola",
+    backspace: "Phumola nomoro ya mafelelo",
+    addOne: "Oketša ka tee",
+    addFive: "Oketša ka hlano",
+    subtractOne: "Ntšha tee",
+    recordZero: "Rekota lefela",
+  },
   networkBanner: {
     offline: "Ga o kgokagane",
     backOnline: "O kgokagane gape",

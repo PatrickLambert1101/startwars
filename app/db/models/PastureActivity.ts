@@ -57,6 +57,7 @@ export class PastureActivity extends Model {
   @field("notes") notes!: string | null
   @field("photos") photos!: string | null
   @field("tick_load_score") tickLoadScore!: number | null
+  @field("tick_count") tickCount!: number | null
   @field("animals_inspected") animalsInspected!: number | null
   @field("created_by_user_id") createdByUserId!: string | null
   @field("created_by_name") createdByName!: string | null

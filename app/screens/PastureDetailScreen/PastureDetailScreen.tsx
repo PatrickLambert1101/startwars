@@ -393,6 +393,7 @@ export function PastureDetailScreen({ navigation, route }: PastureDetailScreenPr
                       activity.tickLoadScore !== null
                         ? `Tick load ${activity.tickLoadScore}/5`
                         : null,
+                      activity.tickCount != null ? `${activity.tickCount} ticks counted` : null,
                       activity.animalsInspected ? `${activity.animalsInspected} inspected` : null,
                       activity.areaHectares ? `${activity.areaHectares} ha` : null,
                       activity.targetSpecies || null,

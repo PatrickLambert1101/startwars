@@ -1,4 +1,14 @@
 const af = {
+  measurementInput: {
+    tapToEnter: "Tik om in te voer",
+    notRecorded: "Nie aangeteken nie",
+    clear: "Maak skoon",
+    backspace: "Vee laaste syfer uit",
+    addOne: "Voeg een by",
+    addFive: "Voeg vyf by",
+    subtractOne: "Trek een af",
+    recordZero: "Teken nul aan",
+  },
   networkBanner: {
     offline: "Jy is vanlyn",
     backOnline: "Weer aanlyn",
