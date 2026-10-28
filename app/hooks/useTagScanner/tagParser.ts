@@ -75,8 +75,10 @@ export function extractTagNumbers(ocrResults: OCRResult[]): TagScanResult[] {
           console.log(`  Skipping empty text`)
           continue
         }
-        if (text.length < 2) {
-          console.log(`  Skipping short text: "${text}"`)
+        // Single-character visual tags are valid (for example "7" or "A").
+        // Ignore only one-character OCR noise such as punctuation.
+        if (text.length === 1 && !/[A-Z0-9]/i.test(text)) {
+          console.log(`  Skipping single-character OCR noise: "${text}"`)
           continue
         }
 

@@ -79,6 +79,31 @@ export const useRfidReader = (): RfidReaderHook => {
     }
   }, [hasRfidAccess])
 
+  const reset = useCallback(async () => {
+    console.log("[RFID] reset() called")
+    if (!hasRfidAccess || Platform.OS !== "android" || !UHFReader) return false
+
+    isHardwareScanning = false
+    setIsScanning(false)
+    setScannedTag(null)
+    setIsInitialized(false)
+    try {
+      await UHFReader.reset()
+      const savedReadPower = loadRfidReadPower()
+      await UHFReader.setPower(savedReadPower)
+      setIsInitialized(true)
+      setError(null)
+      await SoundFeedback.neutral()
+      return true
+    } catch (err) {
+      console.error("[RFID] Reset failed:", err)
+      setIsInitialized(false)
+      setError(`Reset error: ${err}`)
+      await SoundFeedback.error()
+      return false
+    }
+  }, [hasRfidAccess])
+
   const setOutputPower = useCallback(
     async (powerDbm: number) => {
       const normalizedPower = clampRfidReadPower(powerDbm)
@@ -285,6 +310,7 @@ export const useRfidReader = (): RfidReaderHook => {
 
   return {
     initialize,
+    reset,
     setOutputPower,
     startScanning,
     stopScanning,

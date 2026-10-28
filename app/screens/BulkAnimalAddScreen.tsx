@@ -9,8 +9,14 @@ import { PhotoPicker } from "@/components/PhotoPicker"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
-import { useAnimalActions, AnimalFormData, DuplicateTagError, AnimalLimitError } from "@/hooks/useAnimals"
-import { AnimalSex, AnimalStatus } from "@/db/models/Animal"
+import {
+  useAnimalActions,
+  useAnimals,
+  AnimalFormData,
+  DuplicateTagError,
+  AnimalLimitError,
+} from "@/hooks/useAnimals"
+import { AnimalSex, AnimalStatus, BREEDS_BY_SPECIES } from "@/db/models/Animal"
 import { useRfidReader } from "@/hooks/useRfidReader"
 import { useDatabase } from "@/context/DatabaseContext"
 import { useAuth } from "@/context/AuthContext"
@@ -21,19 +27,7 @@ import type { PhotoWithMetadata } from "@/types/Photo"
 
 const SEX_OPTIONS: AnimalSex[] = ["male", "female", "castrated", "unknown"]
 
-const COMMON_BREEDS = [
-  "Angus",
-  "Hereford",
-  "Brahman",
-  "Bonsmara",
-  "Nguni",
-  "Simmental",
-  "Charolais",
-  "Limousin",
-  "Afrikaner",
-  "Drakensberger",
-  "Other"
-]
+const COMMON_BREEDS = BREEDS_BY_SPECIES.cattle
 
 type AddedAnimal = {
   tempId: string
@@ -48,6 +42,7 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
   const { t } = useTranslation()
   const { themed, theme: { colors } } = useAppTheme()
   const { createAnimal } = useAnimalActions()
+  const { animals } = useAnimals()
   const { currentOrg } = useDatabase()
   const { user } = useAuth()
   const { pastures } = usePastures()
@@ -84,6 +79,7 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
 
   // Modals
   const [showBreedPicker, setShowBreedPicker] = useState(false)
+  const [customBreed, setCustomBreed] = useState("")
   const [showSexPicker, setShowSexPicker] = useState(false)
   const [showPasturePicker, setShowPasturePicker] = useState(false)
   const [showTagTypePicker, setShowTagTypePicker] = useState(false)
@@ -115,6 +111,9 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
   }, [phase])
 
   const selectedPasture = selectedPastureId ? pastures.find(p => p.id === selectedPastureId) : null
+  const breedOptions = [
+    ...new Set([...COMMON_BREEDS, ...animals.map((existingAnimal) => existingAnimal.breed)]),
+  ]
 
   const handleStartBulkEntry = useCallback(() => {
     if (!breed.trim()) {
@@ -395,8 +394,29 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
           <View style={themed($modalOverlay)}>
             <View style={themed($modalContent)}>
               <Text preset="heading" text={t("animalFormScreen.modals.breed.title")} size="md" />
+              <View style={themed($customBreedBox)}>
+                <TextField
+                  label="Custom breed or cross"
+                  value={customBreed}
+                  onChangeText={setCustomBreed}
+                  placeholder="e.g. Nguni × farm composite"
+                  autoCapitalize="words"
+                />
+                <Button
+                  text="Use custom breed"
+                  preset="reversed"
+                  disabled={!customBreed.trim()}
+                  onPress={() => {
+                    const nextBreed = customBreed.trim()
+                    if (!nextBreed) return
+                    setBreed(nextBreed)
+                    setCustomBreed("")
+                    setShowBreedPicker(false)
+                  }}
+                />
+              </View>
               <FlatList
-                data={COMMON_BREEDS}
+                data={breedOptions}
                 keyExtractor={(item) => item}
                 renderItem={({ item }) => (
                   <Pressable
@@ -857,6 +877,13 @@ const $modalItem: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   padding: spacing.md,
   borderRadius: 8,
   marginBottom: spacing.xs,
+})
+
+const $customBreedBox: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  gap: spacing.sm,
+  padding: spacing.sm,
+  borderRadius: 12,
+  backgroundColor: colors.palette.neutral100,
 })
 
 const $emptyText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({

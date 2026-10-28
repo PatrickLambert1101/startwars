@@ -108,7 +108,7 @@ const nso = {
       overdue: "Di fetile nako",
       dueToday: "Di Swanetše Lehono",
       dueSoon: "Di Swanetše Kgauswinyane",
-      viewAll: "Lebelela Ditšhenyulo ka Moka",
+      viewAll: "Lebelela Dienti tše di Letetšwego",
     },
     reports: {
       title: "Dipego & Tshekatsheko",
@@ -596,6 +596,7 @@ const nso = {
   herdListScreen: {
     title: "Mohlape",
     addButton: "+ Oketša",
+    scanCow: "Skena Kgomo",
     searchPlaceholder: "Nyaka ka tagi, leina, goba mohuta...",
     count_one: "Phoofolo e {{count}}",
     count_other: "Diphoofolo tše {{count}}",
@@ -1119,19 +1120,31 @@ const nso = {
     },
     count_one: "Prothokholo e {{count}}",
     count_other: "Diprothokholo tše {{count}}",
-    inactive: "Ga e šome",
-    withdrawal: "Go Emiša: matšatši a {{days}}",
+    countWithFilter_one: "Prothokholo e {{count}} ya {{filter}}",
+    countWithFilter_other: "Diprothokholo tše {{count}} tša {{filter}}",
+    badges: {
+      inactive: "Ga e šome",
+    },
+    details: {
+      withdrawal: "Go Emiša: matšatši a {{days}}",
+    },
     empty: {
       title: "Ga go na Diprothokholo tše di Hweditšwego",
-      noProtocols: "Hlama prothokholo ya gago ya mathomo ya kalafo go e diriša ka Mokgweng wa Sekgoro",
-      filtered: "Ga go na diprothokholo tša {{filter}} tše di hweditšwego",
-      showAll: "Bontšha Tšohle",
-      loadDefaults: "Laiša Ditlwaelo tša SA",
+      noFilter: "Hlama prothokholo ya gago ya mathomo ya kalafo go e diriša ka Mokgweng wa Sekgoro",
+      withFilter: "Ga go na diprothokholo tša {{filter}} tše di hweditšwego",
+      showAllButton: "Bontšha Tšohle",
+      loadDefaultsButton: "Laiša Ditlwaelo tša SA",
       createButton: "Hlama Prothokholo",
     },
     alerts: {
-      toggleError: "Go paletšwe go fetola seemo sa prothokholo",
-      defaultsAdded: "Diprothokholo tše {{count}} di oketšwe ka katlego",
+      toggleError: {
+        title: "Prothokholo ga se ya kgona go mpshafatšwa",
+        message: "Go paletšwe go fetola seemo sa prothokholo",
+      },
+      protocolsAdded: {
+        title: "Diprothokholo di okeditšwe",
+        message: "Diprothokholo tše {{count}} di oketšwe ka katlego",
+      },
     },
   },
   healthRecordFormScreen: {

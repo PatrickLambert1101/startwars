@@ -1,5 +1,6 @@
 import { format } from "date-fns"
 import type { TFunction } from "i18next"
+import * as XLSX from "xlsx"
 
 import { animalColumnHeader, animalColumnValue, reportGroupLabel } from "./csvExport"
 import type { ReportResult } from "./reportEngine"
@@ -13,8 +14,8 @@ function formatDate(date: Date | null | undefined): string {
 
 /**
  * Multi-sheet Excel workbook for a report result: Summary, Animals, then one
- * sheet per included history section. SheetJS is ~1MB of JS, so it is imported
- * lazily here and never touches app startup.
+ * sheet per included history section. Metro's inline-require transform defers
+ * SheetJS until this module is actually used without relying on async chunks.
  */
 export async function exportReportAsXlsx(
   result: ReportResult,
@@ -22,8 +23,6 @@ export async function exportReportAsXlsx(
   orgName: string,
   t: TFunction,
 ): Promise<void> {
-  const XLSX = await import("xlsx")
-
   const workbook = XLSX.utils.book_new()
 
   // --- Summary sheet -------------------------------------------------------

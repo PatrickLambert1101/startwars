@@ -167,25 +167,41 @@ async function processDateBasedSchedule(schedule: VaccinationSchedule, organizat
  * Process group-based schedule (e.g., "Pasture A every 6 months")
  */
 async function processGroupBasedSchedule(schedule: VaccinationSchedule, organizationId: string) {
-  if (!schedule.pastureId || !schedule.intervalMonths) {
-    console.warn("[VaccinationScheduler] Group-based schedule missing pasture_id or interval_months:", schedule.id)
+  if (!schedule.intervalMonths) {
+    console.warn(
+      "[VaccinationScheduler] Group-based schedule missing interval_months:",
+      schedule.id,
+    )
     return
   }
 
-  // Query animals in the specified pasture
+  // A pasture narrows the group when supplied. Default recurring schedules
+  // intentionally leave it blank so they apply to all matching animals.
   const queryConditions = [
     Q.where("organization_id", organizationId),
     Q.where("is_deleted", false),
     Q.where("status", "active"),
-    Q.where("current_pasture_id", schedule.pastureId),
   ]
 
-  // Apply filters
+  if (schedule.pastureId) {
+    queryConditions.push(Q.where("current_pasture_id", schedule.pastureId))
+  }
   if (schedule.targetSpecies) {
     queryConditions.push(Q.where("species", schedule.targetSpecies))
   }
   if (schedule.targetSex) {
     queryConditions.push(Q.where("sex", schedule.targetSex))
+  }
+  if (schedule.minAgeMonths !== null || schedule.maxAgeMonths !== null) {
+    const now = Date.now()
+    if (schedule.maxAgeMonths) {
+      const minBirthDate = now - schedule.maxAgeMonths * 30.44 * 24 * 60 * 60 * 1000
+      queryConditions.push(Q.where("date_of_birth", Q.gte(minBirthDate)))
+    }
+    if (schedule.minAgeMonths) {
+      const maxBirthDate = now - schedule.minAgeMonths * 30.44 * 24 * 60 * 60 * 1000
+      queryConditions.push(Q.where("date_of_birth", Q.lte(maxBirthDate)))
+    }
   }
 
   const animals = await database
@@ -193,7 +209,11 @@ async function processGroupBasedSchedule(schedule: VaccinationSchedule, organiza
     .query(...queryConditions)
     .fetch()
 
-  console.log("[VaccinationScheduler] Found", animals.length, "animals in pasture")
+  console.log(
+    "[VaccinationScheduler] Found",
+    animals.length,
+    schedule.pastureId ? "animals in pasture" : "animals matching group filters",
+  )
 
   // Calculate due date based on last applied date or interval
   const dueDate = schedule.lastAppliedDate

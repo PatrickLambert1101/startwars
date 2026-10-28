@@ -1,5 +1,5 @@
 import { type FC, useMemo } from "react"
-import { View, ViewStyle, TextStyle, FlatList, Pressable, Image, ImageStyle } from "react-native"
+import { View, ViewStyle, TextStyle, FlatList, Pressable } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
 
@@ -146,6 +146,14 @@ export const PasturesScreen: FC<MainTabScreenProps<"Pastures">> = ({ navigation 
           style={themed($createButton)}
         />
       </View>
+      <Button
+        text="Import pasture map (KML/KMZ)"
+        onPress={() => navigation.navigate("PastureKmlImport")}
+        style={themed($importMapButton)}
+        LeftAccessory={({ style }) => (
+          <MaterialCommunityIcons name="map-outline" size={18} color={colors.text} style={style} />
+        )}
+      />
 
       {/* Stats Summary */}
       <View style={themed($statsRow)}>
@@ -169,10 +177,10 @@ export const PasturesScreen: FC<MainTabScreenProps<"Pastures">> = ({ navigation 
         </View>
       ) : pastures.length === 0 ? (
         <View style={themed($emptyContainer)}>
-          <Image
-            source={require("@/assets/icons/herdtrackr/pasture.png")}
-            style={$emptyImage}
-            resizeMode="contain"
+          <MaterialCommunityIcons
+            name="land-fields"
+            size={88}
+            color={colors.palette.primary500}
           />
           <Text style={themed($emptyTitle)}>{t("pasturesScreen.empty.title")}</Text>
           <Text style={themed($emptyDescription)}>{t("pasturesScreen.empty.description")}</Text>
@@ -221,6 +229,11 @@ const $mapButton: ThemedStyle<ViewStyle> = () => ({
   minHeight: 36,
   paddingVertical: 6,
   paddingHorizontal: 12,
+})
+
+const $importMapButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  minHeight: 38,
+  marginBottom: spacing.md,
 })
 
 const $statsRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -371,11 +384,6 @@ const $emptyContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingHorizontal: spacing.xl,
   paddingVertical: spacing.xxxl,
 })
-
-const $emptyImage: ImageStyle = {
-  width: 96,
-  height: 96,
-}
 
 const $emptyTitle: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   fontSize: 20,

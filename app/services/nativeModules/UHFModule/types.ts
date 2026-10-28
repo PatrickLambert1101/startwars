@@ -4,6 +4,7 @@ const { UHFModule } = NativeModules
 
 type UHFModuleInterface = {
   initialize: () => void
+  reset: () => void
   setOutputPower: (power: number) => void
   startScanning: () => void
   stopScanning: () => void

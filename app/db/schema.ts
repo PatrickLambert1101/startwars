@@ -1,5 +1,5 @@
 import { appSchema, tableSchema } from "@nozbe/watermelondb"
-import { schemaMigrations } from "@nozbe/watermelondb/Schema/migrations"
+import { addColumns, schemaMigrations } from "@nozbe/watermelondb/Schema/migrations"
 
 export const migrations = schemaMigrations({
   migrations: [
@@ -447,12 +447,116 @@ export const migrations = schemaMigrations({
         },
       ],
     },
+    {
+      toVersion: 22,
+      steps: [
+        {
+          type: "create_table",
+          schema: tableSchema({
+            name: "grazing_periods",
+            columns: [
+              { name: "organization_id", type: "string", isIndexed: true },
+              { name: "pasture_id", type: "string", isIndexed: true },
+              { name: "start_date", type: "number" },
+              { name: "end_date", type: "number", isOptional: true },
+              { name: "herd_group", type: "string", isOptional: true },
+              { name: "animal_count", type: "number", isOptional: true },
+              { name: "notes", type: "string", isOptional: true },
+              { name: "source_file_name", type: "string", isOptional: true },
+              { name: "created_by_user_id", type: "string", isOptional: true },
+              { name: "created_by_name", type: "string", isOptional: true },
+              { name: "created_at", type: "number" },
+              { name: "updated_at", type: "number" },
+              { name: "is_deleted", type: "boolean" },
+            ],
+          }),
+        },
+        {
+          type: "create_table",
+          schema: tableSchema({
+            name: "data_import_batches",
+            columns: [
+              { name: "organization_id", type: "string", isIndexed: true },
+              { name: "import_type", type: "string", isIndexed: true },
+              { name: "file_name", type: "string" },
+              { name: "sheet_name", type: "string", isOptional: true },
+              { name: "total_rows", type: "number" },
+              { name: "imported_rows", type: "number" },
+              { name: "skipped_rows", type: "number" },
+              { name: "record_ids", type: "string" },
+              { name: "status", type: "string", isIndexed: true },
+              { name: "imported_at", type: "number" },
+              { name: "undone_at", type: "number", isOptional: true },
+              { name: "created_by_user_id", type: "string", isOptional: true },
+              { name: "created_by_name", type: "string", isOptional: true },
+              { name: "created_at", type: "number" },
+              { name: "updated_at", type: "number" },
+              { name: "is_deleted", type: "boolean" },
+            ],
+          }),
+        },
+      ],
+    },
+    {
+      toVersion: 23,
+      steps: [
+        addColumns({
+          table: "animals",
+          columns: [
+            { name: "external_sire_reference", type: "string", isOptional: true },
+            { name: "external_sire_breed", type: "string", isOptional: true },
+            { name: "external_dam_reference", type: "string", isOptional: true },
+            { name: "external_dam_breed", type: "string", isOptional: true },
+            { name: "source_name", type: "string", isOptional: true },
+          ],
+        }),
+      ],
+    },
   ],
 })
 
 export const schema = appSchema({
-  version: 21,
+  version: 23,
   tables: [
+    tableSchema({
+      name: "data_import_batches",
+      columns: [
+        { name: "organization_id", type: "string", isIndexed: true },
+        { name: "import_type", type: "string", isIndexed: true },
+        { name: "file_name", type: "string" },
+        { name: "sheet_name", type: "string", isOptional: true },
+        { name: "total_rows", type: "number" },
+        { name: "imported_rows", type: "number" },
+        { name: "skipped_rows", type: "number" },
+        { name: "record_ids", type: "string" },
+        { name: "status", type: "string", isIndexed: true },
+        { name: "imported_at", type: "number" },
+        { name: "undone_at", type: "number", isOptional: true },
+        { name: "created_by_user_id", type: "string", isOptional: true },
+        { name: "created_by_name", type: "string", isOptional: true },
+        { name: "created_at", type: "number" },
+        { name: "updated_at", type: "number" },
+        { name: "is_deleted", type: "boolean" },
+      ],
+    }),
+    tableSchema({
+      name: "grazing_periods",
+      columns: [
+        { name: "organization_id", type: "string", isIndexed: true },
+        { name: "pasture_id", type: "string", isIndexed: true },
+        { name: "start_date", type: "number" },
+        { name: "end_date", type: "number", isOptional: true },
+        { name: "herd_group", type: "string", isOptional: true },
+        { name: "animal_count", type: "number", isOptional: true },
+        { name: "notes", type: "string", isOptional: true },
+        { name: "source_file_name", type: "string", isOptional: true },
+        { name: "created_by_user_id", type: "string", isOptional: true },
+        { name: "created_by_name", type: "string", isOptional: true },
+        { name: "created_at", type: "number" },
+        { name: "updated_at", type: "number" },
+        { name: "is_deleted", type: "boolean" },
+      ],
+    }),
     tableSchema({
       name: "pasture_boundaries",
       columns: [
@@ -539,6 +643,11 @@ export const schema = appSchema({
         { name: "date_of_birth", type: "number", isOptional: true },
         { name: "sire_id", type: "string", isOptional: true },
         { name: "dam_id", type: "string", isOptional: true },
+        { name: "external_sire_reference", type: "string", isOptional: true },
+        { name: "external_sire_breed", type: "string", isOptional: true },
+        { name: "external_dam_reference", type: "string", isOptional: true },
+        { name: "external_dam_breed", type: "string", isOptional: true },
+        { name: "source_name", type: "string", isOptional: true },
         { name: "registration_number", type: "string", isOptional: true },
         { name: "current_pasture_id", type: "string", isOptional: true, isIndexed: true },
         { name: "status", type: "string" }, // active | sold | deceased | transferred

@@ -79,9 +79,11 @@ const en = {
     leaveFarm: "Leave Farm",
     leaveFarmConfirm: {
       title: "Leave farm?",
-      message: "Are you sure you want to leave {{farm}}? You'll lose access to its animals and records until you're invited again.",
+      message:
+        "Are you sure you want to leave {{farm}}? You'll lose access to its animals and records until you're invited again.",
     },
-    leaveFarmLastAdmin: "You're the last admin of this farm. Make someone else an admin, or delete the farm, before leaving.",
+    leaveFarmLastAdmin:
+      "You're the last admin of this farm. Make someone else an admin, or delete the farm, before leaving.",
     pendingInvite: {
       title: "You've been invited",
       subtitle: "Join {{farm}} as a {{role}}.",
@@ -108,7 +110,7 @@ const en = {
       overdue: "Overdue",
       dueToday: "Due Today",
       dueSoon: "Due Soon",
-      viewAll: "View All Schedules",
+      viewAll: "View Pending Vaccinations",
     },
     reports: {
       title: "Reports & Analytics",
@@ -180,6 +182,13 @@ const en = {
     },
     rfid: {
       connected: "Hand scanner connected",
+      connectedHint: "RFID reader is ready for trigger scans",
+      notConnected: "Hand scanner not connected",
+      notConnectedHint: "Reset the reader connection to try again",
+      resetting: "Resetting scanner...",
+      resetButton: "Reset scanner connection",
+      reconnectButton: "Reconnect scanner",
+      connectionError: "The reader could not connect. Try resetting it again.",
       readerPower: "RFID Read Power",
       powerSaved: "Read power set to {{power}} dBm",
       rangeHint:
@@ -347,12 +356,12 @@ const en = {
       unknown: "Unknown",
     },
     ageBrackets: {
-      under_6m: "Under 6 months",
+      "under_6m": "Under 6 months",
       "6_12m": "6–12 months",
       "1_2y": "1–2 years",
       "2_5y": "2–5 years",
-      over_5y: "Over 5 years",
-      unknown: "Age unknown",
+      "over_5y": "Over 5 years",
+      "unknown": "Age unknown",
     },
     columns: {
       visualTag: "Tag",
@@ -431,9 +440,9 @@ const en = {
       newReport: "+ New Report",
       emptyTitle: "Build your first report",
       emptyDescription:
-        "Pick your own filters and groups — like \"Weaner weights by camp\" — and save it to run any time.",
+        'Pick your own filters and groups — like "Weaner weights by camp" — and save it to run any time.',
       deleteTitle: "Delete report?",
-      deleteMessage: "\"{{name}}\" will be removed. Your animals are not affected.",
+      deleteMessage: '"{{name}}" will be removed. Your animals are not affected.',
       lastRun: "Last run {{date}}",
       neverRun: "Not run yet",
     },
@@ -596,6 +605,7 @@ const en = {
   herdListScreen: {
     title: "Herd",
     addButton: "+ Add",
+    scanCow: "Scan Cow",
     searchPlaceholder: "Search by tag, name, or breed...",
     count_one: "{{count}} animal",
     count_other: "{{count}} animals",
@@ -629,6 +639,15 @@ const en = {
       scanning: "Scanning...",
       hint: "Hold the reader near the animal's tag",
       close: "Cancel",
+    },
+    scanNotFound: {
+      title: "Animal not found",
+      description:
+        'No animal matches this scanned ID. You can add it now with "{{id}}" already filled in.',
+      rfidLabel: "RFID: {{id}}",
+      visualLabel: "Visual tag: {{id}}",
+      addButton: "+ Add animal now",
+      tryAgainButton: "Clear & scan again",
     },
   },
   chuteScreen: {
@@ -735,10 +754,10 @@ const en = {
     },
   },
   pasturesScreen: {
-    title: "Pasture Rotation",
+    title: "Pasture",
     createButton: "+ New",
     locked: {
-      title: "Pasture Rotation",
+      title: "Pasture",
       description:
         "Map paddocks, assign herds, and track grazing days to optimise forage and soil health.",
       proBadge: "PRO",
@@ -1020,7 +1039,8 @@ const en = {
     title: "Team",
     noFarm: {
       title: "No farm yet",
-      subtitle: "Your team is the members of a farm. Create a farm to start building your team, or accept an invite to join one.",
+      subtitle:
+        "Your team is the members of a farm. Create a farm to start building your team, or accept an invite to join one.",
       button: "Create a Farm",
     },
     loading: "Loading...",
@@ -1119,19 +1139,31 @@ const en = {
     },
     count_one: "{{count}} protocol",
     count_other: "{{count}} protocols",
-    inactive: "Inactive",
-    withdrawal: "Withdrawal: {{days}} days",
+    countWithFilter_one: "{{count}} {{filter}} protocol",
+    countWithFilter_other: "{{count}} {{filter}} protocols",
+    badges: {
+      inactive: "Inactive",
+    },
+    details: {
+      withdrawal: "Withdrawal: {{days}} days",
+    },
     empty: {
       title: "No Protocols Found",
-      noProtocols: "Create your first treatment protocol to use in Chute Mode",
-      filtered: "No {{filter}} protocols found",
-      showAll: "Show All",
-      loadDefaults: "Load SA Defaults",
+      noFilter: "Create your first treatment protocol to use in Chute Mode",
+      withFilter: "No {{filter}} protocols found",
+      showAllButton: "Show All",
+      loadDefaultsButton: "Load SA Defaults",
       createButton: "Create Protocol",
     },
     alerts: {
-      toggleError: "Failed to toggle protocol status",
-      defaultsAdded: "{{count}} protocols added successfully",
+      toggleError: {
+        title: "Could not update protocol",
+        message: "Failed to toggle protocol status",
+      },
+      protocolsAdded: {
+        title: "Protocols added",
+        message: "{{count}} protocols added successfully",
+      },
     },
   },
   healthRecordFormScreen: {
@@ -1337,7 +1369,7 @@ const en = {
       protocolRequired: "Please select a vaccine",
       targetAgeRequired: "Target age is required when scheduling by age",
       dateRequired: "A date is required when scheduling by date",
-      groupRequired: "Pasture and interval are required when scheduling by group",
+      groupRequired: "An interval is required when scheduling by group",
     },
   },
   vaccinationScheduleScreen: {

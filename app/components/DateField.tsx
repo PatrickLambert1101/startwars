@@ -1,11 +1,8 @@
-import { FC, useCallback, useState } from "react"
-import { Platform, Pressable, View, ViewStyle, TextStyle } from "react-native"
+import { FC, useCallback, useEffect, useState } from "react"
+import { ViewStyle } from "react-native"
 import { format, parse, isValid } from "date-fns"
 
-import { Text } from "./Text"
 import { TextField } from "./TextField"
-import { useAppTheme } from "@/theme/context"
-import type { ThemedStyle } from "@/theme/types"
 
 interface DateFieldProps {
   label: string
@@ -27,9 +24,12 @@ export const DateField: FC<DateFieldProps> = ({
   placeholder = "DD/MM/YYYY",
   containerStyle,
 }) => {
-  const { themed } = useAppTheme()
   const [textValue, setTextValue] = useState(value ? format(value, "dd/MM/yyyy") : "")
   const [error, setError] = useState("")
+
+  useEffect(() => {
+    setTextValue(value ? format(value, "dd/MM/yyyy") : "")
+  }, [value])
 
   const handleBlur = useCallback(() => {
     if (!textValue.trim()) {
@@ -58,11 +58,6 @@ export const DateField: FC<DateFieldProps> = ({
       setError("Invalid date — use DD/MM/YYYY")
     }
   }, [textValue, onChange])
-
-  const handleChangeText = useCallback((text: string) => {
-    setTextValue(text)
-    setError("")
-  }, [])
 
   // Auto-insert slashes for convenience
   const handleAutoFormat = useCallback((text: string) => {

@@ -1,7 +1,9 @@
 import { Model, Query } from "@nozbe/watermelondb"
 import { field, date, readonly, relation, children, lazy } from "@nozbe/watermelondb/decorators"
-import type { LivestockType } from "./Organization"
+
 import type { GeneticTraits } from "@/types/GeneticTraits"
+
+import type { LivestockType } from "./Organization"
 
 export type AnimalSpecies = LivestockType
 
@@ -27,12 +29,82 @@ export const SEX_LABELS: Record<AnimalSpecies, Record<AnimalSex, string>> = {
  * Common breeds by species (South Africa focused)
  */
 export const BREEDS_BY_SPECIES: Record<AnimalSpecies, string[]> = {
-  cattle: ["Nguni", "Bonsmara", "Brahman", "Angus", "Hereford", "Simmentaler", "Drakensberger", "Afrikaner", "Sussex", "Limousin", "Charolais", "Beefmaster", "Sanga", "Tuli", "Mixed"],
+  cattle: [
+    "Nguni",
+    "Boran",
+    "PinZyl",
+    "Pinzgauer",
+    "Bonsmara",
+    "Brahman",
+    "Angus",
+    "Hereford",
+    "Simmentaler",
+    "Drakensberger",
+    "Afrikaner",
+    "Sussex",
+    "Limousin",
+    "Charolais",
+    "Beefmaster",
+    "Sanga",
+    "Tuli",
+    "Boran/Nguni Cross",
+    "Boran/Nguni × PinZyl",
+    "Boran/Nguni × Nguni",
+    "Nguni × Nguni/Boran",
+    "Nguni × Nguni/Boran/Pinzgauer",
+    "Crossbred",
+    "Mixed",
+  ],
   buffalo: ["Cape Buffalo", "Water Buffalo", "Mixed"],
-  horses: ["Boerperd", "Nooitgedachter", "SA Warmblood", "Thoroughbred", "Arabian", "Friesian", "Appaloosa", "Quarter Horse", "Percheron", "Mixed"],
-  sheep: ["Dorper", "Merino", "Damara", "Dohne Merino", "Ile de France", "Suffolk", "Dormer", "Meatmaster", "Van Rooy", "Blackhead Persian", "Mixed"],
-  goats: ["Boer Goat", "Angora", "Kalahari Red", "Savanna", "Toggenburg", "Saanen", "Indigenous Veld", "Mixed"],
-  game: ["Springbok", "Impala", "Kudu", "Blesbok", "Blue Wildebeest", "Gemsbok", "Eland", "Nyala", "Sable", "Waterbuck", "Bushbuck", "Mixed"],
+  horses: [
+    "Boerperd",
+    "Nooitgedachter",
+    "SA Warmblood",
+    "Thoroughbred",
+    "Arabian",
+    "Friesian",
+    "Appaloosa",
+    "Quarter Horse",
+    "Percheron",
+    "Mixed",
+  ],
+  sheep: [
+    "Dorper",
+    "Merino",
+    "Damara",
+    "Dohne Merino",
+    "Ile de France",
+    "Suffolk",
+    "Dormer",
+    "Meatmaster",
+    "Van Rooy",
+    "Blackhead Persian",
+    "Mixed",
+  ],
+  goats: [
+    "Boer Goat",
+    "Angora",
+    "Kalahari Red",
+    "Savanna",
+    "Toggenburg",
+    "Saanen",
+    "Indigenous Veld",
+    "Mixed",
+  ],
+  game: [
+    "Springbok",
+    "Impala",
+    "Kudu",
+    "Blesbok",
+    "Blue Wildebeest",
+    "Gemsbok",
+    "Eland",
+    "Nyala",
+    "Sable",
+    "Waterbuck",
+    "Bushbuck",
+    "Mixed",
+  ],
   pigs: ["Large White", "Landrace", "Duroc", "Kolbroek", "Windsnyer", "SA Landrace", "Mixed"],
   poultry: ["Boschveld", "Potchefstroom Koekoek", "Rhode Island Red", "Venda", "Ovambo", "Mixed"],
 }
@@ -58,6 +130,11 @@ export class Animal extends Model {
   @date("date_of_birth") dateOfBirth!: Date | null
   @field("sire_id") sireId!: string | null
   @field("dam_id") damId!: string | null
+  @field("external_sire_reference") externalSireReference!: string | null
+  @field("external_sire_breed") externalSireBreed!: string | null
+  @field("external_dam_reference") externalDamReference!: string | null
+  @field("external_dam_breed") externalDamBreed!: string | null
+  @field("source_name") sourceName!: string | null
   @field("registration_number") registrationNumber!: string | null
   @field("current_pasture_id") currentPastureId!: string | null
   @field("status") status!: AnimalStatus

@@ -45,6 +45,34 @@ public class UHFModule extends ReactContextBaseJavaModule {
         }
     }
 
+    /**
+     * Fully close and reopen the vendor reader. This is intentionally stronger
+     * than initialize(), which is a no-op while the manager believes it is
+     * already connected, and gives the Settings screen a recovery action when
+     * the physical reader stops responding.
+     */
+    @ReactMethod
+    public void reset(Promise promise) {
+        Log.d(TAG, "Resetting RFID reader connection");
+        try {
+            if (scanningDisposable != null && !scanningDisposable.isDisposed()) {
+                scanningDisposable.dispose();
+            }
+            scanningDisposable = null;
+            scanningService.stopScanning();
+            rfidManager.release();
+            rfidManager.initialize();
+            callbackHandler.sendInitialized();
+            promise.resolve(true);
+            Log.d(TAG, "RFID reader reset complete");
+        } catch (RfidInitializationException e) {
+            Log.e(TAG, "RFID reader reset failed", e);
+            String message = "Failed to reset RFID: " + e.getMessage();
+            callbackHandler.sendError(message, e.toString());
+            promise.reject("RESET_ERROR", message, e);
+        }
+    }
+
     @ReactMethod
     public void startScanning(Promise promise) {
         Log.d(TAG, "🎯 startScanning() called");

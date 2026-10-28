@@ -7,21 +7,36 @@ import {
 } from "@react-navigation/native"
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
 
+import type { AnimalStatus } from "@/db/models/Animal"
+import type { DataImportType } from "@/services/dataImport/types"
+
 // Main Tab Navigator types
 export type MainTabParamList = {
   Dashboard: undefined
-  HerdList: undefined
+  HerdList:
+    | {
+        statuses?: AnimalStatus[]
+        scannedTag?: string
+        requestId?: number
+      }
+    | undefined
   Chute:
     | {
         mode?: "single"
         animalId?: string
         protocolId?: string
         vaccinationId?: string
+        requestId?: number
       }
     | undefined
   Pastures: undefined
   Calendar: undefined
-  Breeding: undefined
+  Breeding:
+    | {
+        initialFilter?: "all" | "attention" | "pending" | "history"
+        requestId?: number
+      }
+    | undefined
 }
 
 // App Stack Navigator types
@@ -33,8 +48,22 @@ export type AppStackParamList = {
   OrgSetup: undefined
   Team: undefined
   Settings: undefined
-  AnimalDetail: { animalId: string }
-  AnimalForm: { mode: "create" | "edit"; animalId?: string }
+  DataImports: undefined
+  DataImport: { importType: DataImportType }
+  AnimalDetail: {
+    animalId: string
+    initialTab?: "overview" | "health" | "vaccinations" | "weight" | "breeding"
+  }
+  AnimalForm: {
+    mode: "create" | "edit"
+    animalId?: string
+    /** Pre-fill a newly scanned tag when creating an animal from a failed lookup. */
+    initialRfidTag?: string
+    initialVisualTag?: string
+    /** When creating from a parent card, link the saved animal immediately. */
+    linkAsParentOf?: string
+    parentRole?: "sire" | "dam"
+  }
   BulkAnimalAdd: undefined
   HealthRecordForm: {
     animalId: string
@@ -49,7 +78,11 @@ export type AppStackParamList = {
   ProtocolDetail: { protocolId: string }
   VaccinationSchedules: undefined
   VaccinationScheduleForm: { mode: "create" | "edit"; scheduleId?: string }
-  PendingVaccinations: undefined
+  PendingVaccinations:
+    | {
+        initialFilter?: "attention" | "all"
+      }
+    | undefined
   Reports: undefined
   ReportBuilder: { templateId?: string }
   /** adHocConfig: serialized ReportConfig JSON; title shown when no template */
@@ -59,10 +92,11 @@ export type AppStackParamList = {
   PastureActivityForm: { pastureId: string }
   PastureActivityList: { pastureId: string }
   PastureBoundary: { pastureId: string }
+  PastureKmlImport: undefined
   PasturesMap: undefined
   PastureWizard: undefined
   MovementForm: { pastureId?: string; movementType?: "move_in" | "move_out" }
-  TagScanner: { onTagScanned?: (tagNumber: string) => void }
+  TagScanner: { callbackId?: string }
   Upgrade: undefined
   Paywall: undefined
   CustomerCenter: undefined

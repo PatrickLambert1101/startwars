@@ -32,6 +32,10 @@ export type Database = {
           current_pasture_id: string | null
           dam_id: string | null
           date_of_birth: string | null
+          external_dam_breed: string | null
+          external_dam_reference: string | null
+          external_sire_breed: string | null
+          external_sire_reference: string | null
           herd_tag: string | null
           id: string
           is_deleted: boolean
@@ -44,6 +48,7 @@ export type Database = {
           rfid_tag: string | null
           sex: string
           sire_id: string | null
+          source_name: string | null
           species: string
           status: string
           tags: string | null
@@ -58,6 +63,10 @@ export type Database = {
           current_pasture_id?: string | null
           dam_id?: string | null
           date_of_birth?: string | null
+          external_dam_breed?: string | null
+          external_dam_reference?: string | null
+          external_sire_breed?: string | null
+          external_sire_reference?: string | null
           herd_tag?: string | null
           id: string
           is_deleted?: boolean
@@ -70,6 +79,7 @@ export type Database = {
           rfid_tag?: string | null
           sex: string
           sire_id?: string | null
+          source_name?: string | null
           species: string
           status?: string
           tags?: string | null
@@ -84,6 +94,10 @@ export type Database = {
           current_pasture_id?: string | null
           dam_id?: string | null
           date_of_birth?: string | null
+          external_dam_breed?: string | null
+          external_dam_reference?: string | null
+          external_sire_breed?: string | null
+          external_sire_reference?: string | null
           herd_tag?: string | null
           id?: string
           is_deleted?: boolean
@@ -96,6 +110,7 @@ export type Database = {
           rfid_tag?: string | null
           sex?: string
           sire_id?: string | null
+          source_name?: string | null
           species?: string
           status?: string
           tags?: string | null

@@ -15,10 +15,10 @@ const BACK_ONLINE_DURATION = 2_500 // how long the "back online" bar stays up
 type BannerState = "hidden" | "offline" | "online"
 
 /**
- * NetworkBanner - Google-style connectivity bar pinned to the bottom.
+ * NetworkBanner - Compact connectivity badge above the bottom navigation.
  *
- * Shows a persistent "You're offline" bar while there is no connection, and a
- * transient "Back online" bar when the connection is restored. Mounted once,
+ * Shows a persistent "You're offline" badge while there is no connection, and a
+ * transient "Back online" badge when the connection is restored. Mounted once,
  * globally, so it overlays every screen.
  */
 export function NetworkBanner() {
@@ -99,16 +99,15 @@ export function NetworkBanner() {
       style={[
         styles.container,
         {
-          paddingBottom: Math.max(insets.bottom, 8),
-          backgroundColor,
+          bottom: Math.max(insets.bottom, 8) + 62,
           transform: [{ translateY: slideAnim }],
         },
       ]}
     >
-      <View style={styles.content}>
+      <View style={[styles.content, { backgroundColor, shadowColor: theme.colors.text }]}>
         <MaterialCommunityIcons
           name={isOffline ? "wifi-off" : "wifi-check"}
-          size={16}
+          size={14}
           color={foregroundColor}
         />
         <Text
@@ -122,23 +121,28 @@ export function NetworkBanner() {
 
 const styles = StyleSheet.create({
   container: {
-    bottom: 0,
-    elevation: 6,
+    alignItems: "center",
     left: 0,
-    paddingHorizontal: 16,
-    paddingTop: 8,
     position: "absolute",
     right: 0,
     zIndex: 9999,
   },
   content: {
     alignItems: "center",
+    borderRadius: 16,
+    elevation: 5,
     flexDirection: "row",
-    gap: 8,
+    gap: 6,
     justifyContent: "center",
+    minHeight: 28,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 3,
   },
   text: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "600",
   },
 })

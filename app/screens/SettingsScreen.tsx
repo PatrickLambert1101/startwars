@@ -6,20 +6,13 @@ import { useTranslation } from "react-i18next"
 import * as Sentry from "@sentry/react-native"
 
 import { Screen, Text, ListItem, Button, Icon, BIOMETRIC_LOCK_KEY } from "@/components"
+import { RfidScannerSettings } from "@/components/RfidScannerSettings"
 import { useAuth } from "@/context/AuthContext"
 import { useDatabase } from "@/context/DatabaseContext"
 import { useSubscription } from "@/context/SubscriptionContext"
 import { database } from "@/db"
-import { useRfidReader } from "@/hooks/useRfidReader"
 import { useSync } from "@/hooks/useSync"
 import { seedDefaultSchedules } from "@/services/defaultSchedules"
-import {
-  loadRfidReadPower,
-  RFID_READ_POWER_DEFAULT_DBM,
-  RFID_READ_POWER_MAX_DBM,
-  RFID_READ_POWER_MIN_DBM,
-  saveRfidReadPower,
-} from "@/services/rfidReaderSettings"
 import { calculateScheduledVaccinations } from "@/services/vaccinationScheduler"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -43,12 +36,9 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
   const { logout, user } = useAuth()
   const { currentOrg } = useDatabase()
   const { plan, isPremium, isLoading } = useSubscription()
-  const { setOutputPower, isInitialized, initialize, hasRfidHardware } = useRfidReader()
   const { sync, status } = useSync()
   const { i18n, t } = useTranslation()
 
-  const [readerPower, setReaderPower] = useState(RFID_READ_POWER_DEFAULT_DBM)
-  const [powerSaved, setPowerSaved] = useState(false)
   const [hasSchedules, setHasSchedules] = useState(false)
   const [biometricAvailable, setBiometricAvailable] = useState(false)
   const [biometricEnabled, setBiometricEnabled] = useState(
@@ -74,16 +64,6 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
     },
     [t],
   )
-
-  useEffect(() => {
-    setReaderPower(loadRfidReadPower())
-  }, [])
-
-  useEffect(() => {
-    if (hasRfidHardware && !isInitialized) {
-      initialize()
-    }
-  }, [hasRfidHardware, isInitialized, initialize])
 
   // Check if schedules exist
   useEffect(() => {
@@ -113,23 +93,6 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
 
     return () => subscription.unsubscribe()
   }, [currentOrg])
-
-  const applyPower = useCallback(
-    async (power: number) => {
-      const savedPower = saveRfidReadPower(power)
-      setReaderPower(savedPower)
-
-      let applied = true
-      if (hasRfidHardware && isInitialized) {
-        applied = await setOutputPower(savedPower)
-      }
-      if (applied) {
-        setPowerSaved(true)
-        setTimeout(() => setPowerSaved(false), 1500)
-      }
-    },
-    [hasRfidHardware, isInitialized, setOutputPower],
-  )
 
   const handleLogout = useCallback(() => {
     logout()
@@ -295,12 +258,6 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
     }
   }, [])
 
-  const powerScalePercent = Math.round(
-    ((readerPower - RFID_READ_POWER_MIN_DBM) /
-      (RFID_READ_POWER_MAX_DBM - RFID_READ_POWER_MIN_DBM)) *
-      100,
-  )
-
   const handleChangeLanguage = useCallback(
     (languageCode: string) => {
       i18n.changeLanguage(languageCode)
@@ -321,6 +278,8 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
         <Text preset="heading" text={t("settingsScreen.title")} style={themed($heading)} />
         <View style={themed($backButtonPlaceholder)} />
       </View>
+
+      <RfidScannerSettings />
 
       {/* APPEARANCE / dark mode toggle intentionally hidden — the app is
           light-only for now and the theme is pinned to light in
@@ -500,6 +459,12 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
           rightIcon="caretRight"
           onPress={() => navigation.navigate("VaccinationSchedules")}
         />
+        <ListItem
+          text="Import CSV or Excel data"
+          bottomSeparator
+          rightIcon="caretRight"
+          onPress={() => navigation.navigate("DataImports")}
+        />
 
         {hasSchedules && (
           <View style={themed($recalculateCard)}>
@@ -533,91 +498,6 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
           </View>
         )}
       </View>
-
-      {hasRfidHardware && (
-        <View style={themed($section)}>
-          <Text
-            preset="formLabel"
-            text={t("settingsScreen.sections.rfidScanner")}
-            style={themed($sectionLabel)}
-          />
-
-          <View style={themed($rfidCard)}>
-            <View style={themed($rfidStatusRow)}>
-              <View style={themed($rfidStatusDot)} />
-              <Text style={themed($rfidStatusText)}>{t("settingsScreen.rfid.connected")}</Text>
-            </View>
-
-            <Text style={themed($rfidPowerLabel)}>{t("settingsScreen.rfid.readerPower")}</Text>
-            <View style={themed($rfidPowerControl)}>
-              <Pressable
-                style={themed($rfidPowerButton)}
-                onPress={() => applyPower(readerPower - 1)}
-                disabled={readerPower <= RFID_READ_POWER_MIN_DBM}
-              >
-                <Text style={themed($rfidPowerButtonText)}>-</Text>
-              </Pressable>
-
-              <View style={themed($rfidPowerDisplay)}>
-                <Text style={themed($rfidPowerValue)}>{readerPower}</Text>
-                <Text style={themed($rfidPowerPercent)}>dBm</Text>
-              </View>
-
-              <Pressable
-                style={themed($rfidPowerButton)}
-                onPress={() => applyPower(readerPower + 1)}
-                disabled={readerPower >= RFID_READ_POWER_MAX_DBM}
-              >
-                <Text style={themed($rfidPowerButtonText)}>+</Text>
-              </Pressable>
-            </View>
-
-            <View style={themed($rfidBarTrack)}>
-              <View style={[themed($rfidBarFill), { width: `${powerScalePercent}%` }]} />
-            </View>
-
-            <View style={themed($rfidPresetRow)}>
-              {[
-                { label: t("settingsScreen.rfid.presets.low"), value: 10 },
-                { label: t("settingsScreen.rfid.presets.med"), value: 18 },
-                { label: t("settingsScreen.rfid.presets.high"), value: 24 },
-                { label: t("settingsScreen.rfid.presets.max"), value: 30 },
-              ].map((preset) => (
-                <Pressable
-                  key={preset.label}
-                  style={[
-                    themed($rfidPresetChip),
-                    readerPower === preset.value && themed($rfidPresetChipActive),
-                  ]}
-                  onPress={() => applyPower(preset.value)}
-                >
-                  <Text
-                    style={[
-                      themed($rfidPresetChipText),
-                      readerPower === preset.value && themed($rfidPresetChipTextActive),
-                    ]}
-                  >
-                    {preset.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-
-            {powerSaved && (
-              <Text style={themed($rfidSavedText)}>
-                {t("settingsScreen.rfid.powerSaved", { power: readerPower })}
-              </Text>
-            )}
-
-            <Text style={themed($rfidHint)}>
-              {t("settingsScreen.rfid.rangeHint", {
-                min: RFID_READ_POWER_MIN_DBM,
-                max: RFID_READ_POWER_MAX_DBM,
-              })}
-            </Text>
-          </View>
-        </View>
-      )}
 
       <View style={themed($section)}>
         <Text preset="formLabel" text="Sync" style={themed($sectionLabel)} />
@@ -762,143 +642,6 @@ const $logoutButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $version: ThemedStyle<TextStyle> = ({ spacing }) => ({
   textAlign: "center",
   marginTop: spacing.xl,
-})
-
-// --- RFID styles ---
-
-const $rfidCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  backgroundColor: colors.palette.neutral100,
-  borderRadius: 12,
-  padding: spacing.md,
-})
-
-const $rfidStatusRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flexDirection: "row",
-  alignItems: "center",
-  gap: spacing.sm,
-  marginBottom: spacing.md,
-})
-
-const $rfidStatusDot: ThemedStyle<ViewStyle> = () => ({
-  width: 10,
-  height: 10,
-  borderRadius: 5,
-  backgroundColor: "#739134",
-})
-
-const $rfidStatusText: ThemedStyle<TextStyle> = ({ colors }) => ({
-  fontSize: 14,
-  fontWeight: "600",
-  color: colors.palette.primary600,
-})
-
-const $rfidPowerLabel: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
-  fontSize: 13,
-  fontWeight: "600",
-  color: colors.textDim,
-  marginBottom: spacing.xs,
-  textTransform: "uppercase",
-  letterSpacing: 0.5,
-})
-
-const $rfidPowerControl: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: spacing.md,
-  marginBottom: spacing.sm,
-})
-
-const $rfidPowerButton: ThemedStyle<ViewStyle> = ({ colors }) => ({
-  width: 48,
-  height: 48,
-  borderRadius: 24,
-  backgroundColor: colors.palette.neutral200,
-  alignItems: "center",
-  justifyContent: "center",
-})
-
-const $rfidPowerButtonText: ThemedStyle<TextStyle> = ({ colors }) => ({
-  fontSize: 24,
-  fontWeight: "700",
-  color: colors.text,
-  lineHeight: 28,
-})
-
-const $rfidPowerDisplay: ThemedStyle<ViewStyle> = () => ({
-  alignItems: "center",
-  minWidth: 80,
-})
-
-const $rfidPowerValue: ThemedStyle<TextStyle> = ({ colors }) => ({
-  fontSize: 36,
-  fontWeight: "800",
-  color: colors.text,
-  lineHeight: 40,
-})
-
-const $rfidPowerPercent: ThemedStyle<TextStyle> = ({ colors }) => ({
-  fontSize: 13,
-  color: colors.textDim,
-  fontWeight: "500",
-})
-
-const $rfidBarTrack: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  height: 8,
-  borderRadius: 4,
-  backgroundColor: colors.palette.neutral200,
-  marginBottom: spacing.md,
-  overflow: "hidden",
-})
-
-const $rfidBarFill: ThemedStyle<ViewStyle> = ({ colors }) => ({
-  height: "100%",
-  borderRadius: 4,
-  backgroundColor: colors.palette.primary500,
-})
-
-const $rfidPresetRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flexDirection: "row",
-  gap: spacing.xs,
-  marginBottom: spacing.sm,
-})
-
-const $rfidPresetChip: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  flex: 1,
-  paddingVertical: spacing.xs,
-  borderRadius: 8,
-  borderWidth: 1.5,
-  borderColor: colors.palette.neutral300,
-  alignItems: "center",
-})
-
-const $rfidPresetChipActive: ThemedStyle<ViewStyle> = ({ colors }) => ({
-  borderColor: colors.palette.primary500,
-  backgroundColor: colors.palette.primary100,
-})
-
-const $rfidPresetChipText: ThemedStyle<TextStyle> = ({ colors }) => ({
-  fontSize: 13,
-  fontWeight: "600",
-  color: colors.palette.neutral500,
-})
-
-const $rfidPresetChipTextActive: ThemedStyle<TextStyle> = ({ colors }) => ({
-  color: colors.palette.primary600,
-})
-
-const $rfidSavedText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
-  fontSize: 13,
-  fontWeight: "600",
-  color: colors.palette.primary500,
-  textAlign: "center",
-  marginBottom: spacing.xs,
-})
-
-const $rfidHint: ThemedStyle<TextStyle> = ({ colors }) => ({
-  fontSize: 12,
-  color: colors.textDim,
-  lineHeight: 18,
 })
 
 // --- RECALCULATE VACCINATIONS styles ---

@@ -108,7 +108,7 @@ const zu = {
       overdue: "Esidlulile Isikhathi",
       dueToday: "Edingeka Namuhla",
       dueSoon: "Edingeka Maduze",
-      viewAll: "Bheka Yonke Imihlelo",
+      viewAll: "Bheka Imigomo Esalindile",
     },
     reports: {
       title: "Imibiko Nokuhlaziya",
@@ -598,6 +598,7 @@ const zu = {
   herdListScreen: {
     title: "Umhlambi",
     addButton: "+ Engeza",
+    scanCow: "Skena Inkomo",
     searchPlaceholder: "Sesha ngethegi, igama, noma uhlobo...",
     count_one: "{{count}} isilwane",
     count_other: "{{count}} izilwane",
@@ -1121,19 +1122,31 @@ const zu = {
     },
     count_one: "{{count}} isiqondiso",
     count_other: "{{count}} iziqondiso",
-    inactive: "Ayisebenzi",
-    withdrawal: "Ukulinda: {{days}} izinsuku",
+    countWithFilter_one: "{{count}} isiqondiso se-{{filter}}",
+    countWithFilter_other: "{{count}} iziqondiso ze-{{filter}}",
+    badges: {
+      inactive: "Ayisebenzi",
+    },
+    details: {
+      withdrawal: "Ukulinda: {{days}} izinsuku",
+    },
     empty: {
       title: "Azikho Iziqondiso Ezitholakele",
-      noProtocols: "Dala isiqondiso sakho sokuqala sokwelapha ukusisebenzisa ku-Chute Mode",
-      filtered: "Azikho iziqondiso ze-{{filter}} ezitholakele",
-      showAll: "Bonisa Konke",
-      loadDefaults: "Layisha Izimiselo ze-SA",
+      noFilter: "Dala isiqondiso sakho sokuqala sokwelapha ukusisebenzisa ku-Chute Mode",
+      withFilter: "Azikho iziqondiso ze-{{filter}} ezitholakele",
+      showAllButton: "Bonisa Konke",
+      loadDefaultsButton: "Layisha Izimiselo ze-SA",
       createButton: "Dala Isiqondiso",
     },
     alerts: {
-      toggleError: "Yehlulekile ukushintsha isimo sesiqondiso",
-      defaultsAdded: "Iziqondiso ezingu-{{count}} zengezwe ngempumelelo",
+      toggleError: {
+        title: "Isiqondiso asikwazanga ukubuyekezwa",
+        message: "Yehlulekile ukushintsha isimo sesiqondiso",
+      },
+      protocolsAdded: {
+        title: "Iziqondiso zengeziwe",
+        message: "Iziqondiso ezingu-{{count}} zengezwe ngempumelelo",
+      },
     },
   },
   healthRecordFormScreen: {

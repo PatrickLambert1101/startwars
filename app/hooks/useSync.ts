@@ -5,6 +5,7 @@ import { logSyncOperation, startTransaction, captureException } from "@/services
 import { useDatabase } from "@/context/DatabaseContext"
 import { supabase } from "@/services/supabase"
 import { calculateScheduledVaccinations } from "@/services/vaccinationScheduler"
+import { flushPhotoQueue } from "@/services/photoUploadQueue"
 
 export type SyncStatus = "idle" | "syncing" | "success" | "error"
 export type SyncStage = "pulling" | "processing" | "pushing" | "complete"
@@ -169,6 +170,13 @@ export function useSync() {
             console.error("[Sync] Failed to recalculate vaccinations after pull:", err)
           })
         }
+
+        // We're online (the sync just succeeded), so drain any photos that
+        // couldn't be uploaded earlier — e.g. captured in the field offline.
+        // Fire-and-forget so a slow upload never blocks the sync UI.
+        flushPhotoQueue().catch((err) => {
+          console.error("[Sync] Failed to flush photo queue after sync:", err)
+        })
 
         transaction?.setStatus({ code: 1 })
         transaction?.finish()

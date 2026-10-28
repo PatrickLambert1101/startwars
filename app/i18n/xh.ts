@@ -108,7 +108,7 @@ const xh = {
       overdue: "Sele Ludlulile",
       dueToday: "Lufuneka Namhlanje",
       dueSoon: "Lufuneka Kungekudala",
-      viewAll: "Jonga Onke Amaxesha",
+      viewAll: "Jonga Ugonyo Olusalindileyo",
     },
     reports: {
       title: "Iingxelo Nohlalutyo",
@@ -598,6 +598,7 @@ const xh = {
   herdListScreen: {
     title: "Umhlambi",
     addButton: "+ Yongeza",
+    scanCow: "Skena Inkomo",
     searchPlaceholder: "Khangela ngethegi, igama, okanye uhlobo...",
     count_one: "{{count}} isilwanyana",
     count_other: "{{count}} izilwanyana",
@@ -1122,19 +1123,31 @@ const xh = {
     },
     count_one: "{{count}} iprotocol",
     count_other: "{{count}} iiprotocol",
-    inactive: "Ayisebenzi",
-    withdrawal: "Ukurhoxiswa: iintsuku ezi-{{days}}",
+    countWithFilter_one: "{{count}} iprotocol ye-{{filter}}",
+    countWithFilter_other: "{{count}} iiprotocol ze-{{filter}}",
+    badges: {
+      inactive: "Ayisebenzi",
+    },
+    details: {
+      withdrawal: "Ukurhoxiswa: iintsuku ezi-{{days}}",
+    },
     empty: {
       title: "Akukho Protocol Zifumanekayo",
-      noProtocols: "Yenza iprotocol yakho yokuqala yonyango ukuze uyisebenzise kwiMo ye-Chute",
-      filtered: "Akukho protocol ze-{{filter}} zifumanekayo",
-      showAll: "Bonisa Zonke",
-      loadDefaults: "Layisha Iimisileyo zaseSA",
+      noFilter: "Yenza iprotocol yakho yokuqala yonyango ukuze uyisebenzise kwiMo ye-Chute",
+      withFilter: "Akukho protocol ze-{{filter}} zifumanekayo",
+      showAllButton: "Bonisa Zonke",
+      loadDefaultsButton: "Layisha Iimisileyo zaseSA",
       createButton: "Yenza Iprotocol",
     },
     alerts: {
-      toggleError: "Akukwazanga kutshintshwa imo yeprotocol",
-      defaultsAdded: "Iiprotocol ezi-{{count}} zongezwe ngempumelelo",
+      toggleError: {
+        title: "Iprotocol ayikwazanga ukuhlaziywa",
+        message: "Akukwazanga kutshintshwa imo yeprotocol",
+      },
+      protocolsAdded: {
+        title: "Iiprotocol zongeziwe",
+        message: "Iiprotocol ezi-{{count}} zongezwe ngempumelelo",
+      },
     },
   },
   healthRecordFormScreen: {

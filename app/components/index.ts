@@ -1,6 +1,7 @@
 export { AnimatedLogo } from "./AnimatedLogo"
 export { AppHeader } from "./AppHeader"
 export { HerdIcon } from "./HerdIcon"
+export { HerdInsightsCard } from "./HerdInsightsCard"
 export type { HerdIconName } from "./HerdIcon"
 export type { AppHeaderProps } from "./AppHeader"
 export { AnimalPicker } from "./AnimalPicker"

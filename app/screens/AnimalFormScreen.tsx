@@ -6,42 +6,42 @@ import { useTranslation } from "react-i18next"
 import { Screen, Text, TextField, Button, ScanTagButton } from "@/components"
 import { AgeDatePicker } from "@/components/AgeDatePicker"
 import { PhotoPicker } from "@/components/PhotoPicker"
-import { TagInput } from "@/components/TagInput"
+import { mergeTagsWithDraft, TagInput } from "@/components/TagInput"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { useAnimal, useAnimalActions, AnimalFormData, DuplicateTagError, AnimalLimitError } from "@/hooks/useAnimals"
 import { useAnimals } from "@/hooks/useAnimals"
-import { AnimalSex, AnimalStatus, Animal } from "@/db/models/Animal"
+import { AnimalSex, AnimalStatus, Animal, BREEDS_BY_SPECIES } from "@/db/models/Animal"
 import { useRfidReader } from "@/hooks/useRfidReader"
 import { useDatabase } from "@/context/DatabaseContext"
 import { useAuth } from "@/context/AuthContext"
 import { uploadPhoto } from "@/services/photoStorage"
+import { enqueuePhotoUploads } from "@/services/photoUploadQueue"
 import type { PhotoWithMetadata } from "@/types/Photo"
 import { serializePhotos } from "@/types/Photo"
 
 const SEX_OPTIONS: AnimalSex[] = ["male", "female", "castrated", "unknown"]
 const STATUS_OPTIONS: AnimalStatus[] = ["active", "sold", "deceased", "transferred"]
+type ParentSource = "herd" | "external"
+type BreedPickerTarget = "animal" | "sire" | "dam"
 
-const COMMON_BREEDS = [
-  "Angus",
-  "Hereford",
-  "Brahman",
-  "Bonsmara",
-  "Nguni",
-  "Simmental",
-  "Charolais",
-  "Limousin",
-  "Afrikaner",
-  "Drakensberger",
-  "Other"
-]
+export const MALE_PURPOSE_TAGS = [
+  "Herd Breeding Bull",
+  "Breeding Bull For Sale",
+  "Beef Steer",
+] as const
+
+const COMMON_BREEDS = BREEDS_BY_SPECIES.cattle
 
 export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route, navigation }) => {
   const { t } = useTranslation()
   const { themed, theme: { colors } } = useAppTheme()
   const isEditing = route.params?.mode === "edit"
   const animalId = route.params?.animalId
+  const linkAsParentOf = route.params?.linkAsParentOf
+  const parentRole = route.params?.parentRole
+  const isCreatingParent = !isEditing && Boolean(linkAsParentOf && parentRole)
   const { animal } = useAnimal(animalId ?? "")
   const { createAnimal, updateAnimal } = useAnimalActions()
   const { animals } = useAnimals()
@@ -49,8 +49,10 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
   const { currentOrg } = useDatabase()
   const { user } = useAuth()
 
-  const [rfidTag, setRfidTag] = useState("")
-  const [visualTag, setVisualTag] = useState("")
+  const [rfidTag, setRfidTag] = useState(isEditing ? "" : route.params?.initialRfidTag ?? "")
+  const [visualTag, setVisualTag] = useState(
+    isEditing ? "" : route.params?.initialVisualTag ?? "",
+  )
   const [name, setName] = useState("")
   const [breed, setBreed] = useState("")
   const [sex, setSex] = useState<AnimalSex>("female")
@@ -64,10 +66,19 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
   const [notes, setNotes] = useState("")
   const [sireId, setSireId] = useState<string | null>(null)
   const [dameId, setDameId] = useState<string | null>(null)
+  const [sireSource, setSireSource] = useState<ParentSource>("herd")
+  const [damSource, setDamSource] = useState<ParentSource>("herd")
+  const [externalSireReference, setExternalSireReference] = useState("")
+  const [externalSireBreed, setExternalSireBreed] = useState("")
+  const [externalDamReference, setExternalDamReference] = useState("")
+  const [externalDamBreed, setExternalDamBreed] = useState("")
+  const [sourceName, setSourceName] = useState("")
   const [photos, setPhotos] = useState<PhotoWithMetadata[]>([])
   const [tags, setTags] = useState<string[]>([])
+  const [tagDraft, setTagDraft] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [showBreedPicker, setShowBreedPicker] = useState(false)
+  const [breedPickerTarget, setBreedPickerTarget] = useState<BreedPickerTarget | null>(null)
+  const [customBreed, setCustomBreed] = useState("")
   const [showSexPicker, setShowSexPicker] = useState(false)
   const [showSirePicker, setShowSirePicker] = useState(false)
   const [showDamePicker, setShowDamePicker] = useState(false)
@@ -103,6 +114,20 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
       setVaccinationsUpToDate(animal.vaccinationsUpToDate)
       setDateOfBirth(animal.dateOfBirth || null)
       setRegistrationNumber(animal.registrationNumber || "")
+      setHerdTag(animal.herdTag || "")
+      setSireId(animal.sireId || null)
+      setDameId(animal.damId || null)
+      setExternalSireReference(animal.externalSireReference || "")
+      setExternalSireBreed(animal.externalSireBreed || "")
+      setExternalDamReference(animal.externalDamReference || "")
+      setExternalDamBreed(animal.externalDamBreed || "")
+      setSourceName(animal.sourceName || "")
+      setSireSource(
+        animal.externalSireReference || animal.externalSireBreed ? "external" : "herd",
+      )
+      setDamSource(
+        animal.externalDamReference || animal.externalDamBreed ? "external" : "herd",
+      )
       setNotes(animal.notes || "")
       // Load existing photos if editing
       if (animal.photos) {
@@ -143,6 +168,14 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
     }
   }, [isEditing, currentOrg, breed])
 
+  // Creating directly from a Sire/Dam card should begin with the correct sex,
+  // while still allowing the farmer to change it before saving if necessary.
+  useEffect(() => {
+    if (!isEditing && parentRole) {
+      setSex(parentRole === "sire" ? "male" : "female")
+    }
+  }, [isEditing, parentRole])
+
   const maleAnimals = animals.filter(a => a.sex === "male")
   const femaleAnimals = animals.filter(a => a.sex === "female")
   const filteredSires = parentSearch
@@ -160,6 +193,82 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
 
   const selectedSire = sireId ? animals.find(a => a.id === sireId) : null
   const selectedDame = dameId ? animals.find(a => a.id === dameId) : null
+  const breedOptions = [
+    ...new Set(
+      [
+        ...COMMON_BREEDS,
+        ...animals.flatMap((existingAnimal) => [
+          existingAnimal.breed,
+          existingAnimal.externalSireBreed || "",
+          existingAnimal.externalDamBreed || "",
+        ]),
+        breed,
+        externalSireBreed,
+        externalDamBreed,
+      ]
+        .map((option) => option.trim())
+        .filter(Boolean),
+    ),
+  ]
+  const breedPickerTitle =
+    breedPickerTarget === "sire"
+      ? "Choose sire breed"
+      : breedPickerTarget === "dam"
+        ? "Choose dam breed"
+        : t("animalFormScreen.modals.breed.title")
+  const relevantPurposeTags =
+    sex === "male"
+      ? MALE_PURPOSE_TAGS.slice(0, 2)
+      : sex === "castrated"
+        ? MALE_PURPOSE_TAGS.slice(2)
+        : []
+
+  const handleSexChange = (nextSex: AnimalSex) => {
+    const allowedPurposeTags =
+      nextSex === "male"
+        ? new Set<string>(MALE_PURPOSE_TAGS.slice(0, 2))
+        : nextSex === "castrated"
+          ? new Set<string>(MALE_PURPOSE_TAGS.slice(2))
+          : new Set<string>()
+    setTags((current) =>
+      current.filter(
+        (tag) =>
+          !MALE_PURPOSE_TAGS.includes(tag as (typeof MALE_PURPOSE_TAGS)[number]) ||
+          allowedPurposeTags.has(tag),
+      ),
+    )
+    setSex(nextSex)
+  }
+
+  const togglePurposeTag = (purposeTag: string) => {
+    setTags((current) => {
+      const withoutPurpose = current.filter(
+        (tag) => !MALE_PURPOSE_TAGS.includes(tag as (typeof MALE_PURPOSE_TAGS)[number]),
+      )
+      return current.includes(purposeTag) ? withoutPurpose : [...withoutPurpose, purposeTag]
+    })
+  }
+
+  const openBreedPicker = (target: BreedPickerTarget) => {
+    setCustomBreed("")
+    setBreedPickerTarget(target)
+  }
+
+  const selectBreed = (nextBreed: string) => {
+    const normalizedBreed = nextBreed.trim()
+    if (!normalizedBreed || !breedPickerTarget) return
+
+    if (breedPickerTarget === "sire") {
+      setExternalSireBreed(normalizedBreed)
+    } else if (breedPickerTarget === "dam") {
+      setExternalDamBreed(normalizedBreed)
+    } else {
+      setBreed(normalizedBreed)
+    }
+
+    setCustomBreed("")
+    setBreedPickerTarget(null)
+  }
 
   const handleSave = useCallback(async () => {
     // Require at least one tag
@@ -202,8 +311,9 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
 
     setIsSubmitting(true)
     try {
-      const tagsJson = tags.length > 0 ? JSON.stringify(tags) : null
-      console.log("[AnimalForm] Saving tags:", tags, "as JSON:", tagsJson)
+      const tagsToSave = mergeTagsWithDraft(tags, tagDraft)
+      const tagsJson = tagsToSave.length > 0 ? JSON.stringify(tagsToSave) : null
+      console.log("[AnimalForm] Saving tags:", tagsToSave, "as JSON:", tagsJson)
 
       const data: AnimalFormData = {
         rfidTag: rfidTag.trim(),
@@ -212,9 +322,21 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
         breed: breed.trim(),
         sex,
         dateOfBirth: dateOfBirth || undefined,
+        sireId: sireSource === "herd" ? sireId : null,
+        damId: damSource === "herd" ? dameId : null,
+        externalSireReference:
+          sireSource === "external" ? externalSireReference.trim() || null : null,
+        externalSireBreed:
+          sireSource === "external" ? externalSireBreed.trim() || null : null,
+        externalDamReference:
+          damSource === "external" ? externalDamReference.trim() || null : null,
+        externalDamBreed:
+          damSource === "external" ? externalDamBreed.trim() || null : null,
+        sourceName: sourceName.trim() || null,
         status,
         vaccinationsUpToDate,
         registrationNumber: registrationNumber.trim() || undefined,
+        herdTag: herdTag.trim() || undefined,
         notes: notes.trim() || undefined,
         tags: tagsJson,
       }
@@ -227,6 +349,23 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
       } else {
         const newAnimal = await createAnimal(data)
         savedAnimalId = newAnimal.id
+
+        if (linkAsParentOf && parentRole) {
+          await updateAnimal(
+            linkAsParentOf,
+            parentRole === "sire"
+              ? {
+                  sireId: newAnimal.id,
+                  externalSireReference: null,
+                  externalSireBreed: null,
+                }
+              : {
+                  damId: newAnimal.id,
+                  externalDamReference: null,
+                  externalDamBreed: null,
+                },
+          )
+        }
       }
 
       // Upload new photos in background
@@ -271,10 +410,11 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
       )
     }
     setIsSubmitting(false)
-  }, [rfidTag, visualTag, name, breed, sex, dateOfBirth, status, vaccinationsUpToDate, registrationNumber, notes, photos, tags, currentOrg, isEditing, animalId, createAnimal, updateAnimal, navigation, t, hasRfidHardware, animals])
+  }, [rfidTag, visualTag, name, breed, sex, dateOfBirth, sireId, dameId, sireSource, damSource, externalSireReference, externalSireBreed, externalDamReference, externalDamBreed, sourceName, status, vaccinationsUpToDate, registrationNumber, herdTag, notes, photos, tags, tagDraft, currentOrg, isEditing, animalId, linkAsParentOf, parentRole, createAnimal, updateAnimal, navigation, t, hasRfidHardware, animals])
 
   const uploadPhotosInBackground = async (savedAnimalId: string, photosToUpload: PhotoWithMetadata[]) => {
     try {
+      const failedUploads: PhotoWithMetadata[] = []
       const uploadedPhotos = await Promise.all(
         photosToUpload.map(async (photo) => {
           if (!photo.localUri) return null
@@ -288,11 +428,28 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
             })
             return result.photo
           } catch (error) {
-            console.error("Failed to upload photo:", error)
+            // Likely offline — queue for retry on the next successful sync
+            // instead of dropping the photo.
+            console.error("Failed to upload photo, queuing for later:", error)
+            failedUploads.push(photo)
             return null
           }
         }),
       )
+
+      if (failedUploads.length > 0) {
+        await enqueuePhotoUploads(
+          failedUploads.map((photo) => ({
+            table: "animals",
+            recordId: savedAnimalId,
+            category: "animals",
+            organizationId: currentOrg!.id,
+            localUri: photo.localUri!,
+            userId: user?.id,
+            caption: photo.caption,
+          })),
+        )
+      }
 
       const successfulPhotos = uploadedPhotos.filter((p) => p !== null)
 
@@ -318,7 +475,16 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
     <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
       <View style={themed($headerRow)}>
         <Button text={t("animalFormScreen.buttons.cancel")} preset="default" onPress={() => navigation.goBack()} />
-        <Text preset="heading" text={isEditing ? t("animalFormScreen.title.edit") : t("animalFormScreen.title.add")} />
+        <Text
+          preset="heading"
+          text={
+            isEditing
+              ? t("animalFormScreen.title.edit")
+              : isCreatingParent
+                ? `Add ${parentRole === "sire" ? "Sire" : "Dam"}`
+                : t("animalFormScreen.title.add")
+          }
+        />
         <View style={{ width: 60 }} />
       </View>
 
@@ -331,6 +497,16 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
       )}
 
       <View style={themed($form)}>
+        {isCreatingParent && (
+          <View style={themed($helperNote)}>
+            <Text
+              text={`This animal will be linked as the ${parentRole} when you save.`}
+              size="xs"
+              style={themed($helperText)}
+            />
+          </View>
+        )}
+
         {/* Only show helper note about tags if RFID hardware is present */}
         {hasRfidHardware && (
           <View style={themed($helperNote)}>
@@ -349,7 +525,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
             </View>
             {showRfidHelp && (
               <View style={themed($helpBox)}>
-                <MaterialCommunityIcons name="lightbulb-on-outline" size={14} color={colors.palette.primary700 || colors.tint} style={{ marginRight: 6 }} />
+                <MaterialCommunityIcons name="lightbulb-on-outline" size={14} color={colors.tint} style={{ marginRight: 6 }} />
                 <Text text={t("animalFormScreen.fields.rfidTag.helpText")} size="xxs" style={themed($helpText)} />
               </View>
             )}
@@ -360,7 +536,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
               </View>
             ) : rfidTag ? (
               <View style={themed($rfidDisplayBox)}>
-                <MaterialCommunityIcons name="check-circle" size={20} color={colors.palette.success500 || "#10b981"} />
+                <MaterialCommunityIcons name="check-circle" size={20} color={colors.tint} />
                 <Text text={rfidTag} size="md" style={{ color: colors.text, fontWeight: "600", flex: 1 }} />
                 <Pressable onPress={() => setRfidTag("")} style={{ padding: 4 }}>
                   <MaterialCommunityIcons name="close-circle" size={20} color={colors.textDim} />
@@ -384,7 +560,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
           </View>
           {showVisualTagHelp && (
             <View style={themed($helpBox)}>
-              <MaterialCommunityIcons name="camera-outline" size={14} color={colors.palette.primary700 || colors.tint} style={{ marginRight: 6 }} />
+              <MaterialCommunityIcons name="camera-outline" size={14} color={colors.tint} style={{ marginRight: 6 }} />
               <Text text={t("animalFormScreen.fields.visualTag.helpText")} size="xxs" style={themed($helpText)} />
             </View>
           )}
@@ -420,7 +596,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
         {/* Breed Picker */}
         <View>
           <Text preset="formLabel" text={t("animalFormScreen.fields.breed.label")} style={themed($pickerLabel)} />
-          <Pressable onPress={() => setShowBreedPicker(true)} style={themed($pickerButton)}>
+          <Pressable onPress={() => openBreedPicker("animal")} style={themed($pickerButton)}>
             <Text text={breed || t("animalFormScreen.fields.breed.placeholder")} style={!breed && themed($placeholderText)} />
           </Pressable>
         </View>
@@ -475,42 +651,142 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
             </View>
           </View>
           <View style={themed($helpBox)}>
-            <MaterialCommunityIcons name="dna" size={14} color={colors.palette.primary700 || colors.tint} style={{ marginRight: 6 }} />
+            <MaterialCommunityIcons name="dna" size={14} color={colors.tint} style={{ marginRight: 6 }} />
             <Text text={t("animalFormScreen.lineage.helpText")} size="xxs" style={themed($helpText)} />
           </View>
 
           <View>
             <Text text={t("animalFormScreen.lineage.sire.label")} size="xs" style={themed($lineageLabel)} />
-            <Pressable onPress={() => setShowSirePicker(true)} style={themed($pickerButton)}>
-              <Text
-                text={selectedSire ? selectedSire.displayName : t("animalFormScreen.lineage.sire.placeholder")}
-                style={!selectedSire && themed($placeholderText)}
-              />
-            </Pressable>
-            {!selectedSire && maleAnimals.length === 0 && (
-              <View style={themed($inlineHint)}>
-                <MaterialCommunityIcons name="information-outline" size={12} color={colors.textDim} style={{ marginRight: 4 }} />
-                <Text text={t("animalFormScreen.lineage.sire.noMales")} size="xxs" style={themed($hintTextSmall)} />
+            <View style={themed($sourceChoiceRow)}>
+              {(["herd", "external"] as ParentSource[]).map((source) => (
+                <Pressable
+                  key={source}
+                  style={[
+                    themed($sourceChoice),
+                    sireSource === source && themed($sourceChoiceSelected),
+                  ]}
+                  onPress={() => setSireSource(source)}
+                >
+                  <Text
+                    text={source === "herd" ? "In herd" : "External"}
+                    size="xs"
+                    style={sireSource === source ? themed($sourceChoiceTextSelected) : undefined}
+                  />
+                </Pressable>
+              ))}
+            </View>
+            {sireSource === "herd" ? (
+              <>
+                <Pressable onPress={() => setShowSirePicker(true)} style={themed($pickerButton)}>
+                  <Text
+                    text={selectedSire ? selectedSire.displayName : t("animalFormScreen.lineage.sire.placeholder")}
+                    style={!selectedSire && themed($placeholderText)}
+                  />
+                </Pressable>
+                {!selectedSire && maleAnimals.length === 0 && (
+                  <View style={themed($inlineHint)}>
+                    <MaterialCommunityIcons name="information-outline" size={12} color={colors.textDim} style={{ marginRight: 4 }} />
+                    <Text text="No bulls are in this herd. Choose External to record an outside sire." size="xxs" style={themed($hintTextSmall)} />
+                  </View>
+                )}
+              </>
+            ) : (
+              <View style={themed($externalParentFields)}>
+                <TextField
+                  label="Sire ID or registration"
+                  value={externalSireReference}
+                  onChangeText={setExternalSireReference}
+                  placeholder="e.g. BULL-12 or society number"
+                  autoCorrect={false}
+                />
+                <View>
+                  <Text preset="formLabel" text="Sire breed" style={themed($pickerLabel)} />
+                  <Pressable
+                    onPress={() => openBreedPicker("sire")}
+                    style={themed($pickerButton)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Choose sire breed"
+                  >
+                    <Text
+                      text={externalSireBreed || "Choose or create a breed"}
+                      style={!externalSireBreed && themed($placeholderText)}
+                    />
+                  </Pressable>
+                </View>
               </View>
             )}
           </View>
 
           <View>
-            <Text text={t("animalFormScreen.lineage.dame.label")} size="xs" style={themed($lineageLabel)} />
-            <Pressable onPress={() => setShowDamePicker(true)} style={themed($pickerButton)}>
-              <Text
-                text={selectedDame ? selectedDame.displayName : t("animalFormScreen.lineage.dame.placeholder")}
-                style={!selectedDame && themed($placeholderText)}
-              />
-            </Pressable>
-            {!selectedDame && femaleAnimals.length === 0 && (
-              <View style={themed($inlineHint)}>
-                <MaterialCommunityIcons name="information-outline" size={12} color={colors.textDim} style={{ marginRight: 4 }} />
-                <Text text={t("animalFormScreen.lineage.dame.noFemales")} size="xxs" style={themed($hintTextSmall)} />
+            <Text text="Dam" size="xs" style={themed($lineageLabel)} />
+            <View style={themed($sourceChoiceRow)}>
+              {(["herd", "external"] as ParentSource[]).map((source) => (
+                <Pressable
+                  key={source}
+                  style={[
+                    themed($sourceChoice),
+                    damSource === source && themed($sourceChoiceSelected),
+                  ]}
+                  onPress={() => setDamSource(source)}
+                >
+                  <Text
+                    text={source === "herd" ? "In herd" : "External"}
+                    size="xs"
+                    style={damSource === source ? themed($sourceChoiceTextSelected) : undefined}
+                  />
+                </Pressable>
+              ))}
+            </View>
+            {damSource === "herd" ? (
+              <>
+                <Pressable onPress={() => setShowDamePicker(true)} style={themed($pickerButton)}>
+                  <Text
+                    text={selectedDame ? selectedDame.displayName : t("animalFormScreen.lineage.dame.placeholder")}
+                    style={!selectedDame && themed($placeholderText)}
+                  />
+                </Pressable>
+                {!selectedDame && femaleAnimals.length === 0 && (
+                  <View style={themed($inlineHint)}>
+                    <MaterialCommunityIcons name="information-outline" size={12} color={colors.textDim} style={{ marginRight: 4 }} />
+                    <Text text="No cows are in this herd. Choose External to record an outside dam." size="xxs" style={themed($hintTextSmall)} />
+                  </View>
+                )}
+              </>
+            ) : (
+              <View style={themed($externalParentFields)}>
+                <TextField
+                  label="Dam ID or registration"
+                  value={externalDamReference}
+                  onChangeText={setExternalDamReference}
+                  placeholder="e.g. C102 or society number"
+                  autoCorrect={false}
+                />
+                <View>
+                  <Text preset="formLabel" text="Dam breed" style={themed($pickerLabel)} />
+                  <Pressable
+                    onPress={() => openBreedPicker("dam")}
+                    style={themed($pickerButton)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Choose dam breed"
+                  >
+                    <Text
+                      text={externalDamBreed || "Choose or create a breed"}
+                      style={!externalDamBreed && themed($placeholderText)}
+                    />
+                  </Pressable>
+                </View>
               </View>
             )}
           </View>
         </View>
+
+        <TextField
+          label="Source farm or breeder (optional)"
+          value={sourceName}
+          onChangeText={setSourceName}
+          placeholder="Farm, company or breeder bought from"
+          autoCapitalize="words"
+        />
 
         <TextField
           label={t("animalFormScreen.fields.registrationNumber.label")}
@@ -533,8 +809,40 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
           <TagInput
             tags={tags}
             onTagsChange={setTags}
+            onDraftChange={setTagDraft}
             placeholder="Add tags (e.g., Breeding Stock, For Sale...)"
           />
+          {relevantPurposeTags.length > 0 && (
+            <View style={themed($purposeSection)}>
+              <Text text="Purpose (optional)" size="xs" style={themed($dimText)} />
+              <View style={themed($purposeChipRow)}>
+                {relevantPurposeTags.map((purposeTag) => {
+                  const selected = tags.includes(purposeTag)
+                  return (
+                    <Pressable
+                      key={purposeTag}
+                      onPress={() => togglePurposeTag(purposeTag)}
+                      style={[
+                        themed($purposeChip),
+                        selected && themed($purposeChipSelected),
+                      ]}
+                    >
+                      <Text
+                        text={purposeTag}
+                        size="xs"
+                        style={selected ? themed($purposeChipTextSelected) : undefined}
+                      />
+                    </Pressable>
+                  )
+                })}
+              </View>
+              <Text
+                text="Choose one so breeding bulls kept for your herd stay distinct from bulls for sale."
+                size="xxs"
+                style={themed($hintTextSmall)}
+              />
+            </View>
+          )}
         </View>
 
         <Button
@@ -546,26 +854,52 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
       </View>
 
       {/* Breed Picker Modal */}
-      <Modal visible={showBreedPicker} transparent animationType="slide">
+      <Modal
+        visible={breedPickerTarget !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setBreedPickerTarget(null)}
+      >
         <View style={themed($modalOverlay)}>
           <View style={themed($modalContent)}>
-            <Text preset="heading" text={t("animalFormScreen.modals.breed.title")} size="md" />
+            <Text preset="heading" text={breedPickerTitle} size="md" />
+            <View style={themed($customBreedBox)}>
+              <TextField
+                label={
+                  breedPickerTarget === "sire"
+                    ? "Custom sire breed or cross"
+                    : breedPickerTarget === "dam"
+                      ? "Custom dam breed or cross"
+                      : "Custom breed or cross"
+                }
+                value={customBreed}
+                onChangeText={setCustomBreed}
+                placeholder="e.g. Nguni × farm composite"
+                autoCapitalize="words"
+              />
+              <Button
+                text="Use custom breed"
+                preset="reversed"
+                disabled={!customBreed.trim()}
+                onPress={() => selectBreed(customBreed)}
+              />
+            </View>
             <FlatList
-              data={COMMON_BREEDS}
+              data={breedOptions}
               keyExtractor={(item) => item}
               renderItem={({ item }) => (
                 <Pressable
                   style={themed($modalItem)}
-                  onPress={() => {
-                    setBreed(item)
-                    setShowBreedPicker(false)
-                  }}
+                  onPress={() => selectBreed(item)}
                 >
                   <Text text={item} />
                 </Pressable>
               )}
             />
-            <Button text={t("animalFormScreen.modals.breed.cancel")} onPress={() => setShowBreedPicker(false)} />
+            <Button
+              text={t("animalFormScreen.modals.breed.cancel")}
+              onPress={() => setBreedPickerTarget(null)}
+            />
           </View>
         </View>
       </Modal>
@@ -580,7 +914,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
                 key={s}
                 style={themed($modalItem)}
                 onPress={() => {
-                  setSex(s)
+                  handleSexChange(s)
                   setShowSexPicker(false)
                 }}
               >
@@ -611,6 +945,8 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
                   style={themed($modalItem)}
                   onPress={() => {
                     setSireId(item.id)
+                    setExternalSireReference("")
+                    setExternalSireBreed("")
                     setShowSirePicker(false)
                     setParentSearch("")
                   }}
@@ -645,6 +981,8 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
                   style={themed($modalItem)}
                   onPress={() => {
                     setDameId(item.id)
+                    setExternalDamReference("")
+                    setExternalDamBreed("")
                     setShowDamePicker(false)
                     setParentSearch("")
                   }}
@@ -749,9 +1087,9 @@ const $rfidScanningBox: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
 })
 
 const $rfidDisplayBox: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  backgroundColor: colors.palette.success100 || "#d1fae5",
+  backgroundColor: colors.palette.primary100,
   borderWidth: 2,
-  borderColor: colors.palette.success500 || "#10b981",
+  borderColor: colors.tint,
   borderRadius: 12,
   padding: spacing.md,
   flexDirection: "row",
@@ -790,6 +1128,69 @@ const $lineageLabel: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   marginBottom: spacing.xxs,
 })
 
+const $sourceChoiceRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  gap: spacing.xs,
+  marginBottom: spacing.xs,
+})
+
+const $sourceChoice: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flex: 1,
+  alignItems: "center",
+  borderWidth: 1,
+  borderColor: colors.border,
+  borderRadius: 8,
+  paddingVertical: spacing.xs,
+  backgroundColor: colors.background,
+})
+
+const $sourceChoiceSelected: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  borderColor: colors.tint,
+  backgroundColor: colors.palette.primary100,
+})
+
+const $sourceChoiceTextSelected: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.tint,
+  fontWeight: "700",
+})
+
+const $externalParentFields: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  gap: spacing.xs,
+})
+
+const $purposeSection: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  marginTop: spacing.sm,
+  padding: spacing.sm,
+  gap: spacing.xs,
+  borderRadius: 10,
+  backgroundColor: colors.palette.neutral100,
+})
+
+const $purposeChipRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  flexWrap: "wrap",
+  gap: spacing.xs,
+})
+
+const $purposeChip: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  paddingHorizontal: spacing.sm,
+  paddingVertical: spacing.xs,
+  borderWidth: 1,
+  borderColor: colors.border,
+  borderRadius: 16,
+  backgroundColor: colors.background,
+})
+
+const $purposeChipSelected: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  borderColor: colors.tint,
+  backgroundColor: colors.palette.primary100,
+})
+
+const $purposeChipTextSelected: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.tint,
+  fontWeight: "700",
+})
+
 const $modalOverlay: ThemedStyle<ViewStyle> = () => ({
   flex: 1,
   backgroundColor: "rgba(0, 0, 0, 0.5)",
@@ -810,6 +1211,13 @@ const $modalItem: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   padding: spacing.md,
   borderRadius: 8,
   marginBottom: spacing.xs,
+})
+
+const $customBreedBox: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  gap: spacing.sm,
+  padding: spacing.sm,
+  borderRadius: 12,
+  backgroundColor: colors.palette.neutral100,
 })
 
 const $searchField: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -877,7 +1285,7 @@ const $hint: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
 })
 
 const $helpBox: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  backgroundColor: colors.palette.primary50 || colors.palette.primary100,
+  backgroundColor: colors.palette.primary100,
   borderLeftWidth: 3,
   borderLeftColor: colors.palette.primary500,
   borderRadius: 6,
@@ -888,7 +1296,7 @@ const $helpBox: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
 })
 
 const $helpText: ThemedStyle<TextStyle> = ({ colors }) => ({
-  color: colors.palette.primary700 || colors.tint,
+  color: colors.tint,
   lineHeight: 16,
   flex: 1,
 })

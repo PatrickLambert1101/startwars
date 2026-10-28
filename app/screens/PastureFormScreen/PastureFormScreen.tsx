@@ -1,16 +1,16 @@
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useMemo } from "react"
 import { View, ViewStyle, TextStyle, Pressable } from "react-native"
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { Screen, Text, TextField, Button, Icon } from "@/components"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-import { AppStackScreenProps } from "@/navigators"
-import { usePasture, usePastureActions, PastureFormData, DuplicatePastureCodeError } from "@/hooks/usePastures"
+import { AppStackScreenProps } from "@/navigators/navigationTypes"
+import { usePasture, usePastureActions, PastureFormData, DuplicatePastureCodeError, usePastures } from "@/hooks/usePastures"
+import { forageTypeOptions } from "@/utils/forageTypes"
 
 interface PastureFormScreenProps extends AppStackScreenProps<"PastureForm"> {}
 
-const FORAGE_TYPES = ["Mixed Grass", "Kikuyu", "Lucerne", "Eragrostis", "Clover", "Veld Grass"]
 const WATER_SOURCES = ["Dam", "Trough", "River", "Borehole", "None"]
 const FENCE_TYPES = ["Electric", "Barbed Wire", "Game Fence", "Post & Rail", "None"]
 
@@ -18,6 +18,7 @@ export function PastureFormScreen({ navigation, route }: PastureFormScreenProps)
   const pastureId = route.params?.pastureId
   const isEdit = !!pastureId
   const { pasture, isLoading } = usePasture(pastureId || "")
+  const { pastures } = usePastures()
   const { createPasture, updatePasture } = usePastureActions()
   const { themed } = useAppTheme()
 
@@ -39,6 +40,11 @@ export function PastureFormScreen({ navigation, route }: PastureFormScreenProps)
 
   const [errors, setErrors] = useState<Partial<Record<keyof PastureFormData, string>>>({})
   const [isSaving, setIsSaving] = useState(false)
+  const [customForageType, setCustomForageType] = useState("")
+  const forageOptions = useMemo(
+    () => forageTypeOptions(pastures.map((item) => item.forageType)),
+    [pastures],
+  )
 
   useEffect(() => {
     if (pasture) {
@@ -199,7 +205,7 @@ export function PastureFormScreen({ navigation, route }: PastureFormScreenProps)
         <View style={themed($field)}>
           <Text style={themed($label)}>Forage Type (Optional)</Text>
           <View style={themed($chipRow)}>
-            {FORAGE_TYPES.map((type) => {
+            {forageOptions.map((type) => {
               const selected = formData.forageType === type
               return (
                 <Pressable
@@ -213,6 +219,26 @@ export function PastureFormScreen({ navigation, route }: PastureFormScreenProps)
                 </Pressable>
               )
             })}
+          </View>
+          <View style={themed($customOption)}>
+            <TextField
+              label="Custom grass or forage"
+              value={customForageType}
+              onChangeText={setCustomForageType}
+              placeholder="e.g. Smuts Finger or mixed veld"
+              autoCapitalize="words"
+            />
+            <Button
+              text="Use custom forage"
+              preset="default"
+              disabled={!customForageType.trim()}
+              onPress={() => {
+                const customValue = customForageType.trim()
+                if (!customValue) return
+                updateField("forageType", customValue)
+                setCustomForageType("")
+              }}
+            />
           </View>
         </View>
 
@@ -390,6 +416,11 @@ const $label: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
 const $chipRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   flexWrap: "wrap",
+  gap: spacing.xs,
+})
+
+const $customOption: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  marginTop: spacing.sm,
   gap: spacing.xs,
 })
 

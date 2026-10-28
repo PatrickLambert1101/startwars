@@ -3,8 +3,9 @@ import { Q } from "@nozbe/watermelondb"
 
 import { useDatabase } from "@/context/DatabaseContext"
 import { database } from "@/db"
-import { PastureBoundary, PastureBoundarySource } from "@/db/models"
+import { Pasture, PastureBoundary, PastureBoundarySource } from "@/db/models"
 import { getBoundaryMetrics, PastureBoundaryFeature } from "@/utils/pastureBoundary"
+import type { PastureBoundaryImportPlanItem } from "@/utils/pastureBoundaryImport"
 
 export function usePastureBoundary(pastureId: string) {
   const [boundary, setBoundary] = useState<PastureBoundary | null>(null)
@@ -127,5 +128,108 @@ export function usePastureBoundaryActions() {
     })
   }
 
-  return { saveBoundary, clearBoundary }
+  const importNamedPastures = async (
+    items: PastureBoundaryImportPlanItem[],
+    source: PastureBoundarySource,
+    sourceName?: string,
+  ): Promise<{ created: number; updated: number }> => {
+    if (!currentOrg) throw new Error("No organization selected")
+    if (items.length === 0) return { created: 0, updated: 0 }
+
+    const activePastures = await database
+      .get<Pasture>("pastures")
+      .query(Q.where("organization_id", currentOrg.id), Q.where("is_deleted", false))
+      .fetch()
+    const activeById = new Map(activePastures.map((pasture) => [pasture.id, pasture]))
+    const usedCodes = new Set(activePastures.map((pasture) => pasture.code.trim().toUpperCase()))
+
+    for (const item of items) {
+      if (item.existingPastureId) {
+        if (!activeById.has(item.existingPastureId)) {
+          throw new Error(`The existing pasture "${item.pastureName}" could not be found.`)
+        }
+      } else if (usedCodes.has(item.pastureCode.trim().toUpperCase())) {
+        throw new Error(`Pasture code "${item.pastureCode}" is already in use.`)
+      } else {
+        usedCodes.add(item.pastureCode.trim().toUpperCase())
+      }
+    }
+
+    let created = 0
+    let updated = 0
+    const now = new Date()
+
+    await database.write(async () => {
+      const pastureCollection = database.get<Pasture>("pastures")
+      const boundaryCollection = database.get<PastureBoundary>("pasture_boundaries")
+
+      for (const item of items) {
+        let targetPasture: Pasture
+        if (item.existingPastureId) {
+          targetPasture = activeById.get(item.existingPastureId) as Pasture
+          updated += 1
+        } else {
+          targetPasture = await pastureCollection.create((record) => {
+            record.organizationId = currentOrg.id
+            record.name = item.pastureName
+            record.code = item.pastureCode
+            record.sizeHectares = item.candidate.areaHectares
+            record.locationNotes = null
+            record.forageType = null
+            record.waterSource = null
+            record.fenceType = null
+            record.hasSaltBlocks = null
+            record.hasMineralFeeders = null
+            record.maxCapacity = null
+            record.targetGrazingDays = 7
+            record.targetRestDays = 28
+            record.notes = null
+            record.currentAnimalCount = 0
+            record.isActive = true
+            record.isDeleted = false
+          })
+          created += 1
+        }
+
+        const metrics = getBoundaryMetrics(item.candidate.feature)
+        const serialized = JSON.stringify(item.candidate.feature)
+        const existingBoundaries = await boundaryCollection
+          .query(Q.where("pasture_id", targetPasture.id), Q.take(1))
+          .fetch()
+
+        if (existingBoundaries[0]) {
+          await existingBoundaries[0].update((record) => {
+            record.organizationId = currentOrg.id
+            record.boundaryGeojson = serialized
+            record.boundarySource = source
+            record.boundarySourceName = sourceName?.trim() || null
+            record.centroidLatitude = metrics.centroidLatitude
+            record.centroidLongitude = metrics.centroidLongitude
+            record.calculatedAreaHectares = metrics.areaHectares
+            record.boundaryUpdatedAt = now
+            record.updatedAt = now
+            record.isDeleted = false
+          })
+        } else {
+          await boundaryCollection.create((record) => {
+            record.organizationId = currentOrg.id
+            record.pastureId = targetPasture.id
+            record.boundaryGeojson = serialized
+            record.boundarySource = source
+            record.boundarySourceName = sourceName?.trim() || null
+            record.centroidLatitude = metrics.centroidLatitude
+            record.centroidLongitude = metrics.centroidLongitude
+            record.calculatedAreaHectares = metrics.areaHectares
+            record.boundaryUpdatedAt = now
+            record.updatedAt = now
+            record.isDeleted = false
+          })
+        }
+      }
+    })
+
+    return { created, updated }
+  }
+
+  return { saveBoundary, clearBoundary, importNamedPastures }
 }

@@ -3,7 +3,7 @@ import { Alert, FlatList, Image, ImageStyle, Pressable, ScrollView, TextInput, V
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { format } from "date-fns"
 import { useTranslation } from "react-i18next"
-import { useFocusEffect } from "@react-navigation/native"
+import { useFocusEffect, useIsFocused } from "@react-navigation/native"
 import Toast from "react-native-toast-message"
 
 import { Screen, Text, TextField, Button, ScanTagButton, AppHeader } from "@/components"
@@ -22,10 +22,11 @@ import { useActiveProtocols } from "@/hooks/useProtocols"
 import { useScheduledVaccinations } from "@/hooks/useVaccinationSchedules"
 import { useRfidReader } from "@/hooks/useRfidReader"
 import { ScheduledVaccination } from "@/db/models"
-import { TreatmentProtocol } from "@/db/models"
+import { ProtocolType, TreatmentProtocol } from "@/db/models"
 import { Q } from "@nozbe/watermelondb"
 
 type SessionMode = "weight" | "condition" | "weight_and_treatment" | "protocol"
+type ProtocolFilter = "all" | ProtocolType
 
 type ProcessedEntry = {
   id: string
@@ -49,12 +50,21 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
   const { t } = useTranslation()
   const { themed, theme: { colors } } = useAppTheme()
   const { currentOrg } = useDatabase()
+  const isFocused = useIsFocused()
 
   // Check if we're in single animal mode (from vaccination)
-  const isSingleMode = route?.params?.mode === "single"
+  const singleModeRequestId = route?.params?.requestId
+  const isSingleMode = route?.params?.mode === "single" && Boolean(singleModeRequestId)
   const preSelectedAnimalId = route?.params?.animalId
   const preSelectedProtocolId = route?.params?.protocolId
   const vaccinationId = route?.params?.vaccinationId
+  const hasRouteSelection = Boolean(
+    route?.params?.mode ||
+      preSelectedAnimalId ||
+      preSelectedProtocolId ||
+      vaccinationId ||
+      singleModeRequestId,
+  )
   const { hasFeature } = useSubscription()
   const { createWeightRecord } = useWeightRecordActions()
   const { createHealthRecord } = useHealthRecordActions()
@@ -72,6 +82,7 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
 
   // Protocol mode state
   const [selectedProtocol, setSelectedProtocol] = useState<TreatmentProtocol | null>(null)
+  const [protocolFilter, setProtocolFilter] = useState<ProtocolFilter>("all")
 
   // Scan state
   const [rfidInput, setRfidInput] = useState("")
@@ -116,26 +127,46 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
   // Reset screen when leaving (blur pattern like access-scanner)
   useFocusEffect(
     useCallback(() => {
+      // Discard any RFID event this mounted tab received while it was hidden.
+      clearScannedTag()
+      if (hasRouteSelection && !isSingleMode) {
+        navigation.setParams({
+          mode: undefined,
+          animalId: undefined,
+          protocolId: undefined,
+          vaccinationId: undefined,
+          requestId: undefined,
+        })
+      }
+
       // Cleanup function runs when screen loses focus
       return () => {
-        if (!isSingleMode) {
-          console.log("[Chute] Cleaning up state on blur (leaving screen)")
-          // Reset all state when leaving normal chute mode
-          setSessionMode(null)
-          setSelectedProtocol(null)
-          setScannedAnimal(null)
-          setRfidInput("")
-          setWeightValue("")
-          setConditionScore("")
-          setConditionValue("")
-          setTreatmentDesc("")
-          setProductName("")
-          setDosage("")
-          setProcessedLog([])
-          clearScannedTag() // Clear RFID hook state
+        console.log("[Chute] Cleaning up state on blur (leaving screen)")
+        setSessionMode(null)
+        setSelectedProtocol(null)
+        setProtocolFilter("all")
+        setScannedAnimal(null)
+        setRfidInput("")
+        setWeightValue("")
+        setConditionScore("")
+        setConditionValue("")
+        setTreatmentDesc("")
+        setProductName("")
+        setDosage("")
+        setProcessedLog([])
+        clearScannedTag()
+
+        if (hasRouteSelection) {
+          navigation.setParams({
+            mode: undefined,
+            animalId: undefined,
+            protocolId: undefined,
+            vaccinationId: undefined,
+            requestId: undefined,
+          })
         }
       }
-    }, [isSingleMode, clearScannedTag])
+    }, [clearScannedTag, hasRouteSelection, isSingleMode, navigation]),
   )
 
   // Initialize RFID if available
@@ -197,7 +228,7 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
       loadAnimal()
       loadProtocol()
     }
-  }, [isSingleMode, preSelectedAnimalId, preSelectedProtocolId])
+  }, [isSingleMode, preSelectedAnimalId, preSelectedProtocolId, singleModeRequestId])
 
   // Load animal history when scanned
   useEffect(() => {
@@ -294,12 +325,26 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
   // on tag change). Placed after lookupAnimal so it isn't referenced before its
   // declaration.
   useEffect(() => {
-    if (scannedTag && !scannedAnimal && sessionMode) {
-      console.log("[Chute] RFID tag scanned:", scannedTag.epc)
-      setRfidInput(scannedTag.epc)
-      lookupAnimal(scannedTag.epc)
+    if (!scannedTag) return
+
+    // Only consume an RFID scan while Chute is visible and actively waiting
+    // for an animal. Hidden-tab and mode-picker scans must never be queued.
+    if (!isFocused || !sessionMode || scannedAnimal) {
+      clearScannedTag()
+      return
     }
-  }, [scannedTag, scannedAnimal, sessionMode, lookupAnimal])
+
+    console.log("[Chute] RFID tag scanned:", scannedTag.epc)
+    setRfidInput(scannedTag.epc)
+    lookupAnimal(scannedTag.epc)
+  }, [
+    clearScannedTag,
+    isFocused,
+    lookupAnimal,
+    scannedAnimal,
+    scannedTag,
+    sessionMode,
+  ])
 
   const handleScanSubmit = useCallback(() => {
     lookupAnimal(rfidInput)
@@ -392,6 +437,70 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
     resetForNextAnimal()
   }, [resetForNextAnimal])
 
+  const protocolFilterOptions: { value: ProtocolFilter; label: string; count: number }[] = [
+    {
+      value: "all",
+      label: t("treatmentProtocolsScreen.filters.all"),
+      count: protocols.length,
+    },
+    {
+      value: "vaccination",
+      label: t("treatmentProtocolsScreen.filters.vaccination"),
+      count: protocols.filter((protocol) => protocol.protocolType === "vaccination").length,
+    },
+    {
+      value: "treatment",
+      label: t("treatmentProtocolsScreen.filters.treatment"),
+      count: protocols.filter((protocol) => protocol.protocolType === "treatment").length,
+    },
+    {
+      value: "deworming",
+      label: t("treatmentProtocolsScreen.filters.deworming"),
+      count: protocols.filter((protocol) => protocol.protocolType === "deworming").length,
+    },
+    {
+      value: "other",
+      label: t("treatmentProtocolsScreen.filters.other"),
+      count: protocols.filter((protocol) => protocol.protocolType === "other").length,
+    },
+  ]
+  const visibleProtocolFilters = protocolFilterOptions.filter(
+    (option) => option.value === "all" || option.count > 0,
+  )
+  const filteredProtocols =
+    protocolFilter === "all"
+      ? protocols
+      : protocols.filter((protocol) => protocol.protocolType === protocolFilter)
+
+  const renderProtocolFilters = () => (
+    <View style={themed($protocolFilterRow)}>
+      {visibleProtocolFilters.map((option) => {
+        const selected = protocolFilter === option.value
+        return (
+          <Pressable
+            key={option.value}
+            onPress={() => setProtocolFilter(option.value)}
+            style={[
+              themed($protocolFilterPill),
+              selected && themed($protocolFilterPillSelected),
+            ]}
+            accessibilityRole="button"
+            accessibilityState={{ selected }}
+          >
+            <Text
+              text={`${option.label} ${option.count}`}
+              size="xs"
+              style={[
+                themed($protocolFilterText),
+                selected && themed($protocolFilterTextSelected),
+              ]}
+            />
+          </Pressable>
+        )
+      })}
+    </View>
+  )
+
   const handleApplyProtocol = useCallback(async () => {
     if (!scannedAnimal || !selectedProtocol) return
 
@@ -437,7 +546,8 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
           mode: undefined,
           animalId: undefined,
           protocolId: undefined,
-          vaccinationId: undefined
+          vaccinationId: undefined,
+          requestId: undefined,
         })
         navigation.navigate("AnimalDetail", { animalId: preSelectedAnimalId })
       } else {
@@ -522,7 +632,8 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
                 mode: undefined,
                 animalId: undefined,
                 protocolId: undefined,
-                vaccinationId: undefined
+                vaccinationId: undefined,
+                requestId: undefined,
               })
               navigation.navigate("AnimalDetail", { animalId: preSelectedAnimalId })
             } else {
@@ -739,7 +850,8 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
                     </View>
                   ) : (
                     <View style={{ gap: spacing.xs }}>
-                      {protocols.map((protocol) => (
+                      {renderProtocolFilters()}
+                      {filteredProtocols.map((protocol) => (
                         <Pressable
                           key={protocol.id}
                           onPress={() => setSelectedProtocol(protocol)}
@@ -908,7 +1020,8 @@ export const ChuteScreen: FC<any> = ({ navigation, route }: any) => {
                     </View>
                   ) : (
                     <View style={{ gap: spacing.xs }}>
-                      {protocols.map((protocol) => (
+                      {renderProtocolFilters()}
+                      {filteredProtocols.map((protocol) => (
                         <Pressable
                           key={protocol.id}
                           onPress={() => setSelectedProtocol(protocol)}
@@ -1289,6 +1402,36 @@ const $protocolOption: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   borderColor: colors.palette.neutral300,
   flexDirection: "row",
   alignItems: "center",
+})
+
+const $protocolFilterRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  flexWrap: "wrap",
+  gap: spacing.xs,
+  marginBottom: spacing.xs,
+})
+
+const $protocolFilterPill: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.background,
+  borderColor: colors.border,
+  borderRadius: 18,
+  borderWidth: 1,
+  paddingHorizontal: spacing.sm,
+  paddingVertical: spacing.xs,
+})
+
+const $protocolFilterPillSelected: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  backgroundColor: colors.tint,
+  borderColor: colors.tint,
+})
+
+const $protocolFilterText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.textDim,
+  fontWeight: "600",
+})
+
+const $protocolFilterTextSelected: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.palette.neutral100,
 })
 
 const $vaccinationAlerts: ThemedStyle<ViewStyle> = ({ spacing }) => ({

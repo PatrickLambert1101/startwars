@@ -170,7 +170,7 @@ export function VaccinationScheduleFormScreen({ route, navigation }: AppStackScr
       Alert.alert(t("common.error"), t("vaccinationScheduleForm.errors.dateRequired"))
       return
     }
-    if (scheduleType === "group_based" && (!selectedPastureId || !intervalMonths)) {
+    if (scheduleType === "group_based" && !intervalMonths) {
       Alert.alert(t("common.error"), t("vaccinationScheduleForm.errors.groupRequired"))
       return
     }
@@ -365,7 +365,11 @@ export function VaccinationScheduleFormScreen({ route, navigation }: AppStackScr
                 </Pressable>
               ) : (
                 <View>
-                  <Text preset="formLabel" text="Select Pasture *" style={themed($fieldLabel)} />
+                  <Text
+                    preset="formLabel"
+                    text="Limit to pasture (optional)"
+                    style={themed($fieldLabel)}
+                  />
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} style={themed($protocolList)}>
                     {pastures.map(pasture => (
                       <Pressable
@@ -377,6 +381,9 @@ export function VaccinationScheduleFormScreen({ route, navigation }: AppStackScr
                       </Pressable>
                     ))}
                   </ScrollView>
+                  <Text size="xs" style={themed($dimText)}>
+                    Leave blank to include all animals matching the filters below.
+                  </Text>
                 </View>
               )}
               <TextField

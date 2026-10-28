@@ -154,6 +154,18 @@ export function MovementFormScreen({ navigation, route }: MovementFormScreenProp
     setSelectedAnimalIds([])
   }
 
+  const handleToggleAllAvailable = () => {
+    const availableIds = availableAnimals.map((animal) => animal.id)
+    setSelectedAnimalIds((current) => {
+      const allSelected = availableIds.every((id) => current.includes(id))
+      if (allSelected) {
+        const availableSet = new Set(availableIds)
+        return current.filter((id) => !availableSet.has(id))
+      }
+      return [...new Set([...current, ...availableIds])]
+    })
+  }
+
   const handleScanTag = async (tagNumber: string) => {
     // Find animal with this tag
     const animal = await database
@@ -280,6 +292,9 @@ export function MovementFormScreen({ navigation, route }: MovementFormScreenProp
   }
 
   const selectedPasture = pastures.find((p) => p.id === selectedPastureId)
+  const allAvailableAnimalsSelected =
+    availableAnimals.length > 0 &&
+    availableAnimals.every((animal) => selectedAnimalIds.includes(animal.id))
 
   const renderAvailableAnimal = ({ item: animal }: { item: Animal }) => {
     const isSelected = selectedAnimalIds.includes(animal.id)
@@ -479,9 +494,27 @@ export function MovementFormScreen({ navigation, route }: MovementFormScreenProp
           <View style={themed($modalContent)}>
             <View style={themed($modalHeader)}>
               <Text preset="heading" text="Select Animals" />
-              <Pressable onPress={() => setShowAnimalPicker(false)} style={themed($modalClose)}>
-                <Text style={themed($modalCloseText)}>×</Text>
-              </Pressable>
+              <View style={themed($modalHeaderActions)}>
+                {availableAnimals.length > 0 && (
+                  <Pressable
+                    onPress={handleToggleAllAvailable}
+                    style={themed($selectAllButton)}
+                  >
+                    <MaterialCommunityIcons
+                      name={allAvailableAnimalsSelected ? "checkbox-marked" : "checkbox-multiple-blank-outline"}
+                      size={18}
+                      color={colors.tint}
+                    />
+                    <Text
+                      text={allAvailableAnimalsSelected ? "Clear all" : "Select all"}
+                      style={themed($selectAllButtonText)}
+                    />
+                  </Pressable>
+                )}
+                <Pressable onPress={() => setShowAnimalPicker(false)} style={themed($modalClose)}>
+                  <Text style={themed($modalCloseText)}>×</Text>
+                </Pressable>
+              </View>
             </View>
             {__DEV__ && (
               <Text size="xs" style={{ marginBottom: 8, color: "#666" }}>
@@ -800,6 +833,28 @@ const $modalHeader: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   justifyContent: "space-between",
   alignItems: "center",
   marginBottom: spacing.md,
+})
+
+const $modalHeaderActions: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  alignItems: "center",
+  flexDirection: "row",
+  gap: spacing.sm,
+})
+
+const $selectAllButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  alignItems: "center",
+  backgroundColor: colors.palette.primary100,
+  borderRadius: 8,
+  flexDirection: "row",
+  gap: spacing.xs,
+  minHeight: 38,
+  paddingHorizontal: spacing.sm,
+})
+
+const $selectAllButtonText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.tint,
+  fontSize: 13,
+  fontWeight: "700",
 })
 
 const $modalClose: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({

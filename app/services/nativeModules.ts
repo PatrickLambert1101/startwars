@@ -16,6 +16,9 @@ interface UHFReaderModule {
    */
   initialize(): Promise<boolean>
 
+  /** Fully close and reopen the RFID reader connection. */
+  reset(): Promise<boolean>
+
   /**
    * Start scanning for RFID tags
    * @returns Promise that resolves when scanning starts

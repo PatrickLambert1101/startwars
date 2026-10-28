@@ -1,18 +1,18 @@
 import { useEffect, useState } from "react"
 import { Q } from "@nozbe/watermelondb"
+import { addDays, startOfDay } from "date-fns"
 import { combineLatest } from "rxjs"
+
+import { useDatabase } from "@/context/DatabaseContext"
 import { database } from "@/db"
 import { Animal } from "@/db/models/Animal"
 import { BreedingRecord } from "@/db/models/BreedingRecord"
-import { useDatabase } from "@/context/DatabaseContext"
-
-const RECENT_ANIMALS_LIMIT = 5
 
 export type DashboardStats = {
-  totalHead: number
   activeCount: number
+  assignedToPastureCount: number
   dueToCalve: number
-  recentAnimals: Animal[]
+  overdueCalvings: number
 }
 
 /**
@@ -23,40 +23,70 @@ export type DashboardStats = {
 export function useDashboardStats() {
   const { currentOrg } = useDatabase()
   const [stats, setStats] = useState<DashboardStats>({
-    totalHead: 0,
     activeCount: 0,
+    assignedToPastureCount: 0,
     dueToCalve: 0,
-    recentAnimals: [],
+    overdueCalvings: 0,
   })
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     if (!currentOrg) {
-      setStats({ totalHead: 0, activeCount: 0, dueToCalve: 0, recentAnimals: [] })
+      setStats({
+        activeCount: 0,
+        assignedToPastureCount: 0,
+        dueToCalve: 0,
+        overdueCalvings: 0,
+      })
       setIsLoading(false)
       return
     }
+
+    setIsLoading(true)
+    setStats({
+      activeCount: 0,
+      assignedToPastureCount: 0,
+      dueToCalve: 0,
+      overdueCalvings: 0,
+    })
 
     const animals = database.get<Animal>("animals")
     const breeding = database.get<BreedingRecord>("breeding_records")
 
     const orgClause = Q.where("organization_id", currentOrg.id)
     const notDeleted = Q.where("is_deleted", false)
+    const today = startOfDay(new Date())
+    const attentionWindowEnd = addDays(today, 60)
 
-    const totalHead$ = animals.query(orgClause, notDeleted).observeCount()
-    const activeCount$ = animals
+    // Keep the active animal rows, rather than only their count, so breeding
+    // alerts cannot include animals that have since been sold or deceased.
+    const activeAnimals$ = animals
       .query(orgClause, notDeleted, Q.where("status", "active"))
-      .observeCount()
+      .observe()
     const dueToCalve$ = breeding
-      .query(orgClause, notDeleted, Q.where("outcome", "pending"))
-      .observeCount()
-    const recent$ = animals
-      .query(orgClause, notDeleted, Q.sortBy("updated_at", Q.desc), Q.take(RECENT_ANIMALS_LIMIT))
+      .query(
+        orgClause,
+        notDeleted,
+        Q.where("outcome", "pending"),
+        Q.where("expected_calving_date", Q.lte(attentionWindowEnd.getTime())),
+      )
       .observe()
 
-    const sub = combineLatest([totalHead$, activeCount$, dueToCalve$, recent$]).subscribe(
-      ([totalHead, activeCount, dueToCalve, recentAnimals]) => {
-        setStats({ totalHead, activeCount, dueToCalve, recentAnimals })
+    const sub = combineLatest([activeAnimals$, dueToCalve$]).subscribe(
+      ([activeAnimals, dueRecords]) => {
+        const activeAnimalIds = new Set(activeAnimals.map((animal) => animal.id))
+        const actionableCalvings = dueRecords.filter(
+          (record) => record.expectedCalvingDate !== null && activeAnimalIds.has(record.animalId),
+        )
+        setStats({
+          activeCount: activeAnimals.length,
+          assignedToPastureCount: activeAnimals.filter((animal) => Boolean(animal.currentPastureId))
+            .length,
+          dueToCalve: actionableCalvings.length,
+          overdueCalvings: actionableCalvings.filter(
+            (record) => record.expectedCalvingDate!.getTime() < today.getTime(),
+          ).length,
+        })
         setIsLoading(false)
       },
     )

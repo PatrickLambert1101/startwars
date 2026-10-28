@@ -1,22 +1,38 @@
-import { useCallback } from "react"
-import { View, ViewStyle, TextStyle, FlatList, Pressable } from "react-native"
+import { useCallback, useMemo, useState } from "react"
+import { ActivityIndicator, View, ViewStyle, TextStyle, FlatList, Pressable } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { format } from "date-fns"
 
-import { Screen, Text, EmptyState } from "@/components"
+import { FriendlyEmpty, Screen, Text } from "@/components"
+import { usePendingVaccinations } from "@/hooks/useVaccinationSchedules"
+import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-import type { AppStackScreenProps } from "@/navigators/navigationTypes"
-import { usePendingVaccinations } from "@/hooks/useVaccinationSchedules"
 
-export function PendingVaccinationsScreen({ navigation }: AppStackScreenProps<"PendingVaccinations">) {
+export function PendingVaccinationsScreen({
+  navigation,
+  route,
+}: AppStackScreenProps<"PendingVaccinations">) {
   const { themed, theme } = useAppTheme()
   const { vaccinations, isLoading } = usePendingVaccinations()
+  const [filter, setFilter] = useState<"attention" | "all">(route.params?.initialFilter ?? "all")
+  const visibleVaccinations = useMemo(
+    () =>
+      filter === "attention"
+        ? vaccinations.filter((vaccination) => vaccination.daysUntilDue <= 7)
+        : vaccinations,
+    [filter, vaccinations],
+  )
 
-  const handleVaccinationPress = useCallback((vaccination: any) => {
-    // Navigate to the animal's detail screen, then to the health record form
-    navigation.navigate("AnimalDetail", { animalId: vaccination.animalId })
-  }, [navigation])
+  const handleVaccinationPress = useCallback(
+    (vaccination: any) => {
+      navigation.navigate("AnimalDetail", {
+        animalId: vaccination.animalId,
+        initialTab: "vaccinations",
+      })
+    },
+    [navigation],
+  )
 
   const getUrgencyColor = (vaccination: any) => {
     if (vaccination.urgencyLevel === "critical" || vaccination.urgencyLevel === "overdue") {
@@ -34,7 +50,7 @@ export function PendingVaccinationsScreen({ navigation }: AppStackScreenProps<"P
 
     return (
       <Pressable
-        style={[themed($vaccinationCard), { borderLeftColor: urgencyColor, borderLeftWidth: 4 }]}
+        style={[themed($vaccinationCard), { borderLeftColor: urgencyColor }]}
         onPress={() => handleVaccinationPress(item)}
       >
         <View style={themed($cardHeader)}>
@@ -67,15 +83,15 @@ export function PendingVaccinationsScreen({ navigation }: AppStackScreenProps<"P
           </View>
 
           <View style={themed($detailRow)}>
-            <MaterialCommunityIcons
-              name="clock-outline"
-              size={14}
-              color={urgencyColor}
-            />
+            <MaterialCommunityIcons name="clock-outline" size={14} color={urgencyColor} />
             <Text
-              text={isOverdue ? `${Math.abs(item.daysUntilDue)} days overdue` : `${item.daysUntilDue} days until due`}
+              text={
+                isOverdue
+                  ? `${Math.abs(item.daysUntilDue)} days overdue`
+                  : `${item.daysUntilDue} days until due`
+              }
               size="xs"
-              style={[themed($detailText), { color: urgencyColor, fontWeight: "600" }]}
+              style={[themed($detailText), themed($urgentDetailText), { color: urgencyColor }]}
             />
           </View>
 
@@ -93,11 +109,7 @@ export function PendingVaccinationsScreen({ navigation }: AppStackScreenProps<"P
 
         <View style={themed($cardFooter)}>
           <MaterialCommunityIcons name="chevron-right" size={20} color={theme.colors.textDim} />
-          <Text
-            text="Tap to administer"
-            size="xs"
-            style={themed($footerText)}
-          />
+          <Text text="Tap to review and administer" size="xs" style={themed($footerText)} />
         </View>
       </Pressable>
     )
@@ -110,30 +122,67 @@ export function PendingVaccinationsScreen({ navigation }: AppStackScreenProps<"P
           <MaterialCommunityIcons name="arrow-left" size={24} color={theme.colors.text} />
         </Pressable>
         <Text preset="heading" text="Pending Vaccinations" style={themed($headerTitle)} />
-        <View style={{ width: 40 }} />
+        <View style={$headerSpacer} />
       </View>
 
-      {vaccinations.length > 0 ? (
+      {isLoading ? (
+        <View style={themed($loading)}>
+          <ActivityIndicator color={theme.colors.tint} />
+          <Text text="Loading vaccinations…" size="sm" style={themed($detailText)} />
+        </View>
+      ) : vaccinations.length > 0 ? (
         <>
+          <View style={themed($filterRow)}>
+            <Pressable
+              onPress={() => setFilter("attention")}
+              style={[themed($filterChip), filter === "attention" && themed($filterChipActive)]}
+            >
+              <Text
+                text="Needs attention"
+                size="xs"
+                style={filter === "attention" ? themed($filterTextActive) : undefined}
+              />
+            </Pressable>
+            <Pressable
+              onPress={() => setFilter("all")}
+              style={[themed($filterChip), filter === "all" && themed($filterChipActive)]}
+            >
+              <Text
+                text="All pending"
+                size="xs"
+                style={filter === "all" ? themed($filterTextActive) : undefined}
+              />
+            </Pressable>
+          </View>
           <Text
-            text={`${vaccinations.length} vaccination${vaccinations.length === 1 ? '' : 's'} pending`}
+            text={`${visibleVaccinations.length} vaccination${
+              visibleVaccinations.length === 1 ? "" : "s"
+            } ${filter === "attention" ? "need attention" : "pending"}`}
             size="sm"
             style={themed($countText)}
           />
-          <FlatList
-            data={vaccinations}
-            renderItem={renderVaccination}
-            keyExtractor={(item) => item.id}
-            style={themed($list)}
-            contentContainerStyle={themed($listContent)}
-            showsVerticalScrollIndicator={false}
-          />
+          {visibleVaccinations.length > 0 ? (
+            <FlatList
+              data={visibleVaccinations}
+              renderItem={renderVaccination}
+              keyExtractor={(item) => item.id}
+              style={themed($list)}
+              contentContainerStyle={themed($listContent)}
+              showsVerticalScrollIndicator={false}
+            />
+          ) : (
+            <FriendlyEmpty
+              icon="check-circle"
+              heading="Nothing needs attention"
+              content="There are pending vaccinations, but none are overdue or due within seven days."
+            />
+          )}
         </>
       ) : (
-        <EmptyState
+        <FriendlyEmpty
           icon="check-circle"
           heading="All caught up!"
-          description="No pending vaccinations at this time."
+          content="No pending vaccinations at this time."
         />
       )}
     </Screen>
@@ -163,9 +212,45 @@ const $headerTitle: ThemedStyle<TextStyle> = () => ({
   textAlign: "center",
 })
 
+const $headerSpacer: ViewStyle = {
+  width: 40,
+}
+
 const $countText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   color: colors.textDim,
   marginBottom: spacing.sm,
+})
+
+const $loading: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flex: 1,
+  alignItems: "center",
+  justifyContent: "center",
+  gap: spacing.sm,
+})
+
+const $filterRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  gap: spacing.xs,
+  marginBottom: spacing.sm,
+})
+
+const $filterChip: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  paddingHorizontal: spacing.sm,
+  paddingVertical: spacing.xs,
+  borderWidth: 1,
+  borderColor: colors.border,
+  borderRadius: 18,
+  backgroundColor: colors.background,
+})
+
+const $filterChipActive: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  borderColor: colors.tint,
+  backgroundColor: colors.tint,
+})
+
+const $filterTextActive: ThemedStyle<TextStyle> = () => ({
+  color: "#FFFFFF",
+  fontWeight: "700",
 })
 
 const $list: ThemedStyle<ViewStyle> = () => ({
@@ -182,6 +267,7 @@ const $vaccinationCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   padding: spacing.md,
   marginBottom: spacing.sm,
   borderWidth: 1,
+  borderLeftWidth: 4,
   borderColor: colors.border,
 })
 
@@ -233,6 +319,10 @@ const $detailRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 
 const $detailText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.textDim,
+})
+
+const $urgentDetailText: ThemedStyle<TextStyle> = () => ({
+  fontWeight: "600",
 })
 
 const $cardFooter: ThemedStyle<ViewStyle> = ({ spacing }) => ({

@@ -1,12 +1,13 @@
 import { FC, useCallback, useState } from "react"
-import { Pressable, View, ViewStyle, TextStyle, Modal } from "react-native"
+import { Pressable, View, ViewStyle, TextStyle, Modal, TextInput } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
-import { format, subMonths, subYears } from "date-fns"
+import { format, subMonths } from "date-fns"
 
 import { Text } from "./Text"
 import { Button } from "./Button"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
+import { birthDateFromMonthYear } from "@/utils/animalBirthDate"
 
 interface AgeDatePickerProps {
   label: string
@@ -32,6 +33,7 @@ export const AgeDatePicker: FC<AgeDatePickerProps> = ({
   const [showPicker, setShowPicker] = useState(false)
   const [manualMonth, setManualMonth] = useState("")
   const [manualYear, setManualYear] = useState("")
+  const [manualError, setManualError] = useState("")
 
   const AGE_SHORTCUTS = [
     { label: "1 month", months: 1 },
@@ -55,20 +57,30 @@ export const AgeDatePicker: FC<AgeDatePickerProps> = ({
     setShowPicker(false)
   }, [onChange])
 
-  const handleManualDate = useCallback(() => {
-    const month = parseInt(manualMonth, 10)
-    const year = parseInt(manualYear, 10)
+  const openPicker = useCallback(() => {
+    if (value) {
+      setManualMonth(format(value, "MM"))
+      setManualYear(format(value, "yyyy"))
+    } else {
+      setManualMonth("")
+      setManualYear("")
+    }
+    setManualError("")
+    setShowPicker(true)
+  }, [value])
 
-    if (isNaN(month) || isNaN(year) || month < 1 || month > 12) {
+  const handleManualDate = useCallback(() => {
+    const result = birthDateFromMonthYear(manualMonth, manualYear)
+    if (!result.date) {
+      setManualError(result.error)
       return
     }
 
-    // Set to 15th of the month (middle of month as default)
-    const birthDate = new Date(year, month - 1, 15)
-    onChange(birthDate)
+    onChange(result.date)
     setShowPicker(false)
     setManualMonth("")
     setManualYear("")
+    setManualError("")
   }, [manualMonth, manualYear, onChange])
 
   const displayValue = value ? format(value, "dd MMM yyyy") : ""
@@ -79,7 +91,7 @@ export const AgeDatePicker: FC<AgeDatePickerProps> = ({
       <Text preset="formLabel" text={label} style={themed($label)} />
 
       <Pressable
-        onPress={() => setShowPicker(true)}
+        onPress={openPicker}
         style={themed($picker)}
       >
         <View style={themed($pickerContent)}>
@@ -131,20 +143,54 @@ export const AgeDatePicker: FC<AgeDatePickerProps> = ({
             <View style={themed($manualRow)}>
               <View style={themed($manualInput)}>
                 <Text text="Month" size="xs" style={themed($manualLabel)} />
-                <Pressable style={themed($manualField)}>
-                  <Text text={manualMonth || "MM"} />
-                </Pressable>
+                <TextInput
+                  value={manualMonth}
+                  onChangeText={(text) => {
+                    setManualMonth(text.replace(/\D/g, "").slice(0, 2))
+                    setManualError("")
+                  }}
+                  placeholder="MM"
+                  placeholderTextColor={theme.colors.textDim}
+                  keyboardType="number-pad"
+                  maxLength={2}
+                  selectTextOnFocus
+                  accessibilityLabel="Birth month"
+                  style={themed($manualField)}
+                />
               </View>
               <Text text="/" size="lg" style={themed($slash)} />
               <View style={themed($manualInput)}>
                 <Text text="Year" size="xs" style={themed($manualLabel)} />
-                <Pressable style={themed($manualField)}>
-                  <Text text={manualYear || "YYYY"} />
-                </Pressable>
+                <TextInput
+                  value={manualYear}
+                  onChangeText={(text) => {
+                    setManualYear(text.replace(/\D/g, "").slice(0, 4))
+                    setManualError("")
+                  }}
+                  placeholder="YYYY"
+                  placeholderTextColor={theme.colors.textDim}
+                  keyboardType="number-pad"
+                  maxLength={4}
+                  selectTextOnFocus
+                  accessibilityLabel="Birth year"
+                  style={themed($manualField)}
+                />
               </View>
             </View>
 
-            <Text text="Simplified: Just select age above for quick entry" size="xs" style={themed($hint)} />
+            {manualError ? (
+              <Text text={manualError} size="xs" style={themed($manualError)} />
+            ) : (
+              <Text text="The 15th is used when only month and year are known." size="xs" style={themed($hint)} />
+            )}
+
+            <Button
+              text="Use MM/YYYY"
+              preset="reversed"
+              onPress={handleManualDate}
+              disabled={!manualMonth.trim() || manualYear.length !== 4}
+              style={themed($applyButton)}
+            />
 
             <View style={themed($modalButtons)}>
               {value && (
@@ -154,6 +200,9 @@ export const AgeDatePicker: FC<AgeDatePickerProps> = ({
                   onPress={() => {
                     onChange(null)
                     setShowPicker(false)
+                    setManualMonth("")
+                    setManualYear("")
+                    setManualError("")
                   }}
                   style={themed($clearButton)}
                 />
@@ -272,13 +321,15 @@ const $manualLabel: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   marginBottom: spacing.xxs,
 })
 
-const $manualField: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+const $manualField: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
   borderWidth: 1,
   borderColor: colors.border,
   borderRadius: 8,
   padding: spacing.sm,
-  alignItems: "center",
+  color: colors.text,
+  fontSize: 16,
+  textAlign: "center",
 })
 
 const $slash: ThemedStyle<TextStyle> = ({ colors }) => ({
@@ -289,6 +340,15 @@ const $hint: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   color: colors.textDim,
   marginTop: spacing.sm,
   fontStyle: "italic",
+})
+
+const $manualError: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  color: colors.error,
+  marginTop: spacing.sm,
+})
+
+const $applyButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  marginTop: spacing.sm,
 })
 
 const $modalButtons: ThemedStyle<ViewStyle> = ({ spacing }) => ({

@@ -6,7 +6,11 @@ import {
   getBoundaryMetrics,
   parseBoundaryFeature,
 } from "@/utils/pastureBoundary"
-import { boundaryCandidatesFromKml } from "@/utils/pastureBoundaryImport"
+import {
+  boundaryCandidatesFromKml,
+  buildPastureBoundaryImportPlan,
+  generatePastureCode,
+} from "@/utils/pastureBoundaryImport"
 
 describe("pasture boundary geometry", () => {
   const coordinates = [
@@ -18,9 +22,7 @@ describe("pasture boundary geometry", () => {
 
   it("closes a drawn polygon and preserves editable points", () => {
     const feature = createBoundaryFeature(coordinates, { name: "North camp" })
-    const ring = feature.geometry.type === "Polygon"
-      ? feature.geometry.coordinates[0]
-      : []
+    const ring = feature.geometry.type === "Polygon" ? feature.geometry.coordinates[0] : []
 
     expect(ring).toHaveLength(5)
     expect(ring[0]).toEqual(ring[ring.length - 1])
@@ -82,5 +84,70 @@ describe("KML pasture boundary import", () => {
     expect(candidates[0].name).toBe("Main pasture")
     expect(candidates[0].areaHectares).toBeGreaterThan(candidates[1].areaHectares)
   })
-})
 
+  it("keeps multiple polygons with the same name as one multi-part pasture", () => {
+    const candidates = boundaryCandidatesFromKml(`
+      <kml xmlns="http://www.opengis.net/kml/2.2">
+        <Document>
+          <Placemark>
+            <name>River camp</name>
+            <Polygon><outerBoundaryIs><LinearRing><coordinates>
+              24.000,-29.000 24.002,-29.000 24.002,-29.002
+              24.000,-29.002 24.000,-29.000
+            </coordinates></LinearRing></outerBoundaryIs></Polygon>
+          </Placemark>
+          <Placemark>
+            <name>River camp</name>
+            <Polygon><outerBoundaryIs><LinearRing><coordinates>
+              24.004,-29.000 24.006,-29.000 24.006,-29.002
+              24.004,-29.002 24.004,-29.000
+            </coordinates></LinearRing></outerBoundaryIs></Polygon>
+          </Placemark>
+        </Document>
+      </kml>
+    `)
+
+    expect(candidates).toHaveLength(1)
+    expect(candidates[0].name).toBe("River camp")
+    expect(candidates[0].feature.geometry.type).toBe("MultiPolygon")
+  })
+
+  it("plans matching names as updates and creates unique codes for new pastures", () => {
+    const candidates = boundaryCandidatesFromKml(`
+      <kml xmlns="http://www.opengis.net/kml/2.2">
+        <Document>
+          <Placemark>
+            <name>North camp</name>
+            <Polygon><outerBoundaryIs><LinearRing><coordinates>
+              24.000,-29.000 24.002,-29.000 24.002,-29.002
+              24.000,-29.002 24.000,-29.000
+            </coordinates></LinearRing></outerBoundaryIs></Polygon>
+          </Placemark>
+          <Placemark>
+            <name>New camp</name>
+            <Polygon><outerBoundaryIs><LinearRing><coordinates>
+              24.004,-29.000 24.006,-29.000 24.006,-29.002
+              24.004,-29.002 24.004,-29.000
+            </coordinates></LinearRing></outerBoundaryIs></Polygon>
+          </Placemark>
+        </Document>
+      </kml>
+    `)
+    const plan = buildPastureBoundaryImportPlan(candidates, [
+      { id: "pasture-1", name: "north CAMP", code: "NOCA" },
+      { id: "pasture-2", name: "Old camp", code: "NECA" },
+    ])
+
+    expect(plan.find((item) => item.pastureName === "North camp")).toMatchObject({
+      action: "update",
+      existingPastureId: "pasture-1",
+      pastureCode: "NOCA",
+    })
+    expect(plan.find((item) => item.pastureName === "New camp")).toMatchObject({
+      action: "create",
+      existingPastureId: null,
+      pastureCode: "NECA2",
+    })
+    expect(generatePastureCode("A", [])).toBe("AP")
+  })
+})

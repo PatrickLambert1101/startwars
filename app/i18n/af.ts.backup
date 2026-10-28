@@ -476,10 +476,10 @@ const en = {
     },
   },
   pasturesScreen: {
-    title: "Pasture Rotation",
+    title: "Pastures",
     createButton: "+ New",
     locked: {
-      title: "Pasture Rotation",
+      title: "Pastures",
       description: "Map paddocks, assign herds, and track grazing days to optimise forage and soil health.",
       proBadge: "PRO",
       upgradeButton: "Upgrade to Pro",

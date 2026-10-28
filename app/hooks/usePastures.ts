@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react"
-import { database } from "@/db"
-import { Pasture, PastureMovement, Animal } from "@/db/models"
 import { Q } from "@nozbe/watermelondb"
+
 import { useDatabase } from "@/context/DatabaseContext"
+import { database } from "@/db"
+import { Pasture, PastureMovement, GrazingPeriod, Animal } from "@/db/models"
 
 /** Thrown when another pasture in the org already uses the same code. */
 export class DuplicatePastureCodeError extends Error {
@@ -69,6 +70,9 @@ export function usePastures() {
       setIsLoading(false)
       return
     }
+
+    setPastures([])
+    setIsLoading(true)
 
     const subscription = database
       .get<Pasture>("pastures")
@@ -142,6 +146,36 @@ export function usePastureMovements(pastureId: string) {
   }, [pastureId])
 
   return { movements, isLoading }
+}
+
+export function useGrazingPeriods(pastureId: string) {
+  const [periods, setPeriods] = useState<GrazingPeriod[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    if (!pastureId) {
+      setPeriods([])
+      setIsLoading(false)
+      return
+    }
+
+    const subscription = database
+      .get<GrazingPeriod>("grazing_periods")
+      .query(
+        Q.where("pasture_id", pastureId),
+        Q.where("is_deleted", false),
+        Q.sortBy("start_date", Q.desc),
+      )
+      .observe()
+      .subscribe((data) => {
+        setPeriods(data)
+        setIsLoading(false)
+      })
+
+    return () => subscription.unsubscribe()
+  }, [pastureId])
+
+  return { periods, isLoading }
 }
 
 export function usePastureStats(pastureId: string) {

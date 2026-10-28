@@ -20,6 +20,7 @@ import {
   usePastureStats,
   usePastureAnimals,
   usePastureMovements,
+  useGrazingPeriods,
   usePastureActions,
 } from "@/hooks/usePastures"
 import { AppStackScreenProps } from "@/navigators/navigationTypes"
@@ -36,6 +37,7 @@ export function PastureDetailScreen({ navigation, route }: PastureDetailScreenPr
   const stats = usePastureStats(pastureId)
   const { animals } = usePastureAnimals(pastureId)
   const { movements } = usePastureMovements(pastureId)
+  const { periods: grazingPeriods } = useGrazingPeriods(pastureId)
   const { activities } = usePastureActivities(pastureId)
   const { boundary } = usePastureBoundary(pastureId)
   const { deleteActivity } = usePastureActivityActions()
@@ -297,6 +299,50 @@ export function PastureDetailScreen({ navigation, route }: PastureDetailScreenPr
             />
             {movements.length > 10 && (
               <Text style={themed($moreText)}>+ {movements.length - 10} more movements</Text>
+            )}
+          </View>
+        )}
+
+        {/* Imported herd-level grazing history */}
+        {grazingPeriods.length > 0 && (
+          <View style={themed($section)}>
+            <Text style={themed($sectionTitle)}>Grazing History</Text>
+            {grazingPeriods.slice(0, 5).map((period) => (
+              <View key={period.id} style={themed($movementRow)}>
+                <View style={themed($movementIcon)}>
+                  <MaterialCommunityIcons
+                    name="grass"
+                    size={18}
+                    color={colors.palette.primary600}
+                  />
+                </View>
+                <View style={themed($movementInfo)}>
+                  <Text style={themed($movementText)}>
+                    {formatDate(period.startDate.toISOString(), "PP")}
+                    {" — "}
+                    {period.endDate ? formatDate(period.endDate.toISOString(), "PP") : "Ongoing"}
+                  </Text>
+                  <Text style={themed($movementDate)}>
+                    {[
+                      period.herdGroup,
+                      period.animalCount ? `${period.animalCount} animals` : null,
+                      period.sourceFileName ? `Imported from ${period.sourceFileName}` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" • ")}
+                  </Text>
+                  {!!period.notes && (
+                    <Text style={themed($movementDate)} numberOfLines={2}>
+                      {period.notes}
+                    </Text>
+                  )}
+                </View>
+              </View>
+            ))}
+            {grazingPeriods.length > 5 && (
+              <Text style={themed($moreText)}>
+                + {grazingPeriods.length - 5} more grazing periods
+              </Text>
             )}
           </View>
         )}

@@ -4,14 +4,16 @@
  * Uses Supabase RPC functions (SECURITY DEFINER) to bypass RLS.
  * Based on: https://supabase.com/blog/react-native-offline-first-watermelon-db
  */
+import { Model, Q } from "@nozbe/watermelondb"
 import { synchronize, SyncPullArgs, SyncPushArgs } from "@nozbe/watermelondb/sync"
-import { Model } from "@nozbe/watermelondb"
+
 import { database, schema } from "@/db"
 import { supabase } from "@/services/supabase"
+import { reclassifyExistingCreatedRows, SyncChangeRow } from "@/services/syncChangeNormalization"
 
 // ---- Sync types ----------------------------------------------------------
 
-type SyncRow = Record<string, unknown>
+type SyncRow = SyncChangeRow
 
 interface SyncTableChanges {
   created: SyncRow[]
@@ -48,8 +50,42 @@ const JSONB_FIELDS = new Set<string>(["livestock_types", "default_breeds"])
  */
 const JSONB_STRINGIFY_FIELDS = new Set<string>(["tags", "genetic_traits", "default_breeds"])
 
+// Keep below SQLite's usual bind-variable limit when checking a large initial pull.
+const EXISTING_ID_QUERY_BATCH_SIZE = 500
+
 function isDateField(key: string): boolean {
   return key.endsWith("_at") || key.endsWith("_date") || EXTRA_DATE_FIELDS.has(key)
+}
+
+/**
+ * Move server "created" rows that already exist locally into "updated".
+ *
+ * The sync RPC uses timestamps to classify creates. That means a device can
+ * receive its own just-pushed row as created on the next pull. We must retain
+ * true creates for new/empty devices, while preventing create-existing
+ * diagnostics for echoed rows. Locally deleted IDs count as existing so their
+ * pending deletion continues to win.
+ */
+async function normalizePulledChanges(
+  localTableName: string,
+  created: SyncRow[],
+  updated: SyncRow[],
+) {
+  const createdIds = created.flatMap((row) => (typeof row.id === "string" ? [row.id] : []))
+  if (createdIds.length === 0) {
+    return { created, updated, reclassifiedCount: 0 }
+  }
+
+  const collection = database.get<Model>(localTableName)
+  const existingIds = new Set<string>(await database.adapter.getDeletedRecords(collection.table))
+
+  for (let index = 0; index < createdIds.length; index += EXISTING_ID_QUERY_BATCH_SIZE) {
+    const idBatch = createdIds.slice(index, index + EXISTING_ID_QUERY_BATCH_SIZE)
+    const foundIds = await collection.query(Q.where("id", Q.oneOf(idBatch))).fetchIds()
+    foundIds.forEach((id) => existingIds.add(id))
+  }
+
+  return reclassifyExistingCreatedRows(created, updated, existingIds)
 }
 
 /**
@@ -98,12 +134,24 @@ async function pullChanges({ lastPulledAt }: SyncPullArgs) {
       continue
     }
 
-    const created = (tableChanges.created ?? []).map(supabaseToWatermelon)
-    const updated = (tableChanges.updated ?? []).map(supabaseToWatermelon)
+    const rawCreated = (tableChanges.created ?? []).map(supabaseToWatermelon)
+    const rawUpdated = (tableChanges.updated ?? []).map(supabaseToWatermelon)
     const deleted = tableChanges.deleted ?? []
+    const { created, updated, reclassifiedCount } = await normalizePulledChanges(
+      localTableName,
+      rawCreated,
+      rawUpdated,
+    )
 
     if (__DEV__) {
-      console.log(`[Sync] ${tableName}: ${created.length} created, ${updated.length} updated, ${deleted.length} deleted`)
+      console.log(
+        `[Sync] ${tableName}: ${created.length} created, ${updated.length} updated, ${deleted.length} deleted`,
+      )
+      if (reclassifiedCount > 0) {
+        console.log(
+          `[Sync] ${tableName}: reclassified ${reclassifiedCount} existing creates as updates`,
+        )
+      }
     }
 
     changes[localTableName] = { created, updated, deleted }
@@ -123,11 +171,14 @@ async function pushChanges({ changes }: SyncPushArgs) {
 
   const supabaseChanges: SyncChanges = {}
 
-  const localChanges = changes as unknown as Record<string, {
-    created: Model[]
-    updated: Model[]
-    deleted: string[]
-  }>
+  const localChanges = changes as unknown as Record<
+    string,
+    {
+      created: Model[]
+      updated: Model[]
+      deleted: string[]
+    }
+  >
 
   for (const [localTableName, tableChanges] of Object.entries(localChanges)) {
     const { created, updated, deleted } = tableChanges
@@ -145,7 +196,9 @@ async function pushChanges({ changes }: SyncPushArgs) {
     }
 
     if (__DEV__) {
-      console.log(`[Sync] → ${supabaseTableName}: +${created.length} ~${updated.length} -${deleted.length}`)
+      console.log(
+        `[Sync] → ${supabaseTableName}: +${created.length} ~${updated.length} -${deleted.length}`,
+      )
     }
   }
 
@@ -241,14 +294,6 @@ export async function syncDatabase(): Promise<{ success: boolean; error?: string
       pullChanges,
       pushChanges,
       migrationsEnabledAtVersion: 3,
-      // Our sync_pull classifies rows as "created" purely by created_at >
-      // last_pulled_at, so a device gets its OWN just-pushed rows back as
-      // "created" on the next pull (pull happens before the watermark covers
-      // the push). Without this flag WatermelonDB treats that as a fatal
-      // "record already exists locally" diagnostic and recovers awkwardly,
-      // which delayed newly-added records from appearing. This flag makes the
-      // create-of-existing case a normal update instead.
-      sendCreatedAsUpdated: true,
     })
 
     if (__DEV__) console.log("[Sync] Synchronization complete!")

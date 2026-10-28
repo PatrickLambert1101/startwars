@@ -9,6 +9,7 @@ export class Pasture extends Model {
     pasture_movements: { type: "has_many" as const, foreignKey: "pasture_id" },
     pasture_activities: { type: "has_many" as const, foreignKey: "pasture_id" },
     pasture_boundaries: { type: "has_many" as const, foreignKey: "pasture_id" },
+    grazing_periods: { type: "has_many" as const, foreignKey: "pasture_id" },
     animals: { type: "has_many" as const, foreignKey: "current_pasture_id" },
   }
 
@@ -39,6 +40,7 @@ export class Pasture extends Model {
   @children("pasture_movements") movements!: Query<Model>
   @children("pasture_activities") activities!: Query<Model>
   @children("pasture_boundaries") boundaries!: Query<Model>
+  @children("grazing_periods") grazingPeriods!: Query<Model>
   @children("animals") currentAnimals!: Query<Model>
 
   get isOccupied(): boolean {

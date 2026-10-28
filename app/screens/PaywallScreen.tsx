@@ -1,11 +1,13 @@
 import { useState } from "react"
-import { View, ViewStyle, Alert, ScrollView, Pressable, TextStyle } from "react-native"
-import { AppStackScreenProps } from "@/navigators"
+import { View, ViewStyle, Alert, Linking, ScrollView, Pressable, TextStyle } from "react-native"
+
 import { Screen, Button, Text } from "@/components"
 import { CheckBadge } from "@/components/icons"
+import { useSubscription, ANIMAL_LIMITS, FREE_ANIMAL_LIMIT } from "@/context/SubscriptionContext"
+import { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-import { useSubscription, ANIMAL_LIMITS, FREE_ANIMAL_LIMIT } from "@/context/SubscriptionContext"
+import { findSubscriptionPackage, formatSubscriptionPeriod } from "@/utils/subscriptionProducts"
 
 interface PaywallScreenProps extends AppStackScreenProps<"Paywall"> {}
 
@@ -18,24 +20,26 @@ const SHARED_FEATURES = [
   "Photo attachments & team members",
 ]
 
-// Reframed by animal count. rcIdentifiers unchanged so purchases still map to the
-// existing RevenueCat products/entitlements (farm, commercial).
+const PRIVACY_POLICY_URL = "https://herdtrackr.co.za/privacy-policy.html"
+const TERMS_OF_USE_URL = "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"
+
+// Product identifiers must exactly match App Store Connect and RevenueCat.
 const PRICING_TIERS = [
   {
-    id: "monthly",
-    rcIdentifier: "farm_monthly",
+    id: "farm",
+    productIdentifier: "farm_monthly",
     name: "Farm",
-    price: "R249,99",
-    period: "/month",
     description: "For a growing herd",
-    features: [`Up to ${ANIMAL_LIMITS.farm.toLocaleString()} animals`, EVERY_FEATURE, ...SHARED_FEATURES],
+    features: [
+      `Up to ${ANIMAL_LIMITS.farm.toLocaleString()} animals`,
+      EVERY_FEATURE,
+      ...SHARED_FEATURES,
+    ],
   },
   {
-    id: "yearly",
-    rcIdentifier: "commercial_yearly",
+    id: "commercial",
+    productIdentifier: "commercial_monthly",
     name: "Commercial",
-    price: "R999",
-    period: "/month",
     description: "Unlimited herd size",
     features: ["Unlimited animals", EVERY_FEATURE, ...SHARED_FEATURES],
   },
@@ -44,43 +48,52 @@ const PRICING_TIERS = [
 export function PaywallScreen(props: PaywallScreenProps) {
   const { navigation } = props
   const { themed, theme } = useAppTheme()
-  const { packages, isPremium, plan, purchasePackage, restorePurchases } = useSubscription()
-  const [isLoading, setIsLoading] = useState(false)
+  const {
+    packages,
+    isPackagesLoading,
+    isLoading,
+    isPremium,
+    plan,
+    purchasePackage,
+    reloadPackages,
+    restorePurchases,
+  } = useSubscription()
+  const [isProcessing, setIsProcessing] = useState(false)
 
-  const handlePurchase = async (rcIdentifier: string) => {
-    if (packages.length === 0) {
-      Alert.alert(
-        "Subscriptions Unavailable",
-        "We couldn't load subscription options right now. Please check your internet connection and try again later.",
-      )
-      console.log("[Paywall] No packages returned from RevenueCat — check Offerings config in dashboard or App Store Connect products")
-      return
-    }
-
-    // Find package by RevenueCat identifier
-    const pkg = packages.find(p =>
-      p.identifier.toLowerCase().includes(rcIdentifier.toLowerCase()) ||
-      p.product.identifier.toLowerCase().includes(rcIdentifier.toLowerCase())
-    )
+  const handlePurchase = async (productIdentifier: string) => {
+    const pkg = findSubscriptionPackage(packages, productIdentifier)
 
     if (!pkg) {
       Alert.alert(
         "Plan Unavailable",
         "This plan isn't available right now. Please try a different plan or contact support.",
       )
-      console.log("[Paywall] Package not found:", rcIdentifier, "Available:", packages.map(p => ({ id: p.identifier, productId: p.product.identifier })))
+      console.log(
+        "[Paywall] Package not found:",
+        productIdentifier,
+        "Available:",
+        packages.map((p) => ({ id: p.identifier, productId: p.product.identifier })),
+      )
       return
     }
 
-    setIsLoading(true)
+    setIsProcessing(true)
     try {
-      await purchasePackage(pkg)
+      const outcome = await purchasePackage(pkg)
+
+      if (outcome === "already_active") {
+        Alert.alert(
+          "Already Subscribed",
+          "This plan is already active on your App Store or Google Play account.",
+          [{ text: "Continue", onPress: () => navigation.goBack() }],
+        )
+        return
+      }
+
       // Success - close paywall and let user see unlocked features
-      Alert.alert(
-        "Welcome to Premium! 🎉",
-        "You now have access to premium features. Check out the Pastures tab!",
-        [{ text: "Get Started", onPress: () => navigation.goBack() }]
-      )
+      Alert.alert("Subscription Active", "Your animal limit has been updated.", [
+        { text: "Continue", onPress: () => navigation.goBack() },
+      ])
     } catch (error: any) {
       console.error("[Paywall] Purchase error:", error)
       // Don't show error if user cancelled
@@ -88,29 +101,56 @@ export function PaywallScreen(props: PaywallScreenProps) {
         Alert.alert("Purchase Failed", error.message || "Something went wrong. Please try again.")
       }
     } finally {
-      setIsLoading(false)
+      setIsProcessing(false)
     }
   }
 
   const handleRestore = async () => {
-    setIsLoading(true)
+    setIsProcessing(true)
     try {
       await restorePurchases()
     } catch (error) {
       console.error("[Paywall] Restore error:", error)
     } finally {
-      setIsLoading(false)
+      setIsProcessing(false)
+    }
+  }
+
+  const handleReloadPackages = async () => {
+    try {
+      await reloadPackages()
+    } catch (error: any) {
+      console.error("[Paywall] Product reload error:", error)
+      Alert.alert(
+        "Subscriptions Unavailable",
+        "We couldn't load subscription options. Check your connection and try again.",
+      )
+    }
+  }
+
+  const openLegalLink = async (url: string) => {
+    try {
+      await Linking.openURL(url)
+    } catch (error) {
+      console.error("[Paywall] Could not open legal link:", error)
+      Alert.alert("Unable to Open Link", "Please check your internet connection and try again.")
     }
   }
 
   // If already subscribed, show success message
   if (isPremium) {
     return (
-      <Screen preset="fixed" safeAreaEdges={["top", "bottom"]} contentContainerStyle={themed($container)}>
+      <Screen
+        preset="fixed"
+        safeAreaEdges={["top", "bottom"]}
+        contentContainerStyle={themed($container)}
+      >
         <View style={themed($successContainer)}>
-          <Text preset="heading" style={themed($successTitle)}>
-            You're on the {plan === "commercial" ? "Commercial" : "Farm"} plan!
-          </Text>
+          <Text
+            text={`You're on the ${plan === "commercial" ? "Commercial" : "Farm"} plan!`}
+            preset="heading"
+            style={themed($successTitle)}
+          />
           <Text style={themed($successMessage)}>
             {plan === "commercial"
               ? "You can add unlimited animals."
@@ -129,7 +169,11 @@ export function PaywallScreen(props: PaywallScreenProps) {
 
   // Show custom paywall
   return (
-    <Screen preset="fixed" contentContainerStyle={themed($fullContainer)} safeAreaEdges={["top", "bottom"]}>
+    <Screen
+      preset="fixed"
+      contentContainerStyle={themed($fullContainer)}
+      safeAreaEdges={["top", "bottom"]}
+    >
       <View style={themed($header)}>
         <Button text="Close" preset="default" onPress={() => navigation.goBack()} />
       </View>
@@ -143,65 +187,108 @@ export function PaywallScreen(props: PaywallScreenProps) {
           />
         </View>
 
-        {packages.length === 0 && (
+        {!isPackagesLoading && packages.length === 0 && (
           <View style={themed($unavailableBanner)}>
             <Text
-              text="Subscription plans are temporarily unavailable. Please try again later."
+              text="Subscription plans couldn't be loaded. Check your connection and try again."
               size="xs"
               style={themed($unavailableText)}
+            />
+            <Button
+              text="Try Again"
+              preset="default"
+              onPress={handleReloadPackages}
+              style={themed($retryButton)}
             />
           </View>
         )}
 
-        <View style={themed($pricingGrid)}>
-          {PRICING_TIERS.map((tier) => {
-            const subscribeDisabled = isLoading || packages.length === 0
-            return (
-              <View key={tier.id} style={themed($pricingCard)}>
-                <Text text={tier.name} preset="subheading" style={themed($planName)} />
-                <Text text={tier.description} size="xs" style={themed($planDescription)} />
+        {isPackagesLoading && (
+          <Text text="Loading subscription plans…" style={themed($loadingText)} />
+        )}
 
-                <View style={themed($priceSection)}>
-                  <Text text={tier.price} style={themed($price)} />
-                  <Text text={tier.period} style={themed($period)} />
+        {packages.length > 0 && (
+          <View style={themed($pricingGrid)}>
+            {PRICING_TIERS.map((tier) => {
+              const pkg = findSubscriptionPackage(packages, tier.productIdentifier)
+              const subscribeDisabled = isProcessing || isLoading || !pkg
+              return (
+                <View key={tier.id} style={themed($pricingCard)}>
+                  <Text text={tier.name} preset="subheading" style={themed($planName)} />
+                  <Text text={tier.description} size="xs" style={themed($planDescription)} />
+
+                  <View style={themed($priceSection)}>
+                    <Text text={pkg?.product.priceString ?? "Unavailable"} style={themed($price)} />
+                    {!!pkg && (
+                      <Text
+                        text={formatSubscriptionPeriod(pkg.product.subscriptionPeriod)}
+                        style={themed($period)}
+                      />
+                    )}
+                  </View>
+
+                  <View style={themed($featuresContainer)}>
+                    {tier.features.map((feature, index) => (
+                      <View key={index} style={themed($featureRow)}>
+                        <CheckBadge size={18} color={theme.colors.tint} />
+                        <Text text={feature} style={themed($featureText)} />
+                      </View>
+                    ))}
+                  </View>
+
+                  <Button
+                    text={
+                      isProcessing
+                        ? "Processing..."
+                        : isLoading
+                          ? "Checking subscription..."
+                          : `Subscribe to ${tier.name}`
+                    }
+                    preset="reversed"
+                    style={themed($actionButton)}
+                    onPress={() => handlePurchase(tier.productIdentifier)}
+                    disabled={subscribeDisabled}
+                  />
                 </View>
-
-                <View style={themed($featuresContainer)}>
-                  {tier.features.map((feature, index) => (
-                    <View key={index} style={themed($featureRow)}>
-                      <CheckBadge size={18} color={theme.colors.tint} />
-                      <Text text={feature} style={themed($featureText)} />
-                    </View>
-                  ))}
-                </View>
-
-                <Button
-                  text={isLoading ? "Processing..." : `Subscribe to ${tier.name}`}
-                  preset="reversed"
-                  style={themed($actionButton)}
-                  onPress={() => handlePurchase(tier.rcIdentifier)}
-                  disabled={subscribeDisabled}
-                />
-              </View>
-            )
-          })}
-        </View>
+              )
+            })}
+          </View>
+        )}
 
         <View style={themed($restoreSection)}>
           <Button
-            text={isLoading ? "Restoring..." : "Restore Purchases"}
+            text={isProcessing ? "Restoring..." : "Restore Purchases"}
             preset="default"
             onPress={handleRestore}
-            disabled={isLoading}
+            disabled={isProcessing}
           />
         </View>
 
         <View style={themed($finePrintSection)}>
           <Text
-            text="Prices in South African Rands (ZAR). Subscriptions auto-renew monthly. Cancel anytime from your account settings."
+            text="Payment is charged to your store account. Subscriptions renew automatically at the displayed price and billing period unless canceled at least 24 hours before the end of the current period. Manage or cancel in your App Store or Google Play account settings."
             size="xxs"
             style={themed($finePrint)}
           />
+          <View style={themed($legalLinks)}>
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel="Open Privacy Policy"
+              onPress={() => openLegalLink(PRIVACY_POLICY_URL)}
+              hitSlop={8}
+            >
+              <Text text="Privacy Policy" size="xxs" style={themed($legalLink)} />
+            </Pressable>
+            <Text text="•" size="xxs" style={themed($legalSeparator)} />
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel="Open Terms of Use"
+              onPress={() => openLegalLink(TERMS_OF_USE_URL)}
+              hitSlop={8}
+            >
+              <Text text="Terms of Use (EULA)" size="xxs" style={themed($legalLink)} />
+            </Pressable>
+          </View>
         </View>
       </ScrollView>
     </Screen>
@@ -218,7 +305,7 @@ const $fullContainer: ThemedStyle<ViewStyle> = () => ({
   flex: 1,
 })
 
-const $successContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+const $successContainer: ThemedStyle<ViewStyle> = () => ({
   alignItems: "center",
   justifyContent: "center",
 })
@@ -284,6 +371,17 @@ const $unavailableBanner: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
 
 const $unavailableText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.text,
+  textAlign: "center",
+})
+
+const $retryButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  marginTop: spacing.sm,
+})
+
+const $loadingText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  color: colors.textDim,
+  marginHorizontal: spacing.lg,
+  marginBottom: spacing.md,
   textAlign: "center",
 })
 
@@ -356,6 +454,24 @@ const $restoreSection: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $finePrintSection: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingHorizontal: spacing.lg,
   marginBottom: spacing.xl,
+})
+
+const $legalLinks: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  flexWrap: "wrap",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: spacing.xs,
+  marginTop: spacing.sm,
+})
+
+const $legalLink: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.tint,
+  textDecorationLine: "underline",
+})
+
+const $legalSeparator: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.textDim,
 })
 
 const $finePrint: ThemedStyle<TextStyle> = ({ colors }) => ({

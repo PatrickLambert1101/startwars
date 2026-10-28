@@ -84,8 +84,13 @@ export type AnimalFormData = {
   breed: string
   sex: AnimalSex
   dateOfBirth?: Date
-  sireId?: string
-  damId?: string
+  sireId?: string | null
+  damId?: string | null
+  externalSireReference?: string | null
+  externalSireBreed?: string | null
+  externalDamReference?: string | null
+  externalDamBreed?: string | null
+  sourceName?: string | null
   registrationNumber?: string
   status: AnimalStatus
   /**
@@ -129,6 +134,35 @@ export function useAnimals() {
   }, [currentOrg])
 
   return { animals, isLoading }
+}
+
+/** Lightweight unfiltered count used to distinguish an empty herd from a list
+ * whose default status filter is hiding archived animals. */
+export function useAnimalCount() {
+  const { currentOrg } = useDatabase()
+  const [animalCount, setAnimalCount] = useState(0)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    if (!currentOrg) {
+      setAnimalCount(0)
+      setIsLoading(false)
+      return
+    }
+
+    const subscription = database
+      .get<Animal>("animals")
+      .query(Q.where("organization_id", currentOrg.id), Q.where("is_deleted", false))
+      .observeCount()
+      .subscribe((count) => {
+        setAnimalCount(count)
+        setIsLoading(false)
+      })
+
+    return () => subscription.unsubscribe()
+  }, [currentOrg])
+
+  return { animalCount, isLoading }
 }
 
 /**
@@ -306,6 +340,11 @@ export function useAnimalActions() {
         animal.dateOfBirth = data.dateOfBirth ?? null
         animal.sireId = data.sireId ?? null
         animal.damId = data.damId ?? null
+        animal.externalSireReference = data.externalSireReference ?? null
+        animal.externalSireBreed = data.externalSireBreed ?? null
+        animal.externalDamReference = data.externalDamReference ?? null
+        animal.externalDamBreed = data.externalDamBreed ?? null
+        animal.sourceName = data.sourceName ?? null
         animal.registrationNumber = data.registrationNumber ?? null
         animal.status = data.status
         animal.vaccinationsUpToDate = data.vaccinationsUpToDate ?? true
@@ -364,6 +403,19 @@ export function useAnimalActions() {
         if (data.dateOfBirth !== undefined) a.dateOfBirth = data.dateOfBirth ?? null
         if (data.sireId !== undefined) a.sireId = data.sireId ?? null
         if (data.damId !== undefined) a.damId = data.damId ?? null
+        if (data.externalSireReference !== undefined) {
+          a.externalSireReference = data.externalSireReference ?? null
+        }
+        if (data.externalSireBreed !== undefined) {
+          a.externalSireBreed = data.externalSireBreed ?? null
+        }
+        if (data.externalDamReference !== undefined) {
+          a.externalDamReference = data.externalDamReference ?? null
+        }
+        if (data.externalDamBreed !== undefined) {
+          a.externalDamBreed = data.externalDamBreed ?? null
+        }
+        if (data.sourceName !== undefined) a.sourceName = data.sourceName ?? null
         if (data.registrationNumber !== undefined) a.registrationNumber = data.registrationNumber ?? null
         if (data.status !== undefined) a.status = data.status
         if (data.vaccinationsUpToDate !== undefined) a.vaccinationsUpToDate = data.vaccinationsUpToDate
@@ -438,4 +490,3 @@ export function useComputedAnimalFilters(animals: Animal[], filters: FilterState
     return filtered
   }, [animals, filters.ageFrom, filters.ageTo, filters.tagSearch, filters.parentAnimalId])
 }
-

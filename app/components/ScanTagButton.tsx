@@ -1,21 +1,30 @@
 import { FC } from "react"
-import { Pressable, ViewStyle, TextStyle, View } from "react-native"
-import { useNavigation } from "@react-navigation/native"
+import { Pressable, View } from "react-native"
+import type { StyleProp, TextStyle, ViewStyle } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
-import { Text } from "./Text"
+import { useNavigation } from "@react-navigation/native"
+
+import type { AppStackScreenProps } from "@/navigators/navigationTypes"
+import { registerScanCallback } from "@/screens/TagScannerScreen/TagScannerScreen"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-import type { AppStackScreenProps } from "@/navigators"
-import { registerScanCallback } from "@/screens/TagScannerScreen/TagScannerScreen"
+
+import { Text } from "./Text"
 
 interface ScanTagButtonProps {
   onTagScanned: (tagNumber: string) => void
-  style?: ViewStyle
+  style?: StyleProp<ViewStyle>
   compact?: boolean
+  label?: string
 }
 
-export const ScanTagButton: FC<ScanTagButtonProps> = ({ onTagScanned, style, compact = false }) => {
-  const { themed, theme } = useAppTheme()
+export const ScanTagButton: FC<ScanTagButtonProps> = ({
+  onTagScanned,
+  style,
+  compact = false,
+  label = "Scan Tag",
+}) => {
+  const { themed } = useAppTheme()
   const navigation = useNavigation<AppStackScreenProps<"TagScanner">["navigation"]>()
 
   const handlePress = () => {
@@ -26,17 +35,27 @@ export const ScanTagButton: FC<ScanTagButtonProps> = ({ onTagScanned, style, com
 
   if (compact) {
     return (
-      <Pressable onPress={handlePress} style={[themed($compactButton), style]}>
+      <Pressable
+        onPress={handlePress}
+        style={[themed($compactButton), style]}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+      >
         <MaterialCommunityIcons name="camera-outline" size={20} color="#FFF" />
       </Pressable>
     )
   }
 
   return (
-    <Pressable onPress={handlePress} style={[themed($button), style]}>
+    <Pressable
+      onPress={handlePress}
+      style={[themed($button), style]}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
       <View style={themed($buttonContent)}>
         <MaterialCommunityIcons name="camera-outline" size={20} color="#FFF" />
-        <Text text="Scan Tag" size="sm" style={themed($buttonText)} />
+        <Text text={label} size="sm" style={themed($buttonText)} />
       </View>
     </Pressable>
   )
@@ -66,7 +85,7 @@ const $buttonText: ThemedStyle<TextStyle> = () => ({
   textAlign: "center",
 })
 
-const $compactButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+const $compactButton: ThemedStyle<ViewStyle> = ({ colors }) => ({
   backgroundColor: colors.palette.primary500,
   borderRadius: 8,
   width: 40,

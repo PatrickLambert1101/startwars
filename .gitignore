@@ -96,3 +96,12 @@ service-account*.json
 # Dependency Graph Visualizations
 app-dependency-graph.svg
 app-dependency-graph.png
+
+# Local agent worktrees and generated task artifacts
+/.claude/worktrees/
+/output/
+/tmp/
+/supabase/.temp/
+/Subscription
+/Winter Wild Trail Run Poster.png
+/HerdTrackr-1.0.0-android.apk

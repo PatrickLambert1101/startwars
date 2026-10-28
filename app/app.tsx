@@ -15,6 +15,7 @@ import { useFonts } from "expo-font"
 import * as Linking from "expo-linking"
 import { KeyboardProvider } from "react-native-keyboard-controller"
 import { initialWindowMetrics, SafeAreaProvider } from "react-native-safe-area-context"
+import { enableFreeze } from "react-native-screens"
 import Toast from "react-native-toast-message"
 
 import { AutoSync, BiometricLock, SyncIndicator, NetworkBanner, ErrorBoundary } from "./components"
@@ -29,6 +30,10 @@ import { ThemeProvider } from "./theme/context"
 import { customFontsToLoad } from "./theme/typography"
 import { loadDateFnsLocale } from "./utils/formatDate"
 import * as storage from "./utils/storage"
+
+// Suspend inactive native-stack and tab screens so database subscriptions and
+// other state updates do not compete with the screen the farmer is using.
+enableFreeze(true)
 
 export const NAVIGATION_PERSISTENCE_KEY = "NAVIGATION_STATE"
 

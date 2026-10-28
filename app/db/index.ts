@@ -1,9 +1,27 @@
 import { Database } from "@nozbe/watermelondb"
 import SQLiteAdapter from "@nozbe/watermelondb/adapters/sqlite"
 
-import { schema, migrations } from "./schema"
-import { Organization, Animal, HealthRecord, WeightRecord, BreedingRecord, TreatmentProtocol, Pasture, PastureMovement, PastureActivity, PastureBoundary, OrganizationMember, VaccinationSchedule, ScheduledVaccination, ReportTemplate } from "./models"
 import { logDatabaseOperation, captureException } from "@/services/sentry"
+
+import {
+  Organization,
+  Animal,
+  HealthRecord,
+  WeightRecord,
+  BreedingRecord,
+  TreatmentProtocol,
+  Pasture,
+  PastureMovement,
+  PastureActivity,
+  PastureBoundary,
+  GrazingPeriod,
+  DataImportBatch,
+  OrganizationMember,
+  VaccinationSchedule,
+  ScheduledVaccination,
+  ReportTemplate,
+} from "./models"
+import { schema, migrations } from "./schema"
 
 // Use SQLite adapter for reliable persistence on native platforms
 // This fixes the LokiJS reset bug that was wiping data on every refresh
@@ -34,10 +52,31 @@ console.log("[DB] Initializing WatermelonDB with schema version:", schema.versio
 
 export const database = new Database({
   adapter,
-  modelClasses: [Organization, Animal, HealthRecord, WeightRecord, BreedingRecord, TreatmentProtocol, Pasture, PastureMovement, PastureActivity, PastureBoundary, OrganizationMember, VaccinationSchedule, ScheduledVaccination, ReportTemplate],
+  modelClasses: [
+    Organization,
+    Animal,
+    HealthRecord,
+    WeightRecord,
+    BreedingRecord,
+    TreatmentProtocol,
+    Pasture,
+    PastureMovement,
+    PastureActivity,
+    PastureBoundary,
+    GrazingPeriod,
+    DataImportBatch,
+    OrganizationMember,
+    VaccinationSchedule,
+    ScheduledVaccination,
+    ReportTemplate,
+  ],
 })
 
-console.log("[DB] WatermelonDB initialized successfully with", Object.keys(database.collections).length, "collections")
+console.log(
+  "[DB] WatermelonDB initialized successfully with",
+  Object.keys(database.collections).length,
+  "collections",
+)
 
 export { schema } from "./schema"
 export * from "./models"

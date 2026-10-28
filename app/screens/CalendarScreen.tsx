@@ -8,7 +8,7 @@ import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import type { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { usePendingVaccinations } from "@/hooks/useVaccinationSchedules"
-import type { ScheduledVaccination } from "@/db/models"
+import { getVaccinationDaysUntilDue } from "@/utils/vaccinationDates"
 
 type CalendarFilter = "all" | "today" | "week" | "month"
 
@@ -89,20 +89,22 @@ export const CalendarScreen: FC<MainTabScreenProps<"Calendar">> = ({ navigation 
   // Filter events based on selected filter
   const filteredEvents = useMemo(() => {
     const now = new Date()
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
-    const monthFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000)
+    const daysFromToday = (event: CalendarEvent) =>
+      getVaccinationDaysUntilDue(event.date, now)
 
     switch (activeFilter) {
       case "today":
-        return allEvents.filter(e => {
-          const eventDate = new Date(e.date.getFullYear(), e.date.getMonth(), e.date.getDate())
-          return eventDate.getTime() === today.getTime()
-        })
+        return allEvents.filter((e) => daysFromToday(e) === 0)
       case "week":
-        return allEvents.filter(e => e.date >= today && e.date <= weekFromNow)
+        return allEvents.filter((e) => {
+          const days = daysFromToday(e)
+          return days >= 0 && days <= 7
+        })
       case "month":
-        return allEvents.filter(e => e.date >= today && e.date <= monthFromNow)
+        return allEvents.filter((e) => {
+          const days = daysFromToday(e)
+          return days >= 0 && days <= 30
+        })
       default:
         return allEvents
     }

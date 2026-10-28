@@ -1,36 +1,57 @@
-import { FC, useCallback, useState } from "react"
+import { FC, useCallback, useEffect, useState } from "react"
 import { Alert, Pressable, View, ViewStyle, TextStyle } from "react-native"
+import { MaterialCommunityIcons } from "@expo/vector-icons"
 
-import { Screen, Text, TextField, Button } from "@/components"
+import { AnimalPicker, Screen, Text, TextField, Button, DateField } from "@/components"
 import { PhotoPicker } from "@/components/PhotoPicker"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { useBreedingRecordActions } from "@/hooks/useRecords"
 import { BreedingMethod, BreedingOutcome } from "@/db/models/BreedingRecord"
+import { useAnimal, useAnimals } from "@/hooks/useAnimals"
 import { useDatabase } from "@/context/DatabaseContext"
 import { useAuth } from "@/context/AuthContext"
 import { uploadPhoto } from "@/services/photoStorage"
+import { enqueuePhotoUploads } from "@/services/photoUploadQueue"
 import type { PhotoWithMetadata } from "@/types/Photo"
 import { serializePhotos } from "@/types/Photo"
 import { useTranslation } from "react-i18next"
+import { expectedCalvingFromBreedingDate } from "@/utils/breedingDashboard"
 
 const METHODS: BreedingMethod[] = ["natural", "ai", "embryo_transfer"]
 const OUTCOMES: BreedingOutcome[] = ["pending", "live_calf", "stillborn", "aborted", "open"]
 
 export const BreedingRecordFormScreen: FC<AppStackScreenProps<"BreedingRecordForm">> = ({ route, navigation }) => {
-  const { themed } = useAppTheme()
+  const { themed, theme } = useAppTheme()
   const { t } = useTranslation()
   const { animalId } = route.params
+  const { animal } = useAnimal(animalId)
+  const { animals } = useAnimals()
   const { createBreedingRecord } = useBreedingRecordActions()
   const { currentOrg } = useDatabase()
   const { user } = useAuth()
 
   const [method, setMethod] = useState<BreedingMethod>("natural")
   const [outcome, setOutcome] = useState<BreedingOutcome>("pending")
+  const [breedingDate, setBreedingDate] = useState<Date | null>(new Date())
+  const [expectedCalvingDate, setExpectedCalvingDate] = useState<Date | null>(
+    expectedCalvingFromBreedingDate(new Date()),
+  )
+  const [expectedDateEdited, setExpectedDateEdited] = useState(false)
+  const [bullId, setBullId] = useState<string | null>(null)
+  const [showBullPicker, setShowBullPicker] = useState(false)
   const [notes, setNotes] = useState("")
   const [photos, setPhotos] = useState<PhotoWithMetadata[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const selectedBull = bullId ? animals.find((candidate) => candidate.id === bullId) : null
+
+  useEffect(() => {
+    if (!breedingDate || expectedDateEdited) return
+    setExpectedCalvingDate(
+      expectedCalvingFromBreedingDate(breedingDate, animal?.species ?? "cattle"),
+    )
+  }, [animal?.species, breedingDate, expectedDateEdited])
 
   const handleSave = useCallback(async () => {
     if (!currentOrg) {
@@ -40,13 +61,19 @@ export const BreedingRecordFormScreen: FC<AppStackScreenProps<"BreedingRecordFor
       )
       return
     }
+    if (!breedingDate) {
+      Alert.alert("Breeding date required", "Enter the date the animal was bred.")
+      return
+    }
 
     setIsSubmitting(true)
     try {
       const record = await createBreedingRecord({
         animalId,
-        breedingDate: new Date(),
+        bullId: bullId ?? undefined,
+        breedingDate,
         method,
+        expectedCalvingDate: expectedCalvingDate ?? undefined,
         outcome,
         notes: notes.trim() || undefined,
       })
@@ -64,10 +91,11 @@ export const BreedingRecordFormScreen: FC<AppStackScreenProps<"BreedingRecordFor
       )
     }
     setIsSubmitting(false)
-  }, [animalId, method, outcome, notes, photos, currentOrg, createBreedingRecord, navigation, t])
+  }, [animalId, bullId, breedingDate, expectedCalvingDate, method, outcome, notes, photos, currentOrg, createBreedingRecord, navigation, t])
 
   const uploadPhotosInBackground = async (recordId: string, photosToUpload: PhotoWithMetadata[]) => {
     try {
+      const failedUploads: PhotoWithMetadata[] = []
       const uploadedPhotos = await Promise.all(
         photosToUpload.map(async (photo) => {
           if (!photo.localUri) return null
@@ -81,11 +109,26 @@ export const BreedingRecordFormScreen: FC<AppStackScreenProps<"BreedingRecordFor
             })
             return result.photo
           } catch (error) {
-            console.error("Failed to upload photo:", error)
+            console.error("Failed to upload photo, queuing for later:", error)
+            failedUploads.push(photo)
             return null
           }
         }),
       )
+
+      if (failedUploads.length > 0) {
+        await enqueuePhotoUploads(
+          failedUploads.map((photo) => ({
+            table: "breeding_records",
+            recordId,
+            category: "breeding",
+            organizationId: currentOrg!.id,
+            localUri: photo.localUri!,
+            userId: user?.id,
+            caption: photo.caption,
+          })),
+        )
+      }
 
       const successfulPhotos = uploadedPhotos.filter((p) => p !== null)
 
@@ -112,6 +155,58 @@ export const BreedingRecordFormScreen: FC<AppStackScreenProps<"BreedingRecordFor
       </View>
 
       <View style={themed($form)}>
+        <View style={themed($animalCard)}>
+          <View style={themed($animalIcon)}>
+            <Text text={animal?.displayName?.slice(0, 1).toUpperCase() || "?"} preset="bold" />
+          </View>
+          <View style={themed($animalDetails)}>
+            <Text text={animal?.displayName || "Loading animal…"} preset="bold" />
+            <Text
+              text={animal ? `${animal.breed} • ${animal.sexLabel}` : ""}
+              size="xs"
+              style={themed($dimText)}
+            />
+          </View>
+        </View>
+
+        <DateField
+          label="Breeding date"
+          value={breedingDate}
+          onChange={setBreedingDate}
+          placeholder="DD/MM/YYYY"
+        />
+
+        <DateField
+          label="Expected calving date"
+          value={expectedCalvingDate}
+          onChange={(date) => {
+            setExpectedDateEdited(true)
+            setExpectedCalvingDate(date)
+          }}
+          placeholder="DD/MM/YYYY"
+        />
+        <Text
+          text="Calculated from the species average. Adjust it if you have a more accurate date."
+          size="xxs"
+          style={themed($dateHint)}
+        />
+
+        <View>
+          <Text preset="formLabel" text="Bull or sire (optional)" style={themed($fieldLabel)} />
+          <Pressable onPress={() => setShowBullPicker(true)} style={themed($pickerButton)}>
+            <View>
+              <Text
+                text={selectedBull?.displayName || "Link a bull from the herd"}
+                style={!selectedBull && themed($dimText)}
+              />
+              {selectedBull && (
+                <Text text={selectedBull.breed} size="xs" style={themed($dimText)} />
+              )}
+            </View>
+            <MaterialCommunityIcons name="chevron-down" size={20} color={theme.colors.textDim} />
+          </Pressable>
+        </View>
+
         <Text preset="formLabel" text={t("breedingRecordFormScreen.methodLabel")} />
         <View style={themed($chipRow)}>
           {METHODS.map((m) => (
@@ -168,6 +263,16 @@ export const BreedingRecordFormScreen: FC<AppStackScreenProps<"BreedingRecordFor
           onPress={handleSave}
         />
       </View>
+
+      <AnimalPicker
+        visible={showBullPicker}
+        onClose={() => setShowBullPicker(false)}
+        onSelect={(bull) => setBullId(bull?.id ?? null)}
+        currentAnimalId={animalId}
+        filterSex="male"
+        title="Select breeding bull"
+        allowClear={true}
+      />
     </Screen>
   )
 }
@@ -187,6 +292,56 @@ const $headerRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 
 const $form: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   gap: spacing.sm,
+})
+
+const $animalCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.sm,
+  padding: spacing.md,
+  marginBottom: spacing.sm,
+  borderRadius: 12,
+  backgroundColor: colors.palette.primary100,
+})
+
+const $animalIcon: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  width: 42,
+  height: 42,
+  borderRadius: 21,
+  alignItems: "center",
+  justifyContent: "center",
+  backgroundColor: colors.background,
+})
+
+const $animalDetails: ThemedStyle<ViewStyle> = () => ({
+  flex: 1,
+})
+
+const $dimText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.textDim,
+})
+
+const $dateHint: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  color: colors.textDim,
+  marginTop: -spacing.xs,
+  marginBottom: spacing.xs,
+})
+
+const $fieldLabel: ThemedStyle<TextStyle> = ({ spacing }) => ({
+  marginBottom: spacing.xs,
+})
+
+const $pickerButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+  minHeight: 52,
+  paddingHorizontal: spacing.md,
+  paddingVertical: spacing.sm,
+  borderWidth: 1,
+  borderColor: colors.border,
+  borderRadius: 8,
+  backgroundColor: colors.background,
 })
 
 const $chipRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({

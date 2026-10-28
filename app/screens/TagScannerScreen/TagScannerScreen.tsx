@@ -1,5 +1,5 @@
 import { FC, useCallback, useEffect, useRef, useState } from "react"
-import { View, ViewStyle, StyleSheet, Alert, Pressable, TextInput, ActivityIndicator } from "react-native"
+import { View, ViewStyle, TextStyle, StyleSheet, Alert, Pressable, TextInput, ActivityIndicator, Linking } from "react-native"
 import { useCameraDevice, useCameraPermission } from "react-native-vision-camera"
 import { Camera } from "react-native-vision-camera-ocr-plus"
 import type { Text as OCRText } from "react-native-vision-camera-ocr-plus"
@@ -7,7 +7,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { extractTagNumbers } from "@/hooks/useTagScanner/tagParser"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-import { Text, Screen } from "@/components"
+import { Button, Text, Screen } from "@/components"
 
 interface TagScannerScreenProps {
   navigation: any
@@ -42,8 +42,10 @@ export const TagScannerScreen: FC<TagScannerScreenProps> = ({ navigation, route 
   // State
   const [manualInput, setManualInput] = useState<string>("")
   const [torch, setTorch] = useState<"off" | "on">("off")
+  const [isRequestingPermission, setIsRequestingPermission] = useState(false)
 
   const cameraRef = useRef<any>(null)
+  const requestedPermissionOnMount = useRef(false)
 
   // Camera setup
   const device = useCameraDevice("back")
@@ -60,19 +62,54 @@ export const TagScannerScreen: FC<TagScannerScreenProps> = ({ navigation, route 
 
   // Request camera permission on mount
   useEffect(() => {
-    if (!hasPermission) {
-      requestPermission()
-    }
+    if (hasPermission || requestedPermissionOnMount.current) return
+
+    requestedPermissionOnMount.current = true
+    setIsRequestingPermission(true)
+    requestPermission().finally(() => setIsRequestingPermission(false))
   }, [hasPermission, requestPermission])
 
+  const handleOpenSettings = useCallback(async () => {
+    try {
+      await Linking.openSettings()
+    } catch {
+      Alert.alert(
+        "Could not open Settings",
+        "Open your phone settings, select HerdTrackr, and allow Camera access.",
+      )
+    }
+  }, [])
+
+  const handleRequestPermission = useCallback(async () => {
+    setIsRequestingPermission(true)
+    try {
+      const granted = await requestPermission()
+      if (!granted) {
+        Alert.alert(
+          "Camera access is blocked",
+          "Android may no longer show the permission prompt. Open Settings and allow Camera access for HerdTrackr.",
+          [
+            { text: "Cancel", style: "cancel" },
+            { text: "Open Settings", onPress: handleOpenSettings },
+          ],
+        )
+      }
+    } finally {
+      setIsRequestingPermission(false)
+    }
+  }, [handleOpenSettings, requestPermission])
+
   // Callback for OCR results - THIS RUNS ON JS THREAD!
-  const handleOCRResult = useCallback((data: OCRText) => {
-    if (!data || !data.blocks || data.blocks.length === 0) {
+  const handleOCRResult = useCallback((data: OCRText | string) => {
+    const blocks =
+      typeof data === "string" ? [{ blockText: data, blockFrame: undefined }] : data?.blocks
+
+    if (!blocks || blocks.length === 0) {
       return
     }
 
     // Extract tags from OCR results
-    const ocrResults = data.blocks.map(block => ({
+    const ocrResults = blocks.map(block => ({
       text: block.blockText,
       confidence: 0.8,
       boundingBox: block.blockFrame ? {
@@ -119,16 +156,42 @@ export const TagScannerScreen: FC<TagScannerScreenProps> = ({ navigation, route 
   // No permission
   if (hasPermission === false) {
     return (
-      <Screen preset="fixed" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
+      <Screen
+        preset="fixed"
+        contentContainerStyle={themed($permissionScreen)}
+        safeAreaEdges={["top", "bottom"]}
+      >
         <View style={themed($errorContainer)}>
+          <View style={themed($permissionIcon)}>
+            <MaterialCommunityIcons name="camera-off-outline" size={44} color="#0E95D8" />
+          </View>
           <Text
             text="Camera permission required"
             preset="heading"
             style={themed($errorTitle)}
           />
           <Text
-            text="HerdTrackr needs camera access to scan ear tags. Please enable it in Settings."
+            text="Allow camera access to scan ear tags. If Android does not show the permission prompt, open the app settings and enable Camera."
             style={themed($errorText)}
+          />
+          <Button
+            text={isRequestingPermission ? "Waiting for permission..." : "Grant Camera Access"}
+            preset="filled"
+            onPress={handleRequestPermission}
+            disabled={isRequestingPermission}
+            style={themed($permissionButton)}
+          />
+          <Button
+            text="Open App Settings"
+            preset="default"
+            onPress={handleOpenSettings}
+            style={themed($permissionButton)}
+          />
+          <Button
+            text="Cancel"
+            preset="default"
+            onPress={handleClose}
+            style={themed($permissionButton)}
           />
         </View>
       </Screen>
@@ -142,6 +205,7 @@ export const TagScannerScreen: FC<TagScannerScreenProps> = ({ navigation, route 
         <View style={themed($errorContainer)}>
           <ActivityIndicator size="large" />
           <Text text="Initializing camera..." style={themed($errorText)} />
+          <Button text="Cancel" preset="default" onPress={handleClose} />
         </View>
       </Screen>
     )
@@ -352,6 +416,11 @@ const $container: ThemedStyle<ViewStyle> = () => ({
   alignItems: "center",
 })
 
+const $permissionScreen: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  flex: 1,
+  backgroundColor: colors.background,
+})
+
 const $errorContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flex: 1,
   justifyContent: "center",
@@ -360,11 +429,25 @@ const $errorContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   gap: spacing.md,
 })
 
+const $permissionIcon: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  width: 88,
+  height: 88,
+  borderRadius: 44,
+  alignItems: "center",
+  justifyContent: "center",
+  backgroundColor: colors.palette.primary100,
+})
+
+const $permissionButton: ThemedStyle<ViewStyle> = () => ({
+  width: "100%",
+  maxWidth: 360,
+})
+
 const $errorTitle: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   marginBottom: spacing.xs,
 })
 
-const $errorText: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+const $errorText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.textDim,
   textAlign: "center",
 })

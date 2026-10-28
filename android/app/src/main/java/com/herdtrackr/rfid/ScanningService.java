@@ -1,8 +1,7 @@
 package com.herdtrackr.rfid;
 
 import android.util.Log;
-import cn.pda.serialport.Tools;
-import com.uhf.api.cls.Reader.TAGINFO;
+import com.android.hdhe.uhf.readerInterface.TagModel;
 import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 import java.util.List;
@@ -27,14 +26,14 @@ public final class ScanningService {
 
             while (scanning && !emitter.isDisposed()) {
                 try {
-                    List<TAGINFO> tags = rfidManager.inventory(INVENTORY_DURATION_MS);
+                    List<TagModel> tags = rfidManager.inventory(INVENTORY_DURATION_MS);
                     if (tags != null) {
-                        for (TAGINFO tag : tags) {
-                            if (tag == null || tag.EpcId == null || tag.EpcId.length == 0) {
+                        for (TagModel tag : tags) {
+                            if (tag == null || tag.getmEpcBytes() == null || tag.getmEpcBytes().length == 0) {
                                 continue;
                             }
 
-                            String epc = Tools.Bytes2HexString(tag.EpcId, tag.EpcId.length);
+                            String epc = bytesToHex(tag.getmEpcBytes());
                             if (epc != null && !epc.trim().isEmpty()) {
                                 scanning = false;
                                 emitter.onNext(epc.trim().toUpperCase());
@@ -79,5 +78,13 @@ public final class ScanningService {
 
     public void cleanup() {
         stopScanning();
+    }
+
+    private static String bytesToHex(byte[] bytes) {
+        StringBuilder result = new StringBuilder(bytes.length * 2);
+        for (byte value : bytes) {
+            result.append(String.format("%02X", value & 0xFF));
+        }
+        return result.toString();
     }
 }

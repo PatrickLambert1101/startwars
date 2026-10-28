@@ -1,12 +1,13 @@
-import React, { useState } from "react"
+import React, { useMemo, useState } from "react"
 import { View, ViewStyle, TextStyle, Pressable, Alert } from "react-native"
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { Screen, Text, TextField, Button, Icon } from "@/components"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-import { AppStackScreenProps } from "@/navigators"
-import { usePastureActions, PastureFormData, DuplicatePastureCodeError } from "@/hooks/usePastures"
+import { AppStackScreenProps } from "@/navigators/navigationTypes"
+import { usePastureActions, PastureFormData, DuplicatePastureCodeError, usePastures } from "@/hooks/usePastures"
+import { forageTypeOptions } from "@/utils/forageTypes"
 
 interface PastureWizardScreenProps extends AppStackScreenProps<"PastureWizard"> {}
 
@@ -24,12 +25,12 @@ const REST_PRESETS = [
   { label: "28 days", value: 28 },
 ]
 
-const FORAGE_TYPES = ["Mixed Grass", "Kikuyu", "Lucerne", "Eragrostis", "Clover", "Veld Grass"]
 const WATER_SOURCES = ["Dam", "Trough", "River", "Borehole", "None"]
 
 export function PastureWizardScreen({ navigation }: PastureWizardScreenProps) {
   const { themed, theme: { colors } } = useAppTheme()
   const { createPasture } = usePastureActions()
+  const { pastures } = usePastures()
 
   const [currentStep, setCurrentStep] = useState<WizardStep>(1)
   const [formData, setFormData] = useState<PastureFormData>({
@@ -43,6 +44,11 @@ export function PastureWizardScreen({ navigation }: PastureWizardScreenProps) {
     sizeHectares: undefined,
   })
   const [isSaving, setIsSaving] = useState(false)
+  const [customForageType, setCustomForageType] = useState("")
+  const forageOptions = useMemo(
+    () => forageTypeOptions(pastures.map((item) => item.forageType)),
+    [pastures],
+  )
 
   const updateField = <K extends keyof PastureFormData>(field: K, value: PastureFormData[K]) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
@@ -273,7 +279,7 @@ export function PastureWizardScreen({ navigation }: PastureWizardScreenProps) {
           <View style={themed($field)}>
             <Text style={themed($fieldLabel)}>Forage Type (Optional)</Text>
             <View style={themed($chipRow)}>
-              {FORAGE_TYPES.slice(0, 4).map((type) => {
+              {forageOptions.map((type) => {
                 const selected = formData.forageType === type
                 return (
                   <Pressable
@@ -287,6 +293,26 @@ export function PastureWizardScreen({ navigation }: PastureWizardScreenProps) {
                   </Pressable>
                 )
               })}
+            </View>
+            <View style={themed($customOption)}>
+              <TextField
+                value={customForageType}
+                onChangeText={setCustomForageType}
+                placeholder="Custom grass or mixture"
+                autoCapitalize="words"
+                LabelTextProps={{ style: themed($inputLabel) }}
+              />
+              <Button
+                text="Use custom forage"
+                preset="default"
+                disabled={!customForageType.trim()}
+                onPress={() => {
+                  const customValue = customForageType.trim()
+                  if (!customValue) return
+                  updateField("forageType", customValue)
+                  setCustomForageType("")
+                }}
+              />
             </View>
           </View>
 
@@ -541,6 +567,11 @@ const $chipText: ThemedStyle<TextStyle> = ({ colors }) => ({
 const $chipTextSelected: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.palette.primary600,
   fontWeight: "600",
+})
+
+const $customOption: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  marginTop: spacing.sm,
+  gap: spacing.xs,
 })
 
 const $buttonRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({

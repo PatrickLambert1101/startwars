@@ -60,6 +60,9 @@ export function useAllPastureActivities() {
       return
     }
 
+    setActivities([])
+    setIsLoading(true)
+
     const subscription = database
       .get<PastureActivity>("pasture_activities")
       .query(

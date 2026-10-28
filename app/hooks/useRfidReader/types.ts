@@ -1,5 +1,7 @@
 export type RfidReaderHook = {
   initialize: () => Promise<void>
+  /** Fully reconnect the native RFID reader. Returns whether it recovered. */
+  reset: () => Promise<boolean>
   /** Set UHF inventory/read power in dBm (not receiver sensitivity). */
   setOutputPower: (powerDbm: number) => Promise<boolean>
   startScanning: () => Promise<void>

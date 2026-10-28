@@ -8,9 +8,18 @@ import type { ThemedStyle } from "@/theme/types"
 interface TagInputProps {
   tags: string[]
   onTagsChange: (tags: string[]) => void
+  onDraftChange?: (draft: string) => void
   placeholder?: string
   style?: ViewStyle
   suggestions?: string[]
+}
+
+export function mergeTagsWithDraft(tags: string[], draft: string): string[] {
+  const trimmedDraft = draft.trim()
+  if (!trimmedDraft || tags.some((tag) => tag.toLowerCase() === trimmedDraft.toLowerCase())) {
+    return tags
+  }
+  return [...tags, trimmedDraft]
 }
 
 const DEFAULT_SUGGESTIONS = [
@@ -27,6 +36,7 @@ const DEFAULT_SUGGESTIONS = [
 export const TagInput: FC<TagInputProps> = ({
   tags,
   onTagsChange,
+  onDraftChange,
   placeholder = "Add tags...",
   style,
   suggestions = DEFAULT_SUGGESTIONS,
@@ -41,6 +51,7 @@ export const TagInput: FC<TagInputProps> = ({
       onTagsChange([...tags, trimmedTag])
     }
     setInputValue("")
+    onDraftChange?.("")
     setShowSuggestions(false)
   }
 
@@ -67,7 +78,7 @@ export const TagInput: FC<TagInputProps> = ({
             <View key={tag} style={themed($tag)}>
               <Text text={tag} size="xs" style={themed($tagText)} />
               <Pressable onPress={() => removeTag(tag)} style={themed($tagRemove)}>
-                <MaterialCommunityIcons name="close" size={14} color={theme.colors.palette.primary700} />
+                <MaterialCommunityIcons name="close" size={14} color={theme.colors.tint} />
               </Pressable>
             </View>
           ))}
@@ -77,7 +88,10 @@ export const TagInput: FC<TagInputProps> = ({
       {/* Input */}
       <TextInput
         value={inputValue}
-        onChangeText={setInputValue}
+        onChangeText={(value) => {
+          setInputValue(value)
+          onDraftChange?.(value)
+        }}
         onFocus={() => setShowSuggestions(true)}
         onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
         onSubmitEditing={handleSubmit}
@@ -131,7 +145,7 @@ const $tag: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
 })
 
 const $tagText: ThemedStyle<TextStyle> = ({ colors }) => ({
-  color: colors.palette.primary700,
+  color: colors.tint,
   fontWeight: "600",
 })
 

@@ -1,7 +1,12 @@
 import { useEffect, useState, useCallback } from "react"
 import { Q } from "@nozbe/watermelondb"
 import { database } from "@/db"
-import { VaccinationSchedule, ScheduleType, ScheduledVaccination, VaccinationStatus } from "@/db/models"
+import {
+  VaccinationSchedule,
+  ScheduleType,
+  ScheduledVaccination,
+  VaccinationStatus,
+} from "@/db/models"
 import { useDatabase } from "@/context/DatabaseContext"
 
 export type VaccinationScheduleFormData = {
@@ -170,7 +175,9 @@ export function useVaccinationScheduleActions() {
   const updateSchedule = useCallback(
     async (scheduleId: string, data: Partial<VaccinationScheduleFormData>) => {
       await database.write(async () => {
-        const schedule = await database.get<VaccinationSchedule>("vaccination_schedules").find(scheduleId)
+        const schedule = await database
+          .get<VaccinationSchedule>("vaccination_schedules")
+          .find(scheduleId)
         await schedule.update((s) => {
           if (data.name !== undefined) s.name = data.name
           if (data.description !== undefined) s.description = data.description || null
@@ -186,7 +193,8 @@ export function useVaccinationScheduleActions() {
           if (data.minAgeMonths !== undefined) s.minAgeMonths = data.minAgeMonths || null
           if (data.maxAgeMonths !== undefined) s.maxAgeMonths = data.maxAgeMonths || null
           if (data.requiresBooster !== undefined) s.requiresBooster = data.requiresBooster
-          if (data.boosterIntervalDays !== undefined) s.boosterIntervalDays = data.boosterIntervalDays || null
+          if (data.boosterIntervalDays !== undefined)
+            s.boosterIntervalDays = data.boosterIntervalDays || null
           if (data.boosterCount !== undefined) s.boosterCount = data.boosterCount
         })
       })
@@ -196,7 +204,9 @@ export function useVaccinationScheduleActions() {
 
   const toggleScheduleActive = useCallback(async (scheduleId: string) => {
     await database.write(async () => {
-      const schedule = await database.get<VaccinationSchedule>("vaccination_schedules").find(scheduleId)
+      const schedule = await database
+        .get<VaccinationSchedule>("vaccination_schedules")
+        .find(scheduleId)
       await schedule.update((s) => {
         s.isActive = !s.isActive
       })
@@ -205,7 +215,9 @@ export function useVaccinationScheduleActions() {
 
   const deleteSchedule = useCallback(async (scheduleId: string) => {
     await database.write(async () => {
-      const schedule = await database.get<VaccinationSchedule>("vaccination_schedules").find(scheduleId)
+      const schedule = await database
+        .get<VaccinationSchedule>("vaccination_schedules")
+        .find(scheduleId)
       await schedule.update((s) => {
         s.isDeleted = true
       })
@@ -270,24 +282,28 @@ export function useScheduledVaccinations(animalId?: string) {
                 daysUntilDue: vaccination.daysUntilDue,
                 isOverdue: vaccination.isOverdue,
                 // Add enriched data
-                schedule: schedule ? {
-                  id: schedule.id,
-                  name: schedule.name,
-                  description: schedule.description,
-                  requiresBooster: schedule.requiresBooster,
-                  boosterCount: schedule.boosterCount,
-                  boosterIntervalDays: schedule.boosterIntervalDays,
-                  protocol: protocol ? {
-                    id: protocol.id,
-                    productName: protocol.productName,
-                  } : null,
-                } : null,
+                schedule: schedule
+                  ? {
+                      id: schedule.id,
+                      name: schedule.name,
+                      description: schedule.description,
+                      requiresBooster: schedule.requiresBooster,
+                      boosterCount: schedule.boosterCount,
+                      boosterIntervalDays: schedule.boosterIntervalDays,
+                      protocol: protocol
+                        ? {
+                            id: protocol.id,
+                            productName: protocol.productName,
+                          }
+                        : null,
+                    }
+                  : null,
               }
             } catch (error) {
               console.error("[useScheduledVaccinations] Failed to fetch schedule:", error)
               return null
             }
-          })
+          }),
         )
         setVaccinations(vaccinationsWithSchedules.filter(Boolean))
         setIsLoading(false)
@@ -314,6 +330,9 @@ export function usePendingVaccinations() {
       setIsLoading(false)
       return
     }
+
+    setVaccinations([])
+    setIsLoading(true)
 
     const subscription = database
       .get<ScheduledVaccination>("scheduled_vaccinations")
@@ -346,28 +365,34 @@ export function usePendingVaccinations() {
                 daysUntilDue: vaccination.daysUntilDue,
                 isOverdue: vaccination.isOverdue,
                 // Add enriched data
-                schedule: schedule ? {
-                  id: schedule.id,
-                  name: schedule.name,
-                  description: schedule.description,
-                  requiresBooster: schedule.requiresBooster,
-                  boosterCount: schedule.boosterCount,
-                  protocol: protocol ? {
-                    id: protocol.id,
-                    productName: protocol.productName,
-                  } : null,
-                } : null,
-                animal: animal ? {
-                  id: animal.id,
-                  displayName: animal.displayName,
-                  visualTag: animal.visualTag,
-                } : null,
+                schedule: schedule
+                  ? {
+                      id: schedule.id,
+                      name: schedule.name,
+                      description: schedule.description,
+                      requiresBooster: schedule.requiresBooster,
+                      boosterCount: schedule.boosterCount,
+                      protocol: protocol
+                        ? {
+                            id: protocol.id,
+                            productName: protocol.productName,
+                          }
+                        : null,
+                    }
+                  : null,
+                animal: animal
+                  ? {
+                      id: animal.id,
+                      displayName: animal.displayName,
+                      visualTag: animal.visualTag,
+                    }
+                  : null,
               }
             } catch (error) {
               console.error("[usePendingVaccinations] Failed to fetch related data:", error)
               return null
             }
-          })
+          }),
         )
         setVaccinations(vaccinationsWithData.filter(Boolean))
         setIsLoading(false)
@@ -390,8 +415,12 @@ export function useScheduledVaccinationActions() {
       if (!currentOrg) throw new Error("No organization selected")
 
       await database.write(async () => {
-        const vaccination = await database.get<ScheduledVaccination>("scheduled_vaccinations").find(vaccinationId)
-        const schedule = await database.get<VaccinationSchedule>("vaccination_schedules").find(vaccination.scheduleId)
+        const vaccination = await database
+          .get<ScheduledVaccination>("scheduled_vaccinations")
+          .find(vaccinationId)
+        const schedule = await database
+          .get<VaccinationSchedule>("vaccination_schedules")
+          .find(vaccination.scheduleId)
 
         await vaccination.update((v) => {
           v.status = "administered"
@@ -422,7 +451,9 @@ export function useScheduledVaccinationActions() {
 
   const markAsSkipped = useCallback(async (vaccinationId: string, reason: string) => {
     await database.write(async () => {
-      const vaccination = await database.get<ScheduledVaccination>("scheduled_vaccinations").find(vaccinationId)
+      const vaccination = await database
+        .get<ScheduledVaccination>("scheduled_vaccinations")
+        .find(vaccinationId)
       await vaccination.update((v) => {
         v.status = "skipped"
         v.skippedReason = reason

@@ -108,7 +108,7 @@ const af = {
       overdue: "Agterstallig",
       dueToday: "Verskuldig Vandag",
       dueSoon: "Binnekort Verskuldig",
-      viewAll: "Bekyk Alle Skedules",
+      viewAll: "Bekyk Hangende Inentings",
     },
     reports: {
       title: "Verslae en Analise",
@@ -597,6 +597,7 @@ const af = {
   herdListScreen: {
     title: "Kudde",
     addButton: "+ Voeg by",
+    scanCow: "Skandeer Koei",
     searchPlaceholder: "Soek volgens merker, naam of ras...",
     count_one: "{{count}} dier",
     count_other: "{{count}} diere",
@@ -1118,19 +1119,31 @@ const af = {
     },
     count_one: "{{count}} protokol",
     count_other: "{{count}} protokolle",
-    inactive: "Onaktief",
-    withdrawal: "Onttrekking: {{days}} dae",
+    countWithFilter_one: "{{count}} {{filter}}-protokol",
+    countWithFilter_other: "{{count}} {{filter}}-protokolle",
+    badges: {
+      inactive: "Onaktief",
+    },
+    details: {
+      withdrawal: "Onttrekking: {{days}} dae",
+    },
     empty: {
       title: "Geen Protokolle Gevind nie",
-      noProtocols: "Skep jou eerste behandelingsprotokol om in Drukgang Modus te gebruik",
-      filtered: "Geen {{filter}} protokolle gevind nie",
-      showAll: "Wys Almal",
-      loadDefaults: "Laai SA Verstekke",
+      noFilter: "Skep jou eerste behandelingsprotokol om in Drukgang Modus te gebruik",
+      withFilter: "Geen {{filter}} protokolle gevind nie",
+      showAllButton: "Wys Almal",
+      loadDefaultsButton: "Laai SA Verstekke",
       createButton: "Skep Protokol",
     },
     alerts: {
-      toggleError: "Kon nie protokol-status wissel nie",
-      defaultsAdded: "{{count}} protokolle suksesvol bygevoeg",
+      toggleError: {
+        title: "Kon nie protokol opdateer nie",
+        message: "Kon nie protokol-status wissel nie",
+      },
+      protocolsAdded: {
+        title: "Protokolle bygevoeg",
+        message: "{{count}} protokolle suksesvol bygevoeg",
+      },
     },
   },
   healthRecordFormScreen: {

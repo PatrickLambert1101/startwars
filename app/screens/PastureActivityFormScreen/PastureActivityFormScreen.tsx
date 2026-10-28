@@ -17,6 +17,7 @@ import { usePastureActivityActions } from "@/hooks/usePastureActivities"
 import { usePasture } from "@/hooks/usePastures"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { uploadPhoto } from "@/services/photoStorage"
+import { enqueuePhotoUploads } from "@/services/photoUploadQueue"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { serializePhotos } from "@/types/Photo"
@@ -110,6 +111,7 @@ export const PastureActivityFormScreen: FC<PastureActivityFormScreenProps> = ({
     if (!currentOrg) return
 
     try {
+      const failedUploads: PhotoWithMetadata[] = []
       const uploadedPhotos = await Promise.all(
         photosToUpload.map(async (photo) => {
           if (!photo.localUri) return null
@@ -123,11 +125,26 @@ export const PastureActivityFormScreen: FC<PastureActivityFormScreenProps> = ({
             })
             return result.photo
           } catch (error) {
-            console.error("[PastureActivity] Failed to upload photo:", error)
+            console.error("[PastureActivity] Failed to upload photo, queuing for later:", error)
+            failedUploads.push(photo)
             return null
           }
         }),
       )
+
+      if (failedUploads.length > 0) {
+        await enqueuePhotoUploads(
+          failedUploads.map((photo) => ({
+            table: "pasture_activities",
+            recordId: activityId,
+            category: "pastures",
+            organizationId: currentOrg.id,
+            localUri: photo.localUri!,
+            userId: user?.id,
+            caption: photo.caption,
+          })),
+        )
+      }
 
       const successfulPhotos = uploadedPhotos.filter((photo) => photo !== null)
       if (successfulPhotos.length === 0) return

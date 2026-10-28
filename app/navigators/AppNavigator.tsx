@@ -14,6 +14,8 @@ import { AuthScreen } from "@/screens/AuthScreen"
 import { BreedingRecordFormScreen } from "@/screens/BreedingRecordFormScreen"
 import { BulkAnimalAddScreen } from "@/screens/BulkAnimalAddScreen"
 import { CustomerCenterScreen } from "@/screens/CustomerCenterScreen"
+import { DataImportScreen } from "@/screens/DataImportScreen/DataImportScreen"
+import { DataImportsScreen } from "@/screens/DataImportsScreen/DataImportsScreen"
 import { ErrorBoundary } from "@/screens/ErrorScreen/ErrorBoundary"
 import { HealthRecordFormScreen } from "@/screens/HealthRecordFormScreen"
 import { IconGalleryScreen } from "@/screens/IconGalleryScreen"
@@ -26,6 +28,7 @@ import { PastureActivityListScreen } from "@/screens/PastureActivityListScreen"
 import { PastureBoundaryScreen } from "@/screens/PastureBoundaryScreen"
 import { PastureDetailScreen } from "@/screens/PastureDetailScreen"
 import { PastureFormScreen } from "@/screens/PastureFormScreen"
+import { PastureKmlImportScreen } from "@/screens/PastureKmlImportScreen"
 import { PasturesMapScreen } from "@/screens/PasturesMapScreen"
 import { PastureWizardScreen } from "@/screens/PastureWizardScreen"
 import { PaywallScreen } from "@/screens/PaywallScreen"
@@ -68,6 +71,7 @@ const AppStack = () => {
     <Stack.Navigator
       screenOptions={{
         headerShown: false,
+        freezeOnBlur: true,
         navigationBarColor: colors.background,
         contentStyle: {
           backgroundColor: colors.background,
@@ -80,6 +84,8 @@ const AppStack = () => {
           <Stack.Screen name="OrgSetup" component={OrgSetupScreen} />
           <Stack.Screen name="Team" component={TeamScreen} />
           <Stack.Screen name="Settings" component={SettingsScreen} />
+          <Stack.Screen name="DataImports" component={DataImportsScreen} />
+          <Stack.Screen name="DataImport" component={DataImportScreen} />
           <Stack.Screen name="AnimalDetail" component={AnimalDetailScreen} />
           <Stack.Screen name="AnimalForm" component={AnimalFormScreen} />
           <Stack.Screen name="BulkAnimalAdd" component={BulkAnimalAddScreen} />
@@ -100,6 +106,7 @@ const AppStack = () => {
           <Stack.Screen name="PastureActivityForm" component={PastureActivityFormScreen} />
           <Stack.Screen name="PastureActivityList" component={PastureActivityListScreen} />
           <Stack.Screen name="PastureBoundary" component={PastureBoundaryScreen} />
+          <Stack.Screen name="PastureKmlImport" component={PastureKmlImportScreen} />
           <Stack.Screen name="PasturesMap" component={PasturesMapScreen} />
           <Stack.Screen name="PastureWizard" component={PastureWizardScreen} />
           <Stack.Screen name="MovementForm" component={MovementFormScreen} />

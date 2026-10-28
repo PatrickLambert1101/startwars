@@ -10,6 +10,7 @@ import { useWeightRecordActions } from "@/hooks/useRecords"
 import { useDatabase } from "@/context/DatabaseContext"
 import { useAuth } from "@/context/AuthContext"
 import { uploadPhoto } from "@/services/photoStorage"
+import { enqueuePhotoUploads } from "@/services/photoUploadQueue"
 import type { PhotoWithMetadata } from "@/types/Photo"
 import { serializePhotos } from "@/types/Photo"
 import { useTranslation } from "react-i18next"
@@ -84,6 +85,7 @@ export const WeightRecordFormScreen: FC<AppStackScreenProps<"WeightRecordForm">>
 
   const uploadPhotosInBackground = async (recordId: string, photosToUpload: PhotoWithMetadata[]) => {
     try {
+      const failedUploads: PhotoWithMetadata[] = []
       const uploadedPhotos = await Promise.all(
         photosToUpload.map(async (photo) => {
           if (!photo.localUri) return null
@@ -97,11 +99,26 @@ export const WeightRecordFormScreen: FC<AppStackScreenProps<"WeightRecordForm">>
             })
             return result.photo
           } catch (error) {
-            console.error("Failed to upload photo:", error)
+            console.error("Failed to upload photo, queuing for later:", error)
+            failedUploads.push(photo)
             return null
           }
         }),
       )
+
+      if (failedUploads.length > 0) {
+        await enqueuePhotoUploads(
+          failedUploads.map((photo) => ({
+            table: "weight_records",
+            recordId,
+            category: "weight",
+            organizationId: currentOrg!.id,
+            localUri: photo.localUri!,
+            userId: user?.id,
+            caption: photo.caption,
+          })),
+        )
+      }
 
       const successfulPhotos = uploadedPhotos.filter((p) => p !== null)
 

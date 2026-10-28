@@ -1,6 +1,6 @@
 import { useState } from "react"
 import * as ImagePicker from "expo-image-picker"
-import { Alert } from "react-native"
+import { Alert, Platform } from "react-native"
 import type { PhotoWithMetadata } from "@/types/Photo"
 
 export interface UsePhotoPickerOptions {
@@ -47,7 +47,10 @@ export function usePhotoPicker(options: UsePhotoPickerOptions = {}): UsePhotoPic
 
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: "images",
-        allowsEditing: true,
+        // The native Android crop/review activity on some rugged scanners
+        // renders the photo without visible confirm/cancel controls. Skip that
+        // optional editor there so capture returns directly to HerdTrackr.
+        allowsEditing: Platform.OS === "ios",
         aspect: [4, 3],
         quality: 0.8,
       })

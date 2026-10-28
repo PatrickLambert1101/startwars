@@ -194,6 +194,7 @@ export function renderAnimalTraceabilityHtml(data: AnimalTraceabilityData, t: TF
   addRow(t("reportsScreen.export.pdf.name"), animal.name)
   addRow(t("reportsScreen.export.pdf.herdTag"), animal.herdTag, true)
   addRow(t("reportsScreen.export.pdf.registrationNumber"), animal.registrationNumber, true)
+  addRow("Source farm / breeder", animal.sourceName)
   addRow(t("reportsScreen.export.pdf.species"), animal.species)
   addRow(t("reportsScreen.export.pdf.breed"), animal.breed)
   addRow(t("reportsScreen.export.pdf.sex"), animal.sexLabel)
@@ -212,12 +213,23 @@ export function renderAnimalTraceabilityHtml(data: AnimalTraceabilityData, t: TF
   let html = `<div class="animal-block">`
   html += `<h2>${tx("identification")}</h2><table class="kv">${identityRows.join("")}</table>`
 
-  if (sire || dam) {
+  const externalSire = [animal.externalSireReference, animal.externalSireBreed]
+    .filter(Boolean)
+    .join(" · ")
+  const externalDam = [animal.externalDamReference, animal.externalDamBreed]
+    .filter(Boolean)
+    .join(" · ")
+
+  if (sire || dam || externalSire || externalDam) {
     html += `<h2>${tx("parentage")}</h2><table class="kv">`
     if (sire)
       html += `<tr><td>${tx("sire")}</td><td>${escapeHtml(sire.displayName)} (${escapeHtml(sire.breed)})</td></tr>`
+    else if (externalSire)
+      html += `<tr><td>${tx("sire")}</td><td>${escapeHtml(externalSire)} <span class="muted">(external)</span></td></tr>`
     if (dam)
       html += `<tr><td>${tx("dam")}</td><td>${escapeHtml(dam.displayName)} (${escapeHtml(dam.breed)})</td></tr>`
+    else if (externalDam)
+      html += `<tr><td>${tx("dam")}</td><td>${escapeHtml(externalDam)} <span class="muted">(external)</span></td></tr>`
     html += `</table>`
   }
 

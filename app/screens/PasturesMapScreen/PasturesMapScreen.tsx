@@ -80,7 +80,7 @@ export function PasturesMapScreen({ navigation }: PasturesMapScreenProps) {
     )
     if (coordinates.length === 0) return
     mapRef.current?.fitToCoordinates(coordinates, {
-      edgePadding: { top: 78, right: 48, bottom: selected ? 245 : 96, left: 48 },
+      edgePadding: { top: 92, right: 104, bottom: selected ? 260 : 112, left: 104 },
       animated: true,
     })
   }, [mappedPastures, selected])
@@ -174,13 +174,25 @@ export function PasturesMapScreen({ navigation }: PasturesMapScreenProps) {
                   longitude: boundary.centroidLongitude,
                 }}
                 anchor={{ x: 0.5, y: 0.5 }}
+                accessibilityLabel={`${pasture.name}, ${pasture.currentAnimalCount} ${
+                  pasture.currentAnimalCount === 1 ? "animal" : "animals"
+                }`}
+                zIndex={selectedPastureId === pasture.id ? 10 : 1}
                 onPress={() => setSelectedPastureId(pasture.id)}
               >
-                <View style={[themed($mapLabel), { borderColor: color }]}>
-                  <Text style={themed($mapLabelName)} numberOfLines={1}>
-                    {pasture.name}
-                  </Text>
-                  <Text style={themed($mapLabelStats)}>{pasture.currentAnimalCount} animals</Text>
+                <View collapsable={false} style={$mapMarkerFrame}>
+                  <View style={themed($mapLabel)}>
+                    <View style={[themed($mapLabelStatus), { backgroundColor: color }]} />
+                    <View style={$mapLabelCopy}>
+                      <Text style={themed($mapLabelName)} numberOfLines={2} ellipsizeMode="tail">
+                        {pasture.name}
+                      </Text>
+                      <Text style={themed($mapLabelStats)} numberOfLines={1}>
+                        {pasture.currentAnimalCount}{" "}
+                        {pasture.currentAnimalCount === 1 ? "animal" : "animals"}
+                      </Text>
+                    </View>
+                  </View>
                 </View>
               </Marker>
             )
@@ -343,6 +355,13 @@ export function PasturesMapScreen({ navigation }: PasturesMapScreenProps) {
 const $flexOne: ViewStyle = { flex: 1 }
 const $mapContainer: ViewStyle = { flex: 1 }
 const $map: ViewStyle = { flex: 1 }
+const $mapLabelCopy: ViewStyle = { flex: 1, minWidth: 0 }
+const $mapMarkerFrame: ViewStyle = {
+  width: 94,
+  height: 94,
+  alignItems: "center",
+  justifyContent: "center",
+}
 
 const $container: ThemedStyle<ViewStyle> = ({ colors }) => ({
   flex: 1,
@@ -434,26 +453,36 @@ const $fitButton: ThemedStyle<ViewStyle> = ({ colors }) => ({
 })
 
 const $mapLabel: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  maxWidth: 118,
-  minWidth: 72,
-  paddingVertical: 4,
-  paddingHorizontal: spacing.xs,
-  borderRadius: 7,
-  borderWidth: 2,
-  backgroundColor: `${colors.palette.neutral100}F2`,
+  width: 82,
+  height: 56,
+  flexDirection: "row",
   alignItems: "center",
+  gap: spacing.xxs,
+  paddingVertical: 5,
+  paddingHorizontal: 6,
+  borderRadius: 10,
+  backgroundColor: `${colors.palette.neutral100}F2`,
+  transform: [{ translateX: -4 }, { translateY: -4 }],
+})
+
+const $mapLabelStatus: ThemedStyle<ViewStyle> = () => ({
+  width: 7,
+  height: 7,
+  borderRadius: 3.5,
 })
 
 const $mapLabelName: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.text,
-  fontSize: 11,
+  fontSize: 9,
+  lineHeight: 11,
   fontWeight: "800",
 })
 
 const $mapLabelStats: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.textDim,
-  fontSize: 9,
-  marginTop: 1,
+  fontSize: 8,
+  lineHeight: 10,
+  marginTop: 2,
 })
 
 const $unmappedChip: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({

@@ -95,7 +95,7 @@ const RANCH_FEATURES = [
   },
   {
     Icon: PastureIcon,
-    title: "Pasture Rotation",
+    title: "Pastures",
     desc: "Map paddocks, assign herds & track grazing to optimise forage.",
     free: false,
   },

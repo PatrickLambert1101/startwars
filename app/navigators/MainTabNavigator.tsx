@@ -1,5 +1,5 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs"
-import { TextStyle, ViewStyle, View, Image, ImageStyle, Platform } from "react-native"
+import { TextStyle, ViewStyle, View, Image, ImageStyle } from "react-native"
 
 import { DashboardScreen } from "@/screens/DashboardScreen"
 import { HerdListScreen } from "@/screens/HerdListScreen"
@@ -52,8 +52,12 @@ export const MainTabNavigator = () => {
 
   return (
     <Tab.Navigator
+      detachInactiveScreens
       screenOptions={{
         headerShown: false,
+        lazy: true,
+        freezeOnBlur: true,
+        animation: "none",
         tabBarHideOnKeyboard: true,
         tabBarStyle: [$tabBar, {
           borderTopColor: colors.separator,

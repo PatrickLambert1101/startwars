@@ -1,6 +1,12 @@
 import { Model } from "@nozbe/watermelondb"
 import { field, readonly, date, relation } from "@nozbe/watermelondb/decorators"
 
+import {
+  getVaccinationDaysUntilDue,
+  getVaccinationUrgency,
+  type VaccinationUrgency,
+} from "@/utils/vaccinationDates"
+
 export type VaccinationStatus = "pending" | "administered" | "overdue" | "skipped"
 
 export class ScheduledVaccination extends Model {
@@ -41,31 +47,19 @@ export class ScheduledVaccination extends Model {
 
   get isOverdue(): boolean {
     if (this.status !== "pending") return false
-    const now = new Date()
-    return this.dueDate < now
+    return this.daysUntilDue < 0
   }
 
   get daysOverdue(): number {
-    if (!this.isOverdue) return 0
-    const now = new Date()
-    const diff = now.getTime() - this.dueDate.getTime()
-    return Math.floor(diff / (1000 * 60 * 60 * 24))
+    return Math.max(0, -this.daysUntilDue)
   }
 
   get daysUntilDue(): number {
-    const now = new Date()
-    const diff = this.dueDate.getTime() - now.getTime()
-    return Math.floor(diff / (1000 * 60 * 60 * 24))
+    return getVaccinationDaysUntilDue(this.dueDate)
   }
 
-  get urgencyLevel(): "ok" | "soon" | "overdue" | "critical" {
-    if (this.status !== "pending") return "ok"
-
-    const days = this.daysUntilDue
-    if (days < 0 && Math.abs(days) > 7) return "critical"
-    if (days < 0) return "overdue"
-    if (days <= 7) return "soon"
-    return "ok"
+  get urgencyLevel(): VaccinationUrgency {
+    return getVaccinationUrgency(this.status, this.dueDate)
   }
 
   get displayStatus(): string {

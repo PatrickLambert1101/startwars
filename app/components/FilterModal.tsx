@@ -4,9 +4,10 @@ import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
 
 import { Text, Button, TextField } from "@/components"
+import { Animal, BREEDS_BY_SPECIES, type AnimalSpecies } from "@/db/models/Animal"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-import { Animal, BREEDS_BY_SPECIES } from "@/db/models/Animal"
+import { DEFAULT_HERD_STATUSES, isDefaultStatusFilter } from "@/utils/herdListFilters"
 
 export type SortField = "visualTag" | "dateOfBirth" | "breed" | "sex" | "status"
 export type SortDirection = "asc" | "desc"
@@ -26,7 +27,10 @@ export interface FilterState {
 export const DEFAULT_FILTER_STATE: FilterState = {
   breeds: [],
   sexes: [],
-  statuses: [],
+  // The herd list opens on animals that are still relevant to current
+  // operations. Sold and deceased animals remain available when explicitly
+  // selected in the filter.
+  statuses: [...DEFAULT_HERD_STATUSES],
   ageFrom: null,
   ageTo: null,
   tagSearch: "",
@@ -58,14 +62,17 @@ export const FilterModal: FC<FilterModalProps> = ({
   const [filters, setFilters] = useState<FilterState>(initialFilters)
 
   const availableBreeds = useMemo(() => {
-    return BREEDS_BY_SPECIES[currentSpecies] || BREEDS_BY_SPECIES.cattle
-  }, [currentSpecies])
+    const standardBreeds =
+      BREEDS_BY_SPECIES[currentSpecies as AnimalSpecies] || BREEDS_BY_SPECIES.cattle
+    const recordedBreeds = animals.map((animal) => animal.breed.trim()).filter(Boolean)
+    return [...new Set([...standardBreeds, ...recordedBreeds])]
+  }, [animals, currentSpecies])
 
   const hasActiveFilters = useMemo(() => {
     return (
       filters.breeds.length > 0 ||
       filters.sexes.length > 0 ||
-      filters.statuses.length > 0 ||
+      !isDefaultStatusFilter(filters.statuses) ||
       filters.ageFrom !== null ||
       filters.ageTo !== null ||
       filters.tagSearch !== "" ||
@@ -349,7 +356,7 @@ function countActiveFilters(filters: FilterState): number {
   let count = 0
   if (filters.breeds.length > 0) count++
   if (filters.sexes.length > 0) count++
-  if (filters.statuses.length > 0) count++
+  if (!isDefaultStatusFilter(filters.statuses)) count++
   if (filters.ageFrom !== null || filters.ageTo !== null) count++
   if (filters.tagSearch !== "") count++
   if (filters.parentAnimalId !== null) count++
