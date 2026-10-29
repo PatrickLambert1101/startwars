@@ -6,14 +6,15 @@ import { useTranslation } from "react-i18next"
 
 import { Screen, Text, TextField, Button } from "@/components"
 import { DateField } from "@/components/DateField"
+import { ScheduleType } from "@/db/models"
+import { usePastures } from "@/hooks/usePastures"
+import { useProtocols } from "@/hooks/useProtocols"
+import { useVaccinationSchedule, useVaccinationScheduleActions, VaccinationScheduleFormData } from "@/hooks/useVaccinationSchedules"
+import type { AppStackScreenProps } from "@/navigators/navigationTypes"
+import { recalculateSchedule } from "@/services/vaccinationScheduler"
+import { bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-import type { AppStackScreenProps } from "@/navigators/navigationTypes"
-import { useVaccinationSchedule, useVaccinationScheduleActions, VaccinationScheduleFormData } from "@/hooks/useVaccinationSchedules"
-import { useProtocols } from "@/hooks/useProtocols"
-import { usePastures } from "@/hooks/usePastures"
-import { ScheduleType } from "@/db/models"
-import { recalculateSchedule } from "@/services/vaccinationScheduler"
 
 const SCHEDULE_TYPE_META: { value: ScheduleType; key: string; icon: string }[] = [
   { value: "age_based", key: "ageBased", icon: "calendar-clock" },
@@ -686,7 +687,7 @@ const $typeCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flexDirection: "row",
   flexWrap: "wrap",
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 12,
+  borderRadius: bentoRadii.card,
   padding: spacing.md,
   alignItems: "center",
   gap: spacing.sm,

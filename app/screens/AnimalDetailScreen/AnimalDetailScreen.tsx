@@ -1,24 +1,25 @@
-import { getVaccinationHistory } from "@/utils/vaccinationHistory"
 import { type ComponentProps, type FC, type ReactNode, useCallback, useEffect, useState } from "react"
 import { Alert, Pressable, ScrollView, View, ViewStyle, TextStyle } from "react-native"
+import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { format, formatDistanceStrict } from "date-fns"
 import { useTranslation } from "react-i18next"
 
 import { Screen, Text, Button, TagInput, AnimalPicker, ScanTagButton } from "@/components"
-import { useRfidReader } from "@/hooks/useRfidReader"
-import { WeightChart } from "@/components/WeightChart"
 import { PhotoGallery } from "@/components/PhotoGallery"
-import { useAppTheme } from "@/theme/context"
-import type { ThemedStyle } from "@/theme/types"
-import type { AppStackScreenProps } from "@/navigators/navigationTypes"
-import { useAnimal, useAnimalActions } from "@/hooks/useAnimals"
-import { useHealthRecords, useWeightRecords, useBreedingRecords } from "@/hooks/useRecords"
-import { useScheduledVaccinations } from "@/hooks/useVaccinationSchedules"
-import { useOffspring } from "@/hooks/useOffspring"
-import { MaterialCommunityIcons } from "@expo/vector-icons"
+import { WeightChart } from "@/components/WeightChart"
 import { database } from "@/db"
 import { Animal } from "@/db/models/Animal"
+import { useAnimal, useAnimalActions } from "@/hooks/useAnimals"
+import { useOffspring } from "@/hooks/useOffspring"
+import { useHealthRecords, useWeightRecords, useBreedingRecords } from "@/hooks/useRecords"
+import { useRfidReader } from "@/hooks/useRfidReader"
+import { useScheduledVaccinations } from "@/hooks/useVaccinationSchedules"
+import type { AppStackScreenProps } from "@/navigators/navigationTypes"
+import { bentoRadii } from "@/theme/bento"
+import { useAppTheme } from "@/theme/context"
+import type { ThemedStyle } from "@/theme/types"
 import { formatTraits } from "@/types/GeneticTraits"
+import { getVaccinationHistory } from "@/utils/vaccinationHistory"
 
 type Tab = "overview" | "health" | "vaccinations" | "weight" | "breeding"
 
@@ -1405,7 +1406,7 @@ const $detailLabel: ThemedStyle<TextStyle> = ({ colors }) => ({
 
 const $overviewCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   padding: spacing.md,
-  borderRadius: 16,
+  borderRadius: bentoRadii.card,
   backgroundColor: colors.palette.neutral100,
   borderWidth: 1,
   borderColor: colors.border,
@@ -1488,7 +1489,7 @@ const $rescanScanButton: ThemedStyle<ViewStyle> = () => ({
 
 const $recordCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 14,
+  borderRadius: bentoRadii.card,
   padding: spacing.md,
   borderWidth: 1,
   borderColor: colors.border,
@@ -1541,7 +1542,7 @@ const $emptyText: ThemedStyle<TextStyle> = ({ spacing }) => ({
 
 const $vaccinationCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 14,
+  borderRadius: bentoRadii.card,
   padding: spacing.md,
   borderLeftWidth: 3,
   borderTopWidth: 1,
@@ -1706,7 +1707,7 @@ const $traitChip: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
 
 const $offspringStatsCard: ThemedStyle<ViewStyle> = ({ spacing, colors }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 12,
+  borderRadius: bentoRadii.card,
   padding: spacing.md,
   marginBottom: spacing.md,
   borderWidth: 1,

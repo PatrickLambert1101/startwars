@@ -29,6 +29,7 @@ import {
 import { runReport } from "@/services/reports/reportEngine"
 import { exportReportAsXlsx } from "@/services/reports/xlsxExport"
 import { generateTraceabilityReport } from "@/services/traceabilityReport"
+import { bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
@@ -276,7 +277,7 @@ export const ExportTab: FC = () => {
 
 const $card: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 14,
+  borderRadius: bentoRadii.card,
   padding: spacing.md,
   marginBottom: spacing.sm,
 })

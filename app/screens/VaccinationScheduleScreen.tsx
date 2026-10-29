@@ -4,11 +4,12 @@ import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
 
 import { Screen, Text, Button } from "@/components"
+import { VaccinationSchedule, ScheduleType } from "@/db/models"
+import { useVaccinationSchedules, useVaccinationScheduleActions } from "@/hooks/useVaccinationSchedules"
+import type { AppStackScreenProps } from "@/navigators/navigationTypes"
+import { bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-import type { AppStackScreenProps } from "@/navigators/navigationTypes"
-import { useVaccinationSchedules, useVaccinationScheduleActions } from "@/hooks/useVaccinationSchedules"
-import { VaccinationSchedule, ScheduleType } from "@/db/models"
 
 type FilterOption = "all" | ScheduleType
 
@@ -381,7 +382,7 @@ const $listContent: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 
 const $scheduleCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 12,
+  borderRadius: bentoRadii.card,
   padding: spacing.md,
   marginBottom: spacing.sm,
 })

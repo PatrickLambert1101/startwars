@@ -19,6 +19,7 @@ import {
   type ReportGroupByField,
   type ReportSectionKey,
 } from "@/services/reports/reportConfig"
+import { bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
@@ -409,7 +410,7 @@ const $loadingScreen: ThemedStyle<ViewStyle> = () => ({
 
 const $card: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 14,
+  borderRadius: bentoRadii.card,
   padding: spacing.md,
   marginBottom: spacing.sm,
 })

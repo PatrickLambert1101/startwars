@@ -8,6 +8,7 @@ import {
   ViewStyle,
 } from "react-native"
 
+import { bentoColors, bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle, ThemedStyleArray } from "@/theme/types"
@@ -130,6 +131,7 @@ export function Button(props: ButtonProps) {
       themed($viewPresets[preset]),
       $viewStyleOverride,
       !!pressed && themed([$pressedViewPresets[preset], $pressedViewStyleOverride]),
+      !!disabled && { opacity: 0.45 },
       !!disabled && $disabledViewStyleOverride,
     ]
   }
@@ -179,8 +181,8 @@ export function Button(props: ButtonProps) {
 }
 
 const $baseViewStyle: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  minHeight: 56,
-  borderRadius: 4,
+  minHeight: 48,
+  borderRadius: bentoRadii.button,
   justifyContent: "center",
   alignItems: "center",
   paddingVertical: spacing.sm,
@@ -211,35 +213,34 @@ const $viewPresets: Record<Presets, ThemedStyleArray<ViewStyle>> = {
   default: [
     $styles.row,
     $baseViewStyle,
-    ({ colors }) => ({
-      borderWidth: 1,
-      borderColor: colors.palette.neutral400,
-      backgroundColor: colors.palette.neutral100,
+    ({ isDark }) => ({
+      borderWidth: 0,
+      backgroundColor: bentoColors(isDark).surface,
     }),
   ],
   filled: [
     $styles.row,
     $baseViewStyle,
-    ({ colors }) => ({ backgroundColor: colors.palette.primary500 }),
+    ({ isDark }) => ({ backgroundColor: bentoColors(isDark).forest }),
   ],
   reversed: [
     $styles.row,
     $baseViewStyle,
-    ({ colors }) => ({ backgroundColor: colors.palette.neutral800 }),
+    ({ isDark }) => ({ backgroundColor: bentoColors(isDark).forest }),
   ],
 }
 
 const $textPresets: Record<Presets, ThemedStyleArray<TextStyle>> = {
-  default: [$baseTextStyle],
+  default: [$baseTextStyle, ({ isDark }) => ({ color: bentoColors(isDark).ink })],
   // White label on the brand green fill.
-  filled: [$baseTextStyle, ({ colors }) => ({ color: colors.palette.neutral100 })],
-  reversed: [$baseTextStyle, ({ colors }) => ({ color: colors.palette.neutral100 })],
+  filled: [$baseTextStyle, ({ isDark }) => ({ color: bentoColors(isDark).onForest })],
+  reversed: [$baseTextStyle, ({ isDark }) => ({ color: bentoColors(isDark).onForest })],
 }
 
 const $pressedViewPresets: Record<Presets, ThemedStyle<ViewStyle>> = {
-  default: ({ colors }) => ({ backgroundColor: colors.palette.neutral200 }),
-  filled: ({ colors }) => ({ backgroundColor: colors.palette.primary600 }),
-  reversed: ({ colors }) => ({ backgroundColor: colors.palette.neutral700 }),
+  default: ({ isDark }) => ({ backgroundColor: bentoColors(isDark).sage }),
+  filled: () => ({ opacity: 0.8 }),
+  reversed: () => ({ opacity: 0.8 }),
 }
 
 const $pressedTextPresets: Record<Presets, ThemedStyle<TextStyle>> = {

@@ -1,16 +1,18 @@
 import React, { useState } from "react"
 import { View, ViewStyle, TextStyle, ScrollView, Pressable, FlatList, Alert } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
+import { useTranslation } from "react-i18next"
+
 import { Screen, Text, Button, Icon, TextField, FriendlyEmpty } from "@/components"
+import { useAuth } from "@/context/AuthContext"
+import { useDatabase } from "@/context/DatabaseContext"
+import { useSync } from "@/hooks/useSync"
+import { useTeam, useTeamActions, TeamMember, PendingInvite } from "@/hooks/useTeam"
+import { AppStackScreenProps } from "@/navigators"
+import { bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-import { AppStackScreenProps } from "@/navigators"
-import { useTeam, useTeamActions, TeamMember, PendingInvite } from "@/hooks/useTeam"
 import { formatDate } from "@/utils/formatDate"
-import { useAuth } from "@/context/AuthContext"
-import { useTranslation } from "react-i18next"
-import { useSync } from "@/hooks/useSync"
-import { useDatabase } from "@/context/DatabaseContext"
 
 interface TeamScreenProps extends AppStackScreenProps<"Team"> {}
 
@@ -612,7 +614,7 @@ const $formActionButton: ThemedStyle<ViewStyle> = () => ({
 
 const $section: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 12,
+  borderRadius: bentoRadii.card,
   padding: spacing.md,
   marginBottom: spacing.md,
   borderWidth: 1,

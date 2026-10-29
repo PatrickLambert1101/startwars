@@ -6,6 +6,7 @@ import { useNavigation } from "@react-navigation/native"
 
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { registerScanCallback } from "@/screens/TagScannerScreen/TagScannerScreen"
+import { bentoColors, bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
@@ -63,14 +64,14 @@ export const ScanTagButton: FC<ScanTagButtonProps> = ({
 
 // ─── Styles ───
 
-const $button: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  backgroundColor: colors.palette.primary500,
-  borderRadius: 12,
+const $button: ThemedStyle<ViewStyle> = ({ isDark, spacing }) => ({
+  backgroundColor: bentoColors(isDark).forest,
+  borderRadius: bentoRadii.button,
   paddingHorizontal: spacing.md,
   paddingVertical: spacing.md,
   alignItems: "center",
   justifyContent: "center",
-  minHeight: 44,
+  minHeight: 48,
 })
 
 const $buttonContent: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -85,9 +86,9 @@ const $buttonText: ThemedStyle<TextStyle> = () => ({
   textAlign: "center",
 })
 
-const $compactButton: ThemedStyle<ViewStyle> = ({ colors }) => ({
-  backgroundColor: colors.palette.primary500,
-  borderRadius: 8,
+const $compactButton: ThemedStyle<ViewStyle> = ({ isDark }) => ({
+  backgroundColor: bentoColors(isDark).forest,
+  borderRadius: bentoRadii.input,
   width: 40,
   height: 40,
   alignItems: "center",

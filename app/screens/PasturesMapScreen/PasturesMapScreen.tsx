@@ -10,6 +10,7 @@ import { useAllPastureActivities } from "@/hooks/usePastureActivities"
 import { usePastureBoundaries } from "@/hooks/usePastureBoundaries"
 import { usePastures } from "@/hooks/usePastures"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
+import { bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 import type { Colors, ThemedStyle } from "@/theme/types"
 import { formatDate } from "@/utils/formatDate"
@@ -603,7 +604,7 @@ const $emptyCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   top: "25%",
   alignItems: "center",
   padding: spacing.xl,
-  borderRadius: 16,
+  borderRadius: bentoRadii.card,
   backgroundColor: `${colors.palette.neutral100}F5`,
 })
 

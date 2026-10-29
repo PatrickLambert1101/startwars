@@ -1,12 +1,14 @@
 import React from "react"
 import { View, ViewStyle, TextStyle, ScrollView, Pressable } from "react-native"
+
 import { Screen, Text, Button, Icon } from "@/components"
-import { useAppTheme } from "@/theme/context"
-import type { ThemedStyle } from "@/theme/types"
-import { spacing } from "@/theme/spacing"
-import { colors } from "@/theme/colors"
-import { AppStackScreenProps } from "@/navigators"
 import { useProtocol, useProtocolStats, useProtocolActions } from "@/hooks/useProtocols"
+import { AppStackScreenProps } from "@/navigators"
+import { bentoRadii } from "@/theme/bento"
+import { colors } from "@/theme/colors"
+import { useAppTheme } from "@/theme/context"
+import { spacing } from "@/theme/spacing"
+import type { ThemedStyle } from "@/theme/types"
 
 interface ProtocolDetailScreenProps extends AppStackScreenProps<"ProtocolDetail"> {}
 
@@ -237,7 +239,7 @@ const $statsRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $statCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flex: 1,
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 12,
+  borderRadius: bentoRadii.card,
   padding: spacing.md,
   alignItems: "center",
   borderWidth: 1,
@@ -259,7 +261,7 @@ const $statLabel: ThemedStyle<TextStyle> = ({ colors }) => ({
 
 const $section: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 12,
+  borderRadius: bentoRadii.card,
   padding: spacing.md,
   marginBottom: spacing.md,
   borderWidth: 1,

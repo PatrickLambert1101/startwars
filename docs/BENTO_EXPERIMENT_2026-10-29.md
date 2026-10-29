@@ -16,3 +16,13 @@ Verification:
 - The reusable native helper supports both navigation layouts and both home titles. Its combined XCTest suite was not rerun for this experiment.
 
 This branch has not been published to the app stores. Android hardware and physical camera/RFID behavior remain unverified.
+
+
+## Workflow and shared-screen follow-up
+
+- Chute now has a forest-green Weigh hero, paired treatment/condition tiles and a combined recording card. Active sessions use the same header, card and control styling.
+- Pastures groups map, create and import actions into a bento header that scrolls with the pasture list. Cards show readable hectare values, and overdue rotation text no longer displays a negative countdown.
+- Shared button, scan-button, text-field and measurement-input styles use the same forest palette and rounded shapes. Shared radius tokens also align operational cards across 17 other detail, records, vaccination, import, reports, settings and team screens.
+- Six additional action checks cover all Chute modes and pasture actions in light/dark layouts. All 175 tests pass across 34 suites; both mobile JavaScript exports pass.
+- No new TypeScript or lint errors were found against the existing code. The repository still has 95 pre-existing TypeScript diagnostics and legacy lint findings.
+- Native iOS 18.2 inspection covered the new Chute picker, active weighing session, lookup of an existing animal and the Pastures header. No farm record was saved. The simulator is left on the Chute picker.

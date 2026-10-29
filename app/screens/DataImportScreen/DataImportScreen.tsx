@@ -44,6 +44,7 @@ import type {
   ParsedSpreadsheet,
   TreatmentImportRecord,
 } from "@/services/dataImport"
+import { bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
@@ -1004,7 +1005,7 @@ const $privacyText: ThemedStyle<TextStyle> = () => ({
 })
 
 const $guideCard: ThemedStyle<ViewStyle> = ({ colors }) => ({
-  borderRadius: 14,
+  borderRadius: bentoRadii.card,
   overflow: "hidden",
   backgroundColor: colors.palette.neutral100,
   borderWidth: 1,
@@ -1131,7 +1132,7 @@ const $pickerCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   alignItems: "center",
   gap: spacing.md,
   padding: spacing.xl,
-  borderRadius: 16,
+  borderRadius: bentoRadii.card,
   borderWidth: 1,
   borderStyle: "dashed",
   borderColor: colors.border,
@@ -1163,7 +1164,7 @@ const $fileCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   alignItems: "center",
   gap: spacing.sm,
   padding: spacing.md,
-  borderRadius: 12,
+  borderRadius: bentoRadii.card,
   backgroundColor: colors.palette.neutral100,
   borderWidth: 1,
   borderColor: colors.separator,
@@ -1208,7 +1209,7 @@ const $selectedChipText: ThemedStyle<TextStyle> = () => ({
 })
 
 const $mappingCard: ThemedStyle<ViewStyle> = ({ colors }) => ({
-  borderRadius: 12,
+  borderRadius: bentoRadii.card,
   overflow: "hidden",
   backgroundColor: colors.palette.neutral100,
   borderWidth: 1,
@@ -1246,7 +1247,7 @@ const $summaryCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flex: 1,
   alignItems: "center",
   padding: spacing.md,
-  borderRadius: 12,
+  borderRadius: bentoRadii.card,
   backgroundColor: colors.palette.neutral100,
   borderWidth: 1,
   borderColor: colors.separator,
@@ -1291,7 +1292,7 @@ const $completeCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   alignItems: "center",
   gap: spacing.md,
   padding: spacing.xl,
-  borderRadius: 16,
+  borderRadius: bentoRadii.card,
   backgroundColor: colors.palette.neutral100,
   borderWidth: 1,
   borderColor: colors.separator,
@@ -1320,7 +1321,7 @@ const $modalBackdrop: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
 const $modalCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   maxHeight: "82%",
   padding: spacing.md,
-  borderRadius: 16,
+  borderRadius: bentoRadii.card,
   backgroundColor: colors.palette.neutral100,
 })
 

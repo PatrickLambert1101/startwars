@@ -5,8 +5,11 @@ export const bentoColors = (dark: boolean) => ({
   muted: dark ? "#B1BFA9" : "#64715F",
   forest: "#254B37",
   onForest: "#FFFFFF",
+  forestGlass: "rgba(255,255,255,0.12)",
   lime: "#D8E9A6",
   sage: dark ? "#30432B" : "#E6EED8",
   peach: dark ? "#49382A" : "#F4E7D5",
   line: dark ? "#344439" : "#E1E7DA",
 })
+
+export const bentoRadii = { hero: 26, card: 24, button: 18, input: 16 } as const

@@ -1,14 +1,16 @@
 import React, { useState, useMemo, useEffect } from "react"
 import { View, ViewStyle, TextStyle, FlatList, Pressable, Alert, ScrollView } from "react-native"
+import { useTranslation } from "react-i18next"
+
 import { Screen, Text, Button, Icon } from "@/components"
+import { useDatabase } from "@/context/DatabaseContext"
+import { TreatmentProtocol, ProtocolType } from "@/db/models"
+import { useProtocols, useProtocolActions } from "@/hooks/useProtocols"
+import { AppStackScreenProps } from "@/navigators"
+import { bentoRadii } from "@/theme/bento"
+import { colors } from "@/theme/colors"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-import { colors } from "@/theme/colors"
-import { AppStackScreenProps } from "@/navigators"
-import { useProtocols, useProtocolActions } from "@/hooks/useProtocols"
-import { TreatmentProtocol, ProtocolType } from "@/db/models"
-import { useDatabase } from "@/context/DatabaseContext"
-import { useTranslation } from "react-i18next"
 
 interface TreatmentProtocolsScreenProps extends AppStackScreenProps<"TreatmentProtocols"> {}
 
@@ -387,7 +389,7 @@ const $listContent: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 
 const $protocolCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 12,
+  borderRadius: bentoRadii.card,
   padding: spacing.md,
   marginBottom: spacing.sm,
 })

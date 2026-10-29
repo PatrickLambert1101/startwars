@@ -14,6 +14,7 @@ import {
 import { usePastureActivities, usePastureActivityActions } from "@/hooks/usePastureActivities"
 import { usePasture } from "@/hooks/usePastures"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
+import { bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { formatDate } from "@/utils/formatDate"
@@ -322,7 +323,7 @@ const $listContent: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 
 const $activityCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 12,
+  borderRadius: bentoRadii.card,
   padding: spacing.md,
   marginBottom: spacing.sm,
   borderWidth: 1,

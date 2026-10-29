@@ -1,6 +1,7 @@
 import { Keyboard, Pressable, StyleSheet, View } from "react-native"
 import { useTranslation } from "react-i18next"
 
+import { bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 
 import { Button } from "./Button"
@@ -83,7 +84,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", gap: 8 },
   score: {
     alignItems: "center",
-    borderRadius: 12,
+    borderRadius: bentoRadii.input,
     borderWidth: 1,
     flex: 1,
     justifyContent: "center",

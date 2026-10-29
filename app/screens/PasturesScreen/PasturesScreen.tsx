@@ -4,9 +4,11 @@ import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
 
 import { Screen, Text, Button, AppHeader } from "@/components"
+import { BentoPastureActions } from "@/components/BentoWorkflowCards"
 import { Pasture } from "@/db/models"
 import { usePastures } from "@/hooks/usePastures"
 import type { MainTabScreenProps } from "@/navigators/navigationTypes"
+import { bentoColors, bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
@@ -14,8 +16,9 @@ export const PasturesScreen: FC<MainTabScreenProps<"Pastures">> = ({ navigation 
   const { t } = useTranslation()
   const {
     themed,
-    theme: { colors },
+    theme: { colors, isDark },
   } = useAppTheme()
+  const c = bentoColors(isDark)
   const { pastures, isLoading } = usePastures()
 
   const stats = useMemo(() => {
@@ -51,7 +54,11 @@ export const PasturesScreen: FC<MainTabScreenProps<"Pastures">> = ({ navigation 
           : colors.palette.angry500
 
     return (
-      <Pressable onPress={() => handlePressPassture(pasture)} style={themed($card)}>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => handlePressPassture(pasture)}
+        style={themed($card)}
+      >
         <View style={themed($cardHeader)}>
           <View style={themed($cardTitleRow)}>
             <Text style={themed($cardTitle)}>{pasture.name}</Text>
@@ -78,7 +85,7 @@ export const PasturesScreen: FC<MainTabScreenProps<"Pastures">> = ({ navigation 
           )}
         </View>
 
-        {pasture.isOccupied && pasture.targetGrazingDays && (
+        {pasture.isOccupied && Boolean(pasture.targetGrazingDays) && (
           <View style={themed($progressBarContainer)}>
             <View style={themed($progressBarBg)}>
               <View
@@ -92,9 +99,14 @@ export const PasturesScreen: FC<MainTabScreenProps<"Pastures">> = ({ navigation 
               />
             </View>
             <Text style={themed($progressText)}>
-              {t("pasturesScreen.card.daysUntilRotation", {
-                days: pasture.targetGrazingDays - pasture.daysGrazed,
-              })}
+              {pasture.daysGrazed > (pasture.targetGrazingDays ?? 0)
+                ? t("pasturesScreen.card.daysOverdue", {
+                    defaultValue: "{{days}} days overdue for rotation",
+                    days: pasture.daysGrazed - (pasture.targetGrazingDays ?? 0),
+                  })
+                : t("pasturesScreen.card.daysUntilRotation", {
+                    days: (pasture.targetGrazingDays ?? 0) - pasture.daysGrazed,
+                  })}
             </Text>
           </View>
         )}
@@ -112,10 +124,10 @@ export const PasturesScreen: FC<MainTabScreenProps<"Pastures">> = ({ navigation 
               <Text style={themed($cardDetail)}>{pasture.waterSource}</Text>
             </View>
           )}
-          {pasture.sizeHectares && (
+          {typeof pasture.sizeHectares === "number" && (
             <View style={$detailPill}>
               <MaterialCommunityIcons name="ruler-square" size={14} color={colors.textDim} />
-              <Text style={themed($cardDetail)}>{pasture.sizeHectares} ha</Text>
+              <Text style={themed($cardDetail)}>{pasture.sizeHectares.toFixed(1)} ha</Text>
             </View>
           )}
         </View>
@@ -123,117 +135,67 @@ export const PasturesScreen: FC<MainTabScreenProps<"Pastures">> = ({ navigation 
     )
   }
 
+  const overview = (
+    <View>
+      <BentoPastureActions
+        onMap={() => navigation.navigate("PasturesMap")}
+        onCreate={handleCreatePasture}
+        onImport={() => navigation.navigate("PastureKmlImport")}
+        createLabel={t("pasturesScreen.createButton")}
+      />
+      <View style={themed($statsRow)}>
+        {[
+          [pastures.length, t("pasturesScreen.stats.pastures")],
+          [stats.totalAnimals, t("pasturesScreen.stats.animals")],
+          [stats.occupied, t("pasturesScreen.stats.occupied")],
+        ].map(([value, label]) => (
+          <View key={label} style={themed($statCard)}>
+            <Text style={themed($statCardValue)}>{isLoading ? "—" : value}</Text>
+            <Text style={themed($statCardLabel)}>{label}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  )
   return (
     <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={themed($container)}>
-      <AppHeader title={t("pasturesScreen.title")} showSettings={true} />
-      <View style={themed($header)}>
-        <Button
-          text="View all on map"
-          onPress={() => navigation.navigate("PasturesMap")}
-          style={themed($mapButton)}
-          LeftAccessory={({ style }) => (
-            <MaterialCommunityIcons
-              name="map-outline"
-              size={18}
-              color={colors.text}
-              style={style}
-            />
-          )}
-        />
-        <Button
-          text={t("pasturesScreen.createButton")}
-          onPress={handleCreatePasture}
-          style={themed($createButton)}
-        />
-      </View>
-      <Button
-        text="Import pasture map (KML/KMZ)"
-        onPress={() => navigation.navigate("PastureKmlImport")}
-        style={themed($importMapButton)}
-        LeftAccessory={({ style }) => (
-          <MaterialCommunityIcons name="map-outline" size={18} color={colors.text} style={style} />
-        )}
+      <AppHeader title={t("pasturesScreen.title")} showSettings />
+      <FlatList
+        data={isLoading ? [] : pastures}
+        renderItem={renderPastureCard}
+        keyExtractor={(item) => item.id}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={themed($listContent)}
+        ListHeaderComponent={overview}
+        ListEmptyComponent={
+          <View style={themed($emptyContainer)}>
+            {isLoading ? (
+              <Text>{t("common.loading")}</Text>
+            ) : (
+              <>
+                <MaterialCommunityIcons name="land-fields" size={64} color={c.ink} />
+                <Text style={themed($emptyTitle)}>{t("pasturesScreen.empty.title")}</Text>
+                <Text style={themed($emptyDescription)}>
+                  {t("pasturesScreen.empty.description")}
+                </Text>
+                <Button
+                  text={t("pasturesScreen.empty.button")}
+                  preset="filled"
+                  onPress={handleCreatePasture}
+                  style={themed($emptyButton)}
+                />
+              </>
+            )}
+          </View>
+        }
       />
-
-      {/* Stats Summary */}
-      <View style={themed($statsRow)}>
-        <View style={themed($statCard)}>
-          <Text style={themed($statCardValue)}>{pastures.length}</Text>
-          <Text style={themed($statCardLabel)}>{t("pasturesScreen.stats.pastures")}</Text>
-        </View>
-        <View style={themed($statCard)}>
-          <Text style={themed($statCardValue)}>{stats.totalAnimals}</Text>
-          <Text style={themed($statCardLabel)}>{t("pasturesScreen.stats.animals")}</Text>
-        </View>
-        <View style={themed($statCard)}>
-          <Text style={themed($statCardValue)}>{stats.occupied}</Text>
-          <Text style={themed($statCardLabel)}>{t("pasturesScreen.stats.occupied")}</Text>
-        </View>
-      </View>
-
-      {isLoading ? (
-        <View style={themed($emptyContainer)}>
-          <Text>{t("common.loading")}</Text>
-        </View>
-      ) : pastures.length === 0 ? (
-        <View style={themed($emptyContainer)}>
-          <MaterialCommunityIcons
-            name="land-fields"
-            size={88}
-            color={colors.palette.primary500}
-          />
-          <Text style={themed($emptyTitle)}>{t("pasturesScreen.empty.title")}</Text>
-          <Text style={themed($emptyDescription)}>{t("pasturesScreen.empty.description")}</Text>
-          <Button
-            text={t("pasturesScreen.empty.button")}
-            preset="filled"
-            onPress={handleCreatePasture}
-            style={themed($emptyButton)}
-          />
-        </View>
-      ) : (
-        <FlatList
-          data={pastures}
-          renderItem={renderPastureCard}
-          keyExtractor={(item) => item.id}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={themed($listContent)}
-        />
-      )}
     </Screen>
   )
 }
 
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flex: 1,
-  paddingHorizontal: spacing.lg,
-})
-
-const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: spacing.sm,
-  marginTop: spacing.md,
-  marginBottom: spacing.sm,
-})
-
-const $createButton: ThemedStyle<ViewStyle> = () => ({
-  minHeight: 36,
-  paddingVertical: 6,
-  paddingHorizontal: 16,
-})
-
-const $mapButton: ThemedStyle<ViewStyle> = () => ({
-  flex: 1,
-  minHeight: 36,
-  paddingVertical: 6,
-  paddingHorizontal: 12,
-})
-
-const $importMapButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  minHeight: 38,
-  marginBottom: spacing.md,
+  paddingHorizontal: spacing.md,
 })
 
 const $statsRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -245,17 +207,16 @@ const $statsRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $statCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flex: 1,
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 12,
-  padding: spacing.sm,
+  borderRadius: bentoRadii.card,
+  padding: spacing.md,
   alignItems: "center",
-  borderWidth: 1,
-  borderColor: colors.palette.neutral200,
+  borderWidth: 0,
 })
 
 const $statCardValue: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 24,
   fontWeight: "700",
-  color: colors.palette.primary500,
+  color: colors.text,
 })
 
 const $statCardLabel: ThemedStyle<TextStyle> = ({ colors }) => ({
@@ -270,11 +231,10 @@ const $listContent: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 
 const $card: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 12,
+  borderRadius: bentoRadii.card,
   padding: spacing.md,
   marginBottom: spacing.sm,
-  borderWidth: 1,
-  borderColor: colors.palette.neutral200,
+  borderWidth: 0,
 })
 
 const $cardHeader: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -304,7 +264,7 @@ const $cardCode: ThemedStyle<TextStyle> = ({ colors }) => ({
 const $statusBadge: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   width: 24,
   height: 24,
-  borderRadius: 12,
+  borderRadius: bentoRadii.card,
   justifyContent: "center",
   alignItems: "center",
   marginLeft: spacing.xs,

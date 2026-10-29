@@ -2,8 +2,8 @@ import { FC, useCallback, useState, useEffect } from "react"
 import { View, ViewStyle, TextStyle, Pressable, Alert, Switch } from "react-native"
 import * as LocalAuthentication from "expo-local-authentication"
 import { Q } from "@nozbe/watermelondb"
-import { useTranslation } from "react-i18next"
 import * as Sentry from "@sentry/react-native"
+import { useTranslation } from "react-i18next"
 
 import { Screen, Text, ListItem, Button, Icon, BIOMETRIC_LOCK_KEY } from "@/components"
 import { RfidScannerSettings } from "@/components/RfidScannerSettings"
@@ -14,6 +14,7 @@ import { database } from "@/db"
 import { useSync } from "@/hooks/useSync"
 import { seedDefaultSchedules } from "@/services/defaultSchedules"
 import { calculateScheduledVaccinations } from "@/services/vaccinationScheduler"
+import { bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { loadString, saveString } from "@/utils/storage"
@@ -648,7 +649,7 @@ const $version: ThemedStyle<TextStyle> = ({ spacing }) => ({
 
 const $recalculateCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.primary100,
-  borderRadius: 12,
+  borderRadius: bentoRadii.card,
   borderWidth: 2,
   borderColor: colors.palette.primary300,
   padding: spacing.md,
@@ -677,7 +678,7 @@ const $recalculateButton: ThemedStyle<ViewStyle> = () => ({
 
 const $seedCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.accent100,
-  borderRadius: 12,
+  borderRadius: bentoRadii.card,
   borderWidth: 2,
   borderColor: colors.palette.accent300,
   padding: spacing.md,
@@ -712,7 +713,7 @@ const $dangerLabel: ThemedStyle<TextStyle> = ({ spacing }) => ({
 
 const $dangerCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: "#FFF5F5",
-  borderRadius: 12,
+  borderRadius: bentoRadii.card,
   borderWidth: 2,
   borderColor: "#FEB2B2",
   padding: spacing.md,
@@ -740,7 +741,7 @@ const $dangerButton: ThemedStyle<ViewStyle> = () => ({
 
 const $themeCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 12,
+  borderRadius: bentoRadii.card,
   padding: spacing.md,
 })
 
@@ -777,7 +778,7 @@ const $themeSubtext: ThemedStyle<TextStyle> = ({ colors }) => ({
 
 const $languageCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 12,
+  borderRadius: bentoRadii.card,
   padding: spacing.md,
 })
 
@@ -840,7 +841,7 @@ const $languageChipSubtextActive: ThemedStyle<TextStyle> = ({ colors }) => ({
 
 const $subscriptionCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 12,
+  borderRadius: bentoRadii.card,
   padding: spacing.md,
   borderWidth: 1,
   borderColor: colors.palette.neutral200,

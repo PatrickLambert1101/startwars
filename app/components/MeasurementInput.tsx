@@ -3,6 +3,7 @@ import { Keyboard, Modal, Pressable, ScrollView, StyleSheet, View } from "react-
 import { useTranslation } from "react-i18next"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
+import { bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 
 import { Button } from "./Button"
@@ -185,7 +186,7 @@ const styles = StyleSheet.create({
   content: { alignSelf: "center", gap: 10, maxWidth: 560, paddingHorizontal: 16, width: "100%" },
   display: {
     alignItems: "center",
-    borderRadius: 12,
+    borderRadius: bentoRadii.input,
     borderWidth: 1,
     flexDirection: "row",
     justifyContent: "space-between",
@@ -196,7 +197,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1, minWidth: 0, paddingHorizontal: 4 },
   key: {
     alignItems: "center",
-    borderRadius: 12,
+    borderRadius: bentoRadii.input,
     borderWidth: 1,
     flex: 1,
     justifyContent: "center",

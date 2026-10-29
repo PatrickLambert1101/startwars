@@ -24,6 +24,7 @@ import {
   usePastureActions,
 } from "@/hooks/usePastures"
 import { AppStackScreenProps } from "@/navigators/navigationTypes"
+import { bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { formatDate } from "@/utils/formatDate"
@@ -440,10 +441,10 @@ export function PastureDetailScreen({ navigation, route }: PastureDetailScreenPr
         <View style={themed($section)}>
           <Text style={themed($sectionTitle)}>Pasture Details</Text>
 
-          {pasture.sizeHectares && (
+          {typeof pasture.sizeHectares === "number" && (
             <View style={themed($detailRow)}>
               <Text style={themed($detailLabel)}>Size</Text>
-              <Text style={themed($detailValue)}>{pasture.sizeHectares} hectares</Text>
+              <Text style={themed($detailValue)}>{pasture.sizeHectares.toFixed(1)} hectares</Text>
             </View>
           )}
 
@@ -635,7 +636,7 @@ const $statsRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $statCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flex: 1,
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 12,
+  borderRadius: bentoRadii.card,
   padding: spacing.md,
   alignItems: "center",
   borderWidth: 1,
@@ -657,7 +658,7 @@ const $statLabel: ThemedStyle<TextStyle> = ({ colors }) => ({
 
 const $section: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 12,
+  borderRadius: bentoRadii.card,
   padding: spacing.md,
   marginBottom: spacing.md,
   borderWidth: 1,
@@ -683,7 +684,7 @@ const $locationCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   alignItems: "center",
   gap: spacing.sm,
   padding: spacing.sm,
-  borderRadius: 10,
+  borderRadius: bentoRadii.card,
   backgroundColor: colors.palette.primary100,
 })
 

@@ -6,6 +6,7 @@ import { format } from "date-fns"
 import { FriendlyEmpty, Screen, Text } from "@/components"
 import { usePendingVaccinations } from "@/hooks/useVaccinationSchedules"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
+import { bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
@@ -263,7 +264,7 @@ const $listContent: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 
 const $vaccinationCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.background,
-  borderRadius: 12,
+  borderRadius: bentoRadii.card,
   padding: spacing.md,
   marginBottom: spacing.sm,
   borderWidth: 1,

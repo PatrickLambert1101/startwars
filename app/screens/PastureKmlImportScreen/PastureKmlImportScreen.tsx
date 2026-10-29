@@ -7,6 +7,7 @@ import { AppHeader, Button, Screen, Text } from "@/components"
 import { usePastureBoundaryActions } from "@/hooks/usePastureBoundaries"
 import { usePastures } from "@/hooks/usePastures"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
+import { bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { formatBoundaryArea } from "@/utils/pastureBoundary"
@@ -369,7 +370,7 @@ const $heroCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   alignItems: "center",
   gap: spacing.sm,
   padding: spacing.xl,
-  borderRadius: 16,
+  borderRadius: bentoRadii.card,
   backgroundColor: colors.palette.neutral100,
   borderWidth: 1,
   borderColor: colors.separator,
@@ -391,7 +392,7 @@ const $muted: ThemedStyle<TextStyle> = ({ colors }) => ({
 const $infoCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   gap: spacing.sm,
   padding: spacing.md,
-  borderRadius: 14,
+  borderRadius: bentoRadii.card,
   backgroundColor: colors.palette.neutral100,
   borderWidth: 1,
   borderColor: colors.separator,
@@ -408,7 +409,7 @@ const $fileCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   alignItems: "center",
   gap: spacing.sm,
   padding: spacing.md,
-  borderRadius: 14,
+  borderRadius: bentoRadii.card,
   backgroundColor: colors.palette.neutral100,
   borderWidth: 1,
   borderColor: colors.separator,
@@ -423,7 +424,7 @@ const $summaryCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
   padding: spacing.md,
-  borderRadius: 14,
+  borderRadius: bentoRadii.card,
   backgroundColor: colors.palette.neutral100,
   borderWidth: 1,
   borderColor: colors.separator,
@@ -445,7 +446,7 @@ const $warningCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   alignItems: "flex-start",
   gap: spacing.sm,
   padding: spacing.md,
-  borderRadius: 12,
+  borderRadius: bentoRadii.card,
   backgroundColor: colors.palette.accent100,
 })
 

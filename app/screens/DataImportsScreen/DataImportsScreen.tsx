@@ -8,6 +8,7 @@ import { useDatabase } from "@/context/DatabaseContext"
 import type { DataImportBatch } from "@/db/models"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { getDataImportBatches, importTypeLabel, undoDataImport } from "@/services/dataImport"
+import { bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
@@ -236,7 +237,7 @@ const $importCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   gap: spacing.md,
   padding: spacing.md,
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 14,
+  borderRadius: bentoRadii.card,
   borderWidth: 1,
   borderColor: colors.separator,
 })
@@ -268,7 +269,7 @@ const $emptyCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   alignItems: "center",
   gap: spacing.xs,
   padding: spacing.xl,
-  borderRadius: 14,
+  borderRadius: bentoRadii.card,
   backgroundColor: colors.palette.neutral100,
   borderWidth: 1,
   borderColor: colors.separator,
@@ -277,7 +278,7 @@ const $emptyCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
 const $historyCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   gap: spacing.xs,
   padding: spacing.md,
-  borderRadius: 12,
+  borderRadius: bentoRadii.card,
   backgroundColor: colors.palette.neutral100,
   borderWidth: 1,
   borderColor: colors.separator,

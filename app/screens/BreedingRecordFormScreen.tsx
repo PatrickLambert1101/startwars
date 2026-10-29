@@ -1,22 +1,23 @@
 import { FC, useCallback, useEffect, useState } from "react"
 import { Alert, Pressable, View, ViewStyle, TextStyle } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
+import { useTranslation } from "react-i18next"
 
 import { AnimalPicker, Screen, Text, TextField, Button, DateField } from "@/components"
 import { PhotoPicker } from "@/components/PhotoPicker"
-import { useAppTheme } from "@/theme/context"
-import type { ThemedStyle } from "@/theme/types"
-import type { AppStackScreenProps } from "@/navigators/navigationTypes"
-import { useBreedingRecordActions } from "@/hooks/useRecords"
+import { useAuth } from "@/context/AuthContext"
+import { useDatabase } from "@/context/DatabaseContext"
 import { BreedingMethod, BreedingOutcome } from "@/db/models/BreedingRecord"
 import { useAnimal, useAnimals } from "@/hooks/useAnimals"
-import { useDatabase } from "@/context/DatabaseContext"
-import { useAuth } from "@/context/AuthContext"
+import { useBreedingRecordActions } from "@/hooks/useRecords"
+import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { uploadPhoto } from "@/services/photoStorage"
 import { enqueuePhotoUploads } from "@/services/photoUploadQueue"
+import { bentoRadii } from "@/theme/bento"
+import { useAppTheme } from "@/theme/context"
+import type { ThemedStyle } from "@/theme/types"
 import type { PhotoWithMetadata } from "@/types/Photo"
 import { serializePhotos } from "@/types/Photo"
-import { useTranslation } from "react-i18next"
 import { expectedCalvingFromBreedingDate } from "@/utils/breedingDashboard"
 
 const METHODS: BreedingMethod[] = ["natural", "ai", "embryo_transfer"]
@@ -300,7 +301,7 @@ const $animalCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   gap: spacing.sm,
   padding: spacing.md,
   marginBottom: spacing.sm,
-  borderRadius: 12,
+  borderRadius: bentoRadii.card,
   backgroundColor: colors.palette.primary100,
 })
 
