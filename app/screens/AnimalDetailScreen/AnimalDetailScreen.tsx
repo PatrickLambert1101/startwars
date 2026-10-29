@@ -1,10 +1,18 @@
-import { type ComponentProps, type FC, type ReactNode, useCallback, useEffect, useState } from "react"
-import { Alert, Pressable, ScrollView, View, ViewStyle, TextStyle } from "react-native"
+import {
+  type ComponentProps,
+  type FC,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useState,
+} from "react"
+import { Alert, Pressable, View, ViewStyle, TextStyle } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { format, formatDistanceStrict } from "date-fns"
 import { useTranslation } from "react-i18next"
 
 import { Screen, Text, Button, TagInput, AnimalPicker, ScanTagButton } from "@/components"
+import { BentoAnimalProfile } from "@/components/BentoAnimalProfile"
 import { PhotoGallery } from "@/components/PhotoGallery"
 import { WeightChart } from "@/components/WeightChart"
 import { database } from "@/db"
@@ -15,7 +23,7 @@ import { useHealthRecords, useWeightRecords, useBreedingRecords } from "@/hooks/
 import { useRfidReader } from "@/hooks/useRfidReader"
 import { useScheduledVaccinations } from "@/hooks/useVaccinationSchedules"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
-import { bentoRadii } from "@/theme/bento"
+import { bentoColors, bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { formatTraits } from "@/types/GeneticTraits"
@@ -23,20 +31,18 @@ import { getVaccinationHistory } from "@/utils/vaccinationHistory"
 
 type Tab = "overview" | "health" | "vaccinations" | "weight" | "breeding"
 
-export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ route, navigation }) => {
+export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({
+  route,
+  navigation,
+}) => {
   const { t } = useTranslation()
   const { themed, theme } = useAppTheme()
+  const c = bentoColors(theme.isDark)
   const { animalId } = route.params
   const { animal, isLoading } = useAnimal(animalId)
   const { deleteAnimal, updateAnimal } = useAnimalActions()
-  const {
-    scannedTag,
-    startScanning,
-    stopScanning,
-    initialize,
-    isInitialized,
-    hasRfidHardware,
-  } = useRfidReader()
+  const { scannedTag, startScanning, stopScanning, initialize, isInitialized, hasRfidHardware } =
+    useRfidReader()
   // Only apply an inbound EPC when the farmer explicitly asked to re-scan, so a
   // stray trigger pull elsewhere can't silently retag the animal they're viewing.
   const [isRescanningRfid, setIsRescanningRfid] = useState(false)
@@ -44,7 +50,7 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
   const { records: weightRecords } = useWeightRecords(animalId)
   const { records: breedingRecords } = useBreedingRecords(animalId)
   const { vaccinations } = useScheduledVaccinations(animalId)
-  const { offspring, stats: offspringStats } = useOffspring(animalId)
+  const { offspring, stats: offspringStats, isLoading: offspringLoading } = useOffspring(animalId)
 
   // Same bring-up as the add/edit form: the reader is inert until initialised.
   useEffect(() => {
@@ -106,12 +112,15 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
       })
     }
     if (vaccinations.length > 0) {
-      console.log("[AnimalDetail] Vaccinations:", vaccinations.map(v => ({
-        id: v.id,
-        hasSchedule: !!v.schedule,
-        scheduleName: v.schedule?.name,
-        hasAnimal: !!v.animal,
-      })))
+      console.log(
+        "[AnimalDetail] Vaccinations:",
+        vaccinations.map((v) => ({
+          id: v.id,
+          hasSchedule: !!v.schedule,
+          scheduleName: v.schedule?.name,
+          hasAnimal: !!v.animal,
+        })),
+      )
     }
   }
   const [activeTab, setActiveTab] = useState<Tab>(route.params.initialTab ?? "overview")
@@ -150,16 +159,19 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
     navigation.navigate("AnimalForm", { mode: "edit", animalId })
   }, [navigation, animalId])
 
-  const handleTagsChange = useCallback(async (newTags: string[]) => {
-    setTags(newTags)
-    if (animal) {
-      await database.write(async () => {
-        await animal.update((a: any) => {
-          a.tags = newTags.length > 0 ? JSON.stringify(newTags) : null
+  const handleTagsChange = useCallback(
+    async (newTags: string[]) => {
+      setTags(newTags)
+      if (animal) {
+        await database.write(async () => {
+          await animal.update((a: any) => {
+            a.tags = newTags.length > 0 ? JSON.stringify(newTags) : null
+          })
         })
-      })
-    }
-  }, [animal])
+      }
+    },
+    [animal],
+  )
 
   const handleSaveTags = useCallback(() => {
     setIsEditingTags(false)
@@ -170,70 +182,81 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
     navigation.goBack()
   }, [deleteAnimal, animalId, navigation])
 
-  const handleSetSire = useCallback(async (sire: Animal | null) => {
-    if (animal) {
-      await database.write(async () => {
-        await animal.update((a: any) => {
-          a.sireId = sire?.id || null
-          if (sire) {
-            a.externalSireReference = null
-            a.externalSireBreed = null
-          }
+  const handleSetSire = useCallback(
+    async (sire: Animal | null) => {
+      if (animal) {
+        await database.write(async () => {
+          await animal.update((a: any) => {
+            a.sireId = sire?.id || null
+            if (sire) {
+              a.externalSireReference = null
+              a.externalSireBreed = null
+            }
+          })
         })
-      })
-      setSireName(sire?.displayName || null)
-    }
-  }, [animal])
+        setSireName(sire?.displayName || null)
+      }
+    },
+    [animal],
+  )
 
-  const handleSetDam = useCallback(async (dam: Animal | null) => {
-    if (animal) {
-      await database.write(async () => {
-        await animal.update((a: any) => {
-          a.damId = dam?.id || null
-          if (dam) {
-            a.externalDamReference = null
-            a.externalDamBreed = null
-          }
+  const handleSetDam = useCallback(
+    async (dam: Animal | null) => {
+      if (animal) {
+        await database.write(async () => {
+          await animal.update((a: any) => {
+            a.damId = dam?.id || null
+            if (dam) {
+              a.externalDamReference = null
+              a.externalDamBreed = null
+            }
+          })
         })
-      })
-      setDamName(dam?.displayName || null)
-    }
-  }, [animal])
+        setDamName(dam?.displayName || null)
+      }
+    },
+    [animal],
+  )
 
-  const handleAddOffspring = useCallback(async (child: Animal | null) => {
-    if (!child || !animal) return
+  const handleAddOffspring = useCallback(
+    async (child: Animal | null) => {
+      if (!child || !animal) return
 
-    try {
-      // Set this animal as the parent based on sex
-      await database.write(async () => {
-        await child.update((c: any) => {
-          if (animal.sex === "male") {
-            c.sireId = animal.id
-            c.externalSireReference = null
-            c.externalSireBreed = null
-          } else if (animal.sex === "female") {
-            c.damId = animal.id
-            c.externalDamReference = null
-            c.externalDamBreed = null
-          }
+      try {
+        // Set this animal as the parent based on sex
+        await database.write(async () => {
+          await child.update((c: any) => {
+            if (animal.sex === "male") {
+              c.sireId = animal.id
+              c.externalSireReference = null
+              c.externalSireBreed = null
+            } else if (animal.sex === "female") {
+              c.damId = animal.id
+              c.externalDamReference = null
+              c.externalDamBreed = null
+            }
+          })
         })
-      })
 
-      // Close the picker
-      setShowOffspringPicker(false)
+        // Close the picker
+        setShowOffspringPicker(false)
 
-      // Offspring list will auto-update via useOffspring hook
-      console.log(`[AnimalDetail] Added offspring: ${child.displayName}`)
-    } catch (error) {
-      console.error("[AnimalDetail] Failed to add offspring:", error)
-    }
-  }, [animal])
+        // Offspring list will auto-update via useOffspring hook
+        console.log(`[AnimalDetail] Added offspring: ${child.displayName}`)
+      } catch (error) {
+        console.error("[AnimalDetail] Failed to add offspring:", error)
+      }
+    },
+    [animal],
+  )
 
   if (isLoading || !animal) {
     return (
       <Screen preset="fixed" safeAreaEdges={["top"]}>
         <View style={themed($centered)}>
-          <Text text={isLoading ? t("animalDetailScreen.loading") : t("animalDetailScreen.notFound")} />
+          <Text
+            text={isLoading ? t("animalDetailScreen.loading") : t("animalDetailScreen.notFound")}
+          />
         </View>
       </Screen>
     )
@@ -269,8 +292,7 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
       .filter((recordId): recordId is string => Boolean(recordId)),
   )
   const standaloneVaccinationRecords = healthRecords.filter(
-    (record) =>
-      record.recordType === "vaccination" && !linkedVaccinationRecordIds.has(record.id),
+    (record) => record.recordType === "vaccination" && !linkedVaccinationRecordIds.has(record.id),
   )
   const ageLabel = animal.dateOfBirth
     ? formatDistanceStrict(animal.dateOfBirth, new Date(), { roundingMethod: "floor" })
@@ -286,6 +308,7 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
         : animal.status === "transferred"
           ? theme.colors.palette.accent500
           : theme.colors.tint
+  const profileHistory = animal.vaccinationHistory ? getVaccinationHistory(animal) : "unknown"
   const tabCounts: Partial<Record<Tab, number>> = {
     health: nonVaccinationHealthRecords.length,
     vaccinations: vaccinations.length + standaloneVaccinationRecords.length,
@@ -320,95 +343,99 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
         </Pressable>
       </View>
 
-      <View style={themed($animalHero)}>
-        <View style={themed($animalIdentity)}>
-          <View style={themed($animalAvatar)}>
-            <MaterialCommunityIcons name="cow" size={34} color={theme.colors.tint} />
-          </View>
-          <View style={themed($animalIdentityText)}>
-            <Text preset="heading" text={animal.displayName} numberOfLines={2} />
-            <Text
-              text={`${animal.breed} · ${animal.sexLabel}`}
-              size="sm"
-              style={themed($dimText)}
-            />
-          </View>
-          <View style={[$heroStatusBadge, { backgroundColor: `${statusColor}20` }]}>
-            <View style={[$statusDot, { backgroundColor: statusColor }]} />
-            <Text
-              text={animal.status.charAt(0).toUpperCase() + animal.status.slice(1)}
-              size="xxs"
-              preset="bold"
-              style={{ color: statusColor }}
-            />
-          </View>
-        </View>
+      <BentoAnimalProfile
+        name={animal.displayName}
+        eyebrow={animal.name && animal.visualTag ? `TAG ${animal.visualTag}` : "ANIMAL PROFILE"}
+        subtitle={`${animal.breed} · ${animal.sexLabel}`}
+        status={animal.status.charAt(0).toUpperCase() + animal.status.slice(1)}
+        statusColor={statusColor}
+        weight={latestWeightLabel}
+        age={ageLabel}
+        offspring={offspringLoading ? "—" : String(offspringStats.total)}
+        onWeightHistory={() => setActiveTab("weight")}
+        onWeigh={() => navigation.navigate("WeightRecordForm", { animalId })}
+        onHealth={() => navigation.navigate("HealthRecordForm", { animalId })}
+      />
 
-        <View style={themed($heroStats)}>
-          <HeroStat label="Age" value={ageLabel} themed={themed} />
-          <View style={themed($heroStatDivider)} />
-          <HeroStat label="Latest weight" value={latestWeightLabel} themed={themed} />
-          <View style={themed($heroStatDivider)} />
-          <HeroStat label="Offspring" value={String(offspringStats.total)} themed={themed} />
-        </View>
-      </View>
-
-      {/* Tabs */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={themed($tabScroller)}
-        contentContainerStyle={themed($tabRow)}
-      >
+      <View style={themed($tabRow)}>
         {(["overview", "health", "vaccinations", "weight", "breeding"] as Tab[]).map((tab) => {
-          const getTabIcon = () => {
-            switch (tab) {
-              case "overview": return "information-outline"
-              case "health": return "medical-bag"
-              case "vaccinations": return "needle"
-              case "weight": return "scale"
-              case "breeding": return "heart"
-              default: return "circle"
-            }
-          }
+          const icons = {
+            overview: "information-outline",
+            health: "medical-bag",
+            vaccinations: "needle",
+            weight: "scale",
+            breeding: "heart",
+          } as const
+          const selected = activeTab === tab
           return (
             <Pressable
               key={tab}
               onPress={() => setActiveTab(tab)}
-              style={themed(activeTab === tab ? $tabActive : $tab)}
+              accessibilityRole="tab"
+              accessibilityLabel={t(`animalDetailScreen.tabs.${tab}`)}
+              accessibilityState={{ selected }}
+              testID={`animal-tab-${tab}`}
+              style={themed(selected ? $tabActive : $tab)}
             >
-              <MaterialCommunityIcons
-                name={getTabIcon()}
-                size={18}
-                color={
-                  activeTab === tab ? theme.colors.palette.neutral100 : theme.colors.textDim
-                }
-              />
-              <Text
-                preset="formLabel"
-                text={t(`animalDetailScreen.tabs.${tab}`)}
-                style={activeTab === tab ? themed($tabTextActive) : themed($tabText)}
-                numberOfLines={1}
-              />
-              {tabCounts[tab] !== undefined && tabCounts[tab]! > 0 ? (
-                <View
-                  style={themed(activeTab === tab ? $tabCountActive : $tabCount)}
-                >
+              <View style={themed($tabIconRow)}>
+                <MaterialCommunityIcons
+                  accessible={false}
+                  name={icons[tab]}
+                  size={19}
+                  color={selected ? c.onForest : c.muted}
+                />
+                {tabCounts[tab] !== undefined && tabCounts[tab]! > 0 ? (
                   <Text
                     text={String(tabCounts[tab])}
                     size="xxs"
-                    style={themed(activeTab === tab ? $tabCountTextActive : $tabCountText)}
+                    style={{ color: selected ? c.lime : c.muted }}
                   />
-                </View>
-              ) : null}
+                ) : null}
+              </View>
+              <Text
+                preset="formLabel"
+                text={t(`animalDetailScreen.tabs.${tab}`)}
+                style={themed(selected ? $tabTextActive : $tabText)}
+                numberOfLines={2}
+              />
             </Pressable>
           )
         })}
-      </ScrollView>
+      </View>
 
       {/* Tab Content */}
       {activeTab === "overview" && (
         <View style={themed($section)}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t("uxFixes.reviewHistoryAction")}
+            onPress={() => setActiveTab("vaccinations")}
+            style={[
+              themed($historySummary),
+              { backgroundColor: profileHistory === "current" ? c.sage : c.peach },
+            ]}
+          >
+            <MaterialCommunityIcons accessible={false} name="needle" size={23} color={c.ink} />
+            <View style={themed($historySummaryCopy)}>
+              <Text text={t("uxFixes.historyLabel")} size="xs" style={{ color: c.muted }} />
+              <Text
+                text={t(
+                  `uxFixes.${profileHistory === "current" ? "historyCurrent" : profileHistory === "needs_review" ? "historyReview" : "historyUnknown"}`,
+                )}
+                preset="bold"
+                style={{ color: c.ink }}
+              />
+              {!animal.vaccinationHistory && (
+                <Text text={t("uxFixes.historyLegacyHelp")} size="xxs" style={{ color: c.muted }} />
+              )}
+            </View>
+            <MaterialCommunityIcons
+              accessible={false}
+              name="chevron-right"
+              size={22}
+              color={c.ink}
+            />
+          </Pressable>
           <PhotoGallery photosJson={animal.photos} />
           <View style={themed($overviewCard)}>
             <View style={themed($overviewCardHeader)}>
@@ -604,11 +631,7 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
             </View>
             {isEditingTags ? (
               <>
-                <TagInput
-                  tags={tags}
-                  onTagsChange={handleTagsChange}
-                  placeholder="Add tags..."
-                />
+                <TagInput tags={tags} onTagsChange={handleTagsChange} placeholder="Add tags..." />
                 <Button
                   text="Done"
                   preset="filled"
@@ -644,103 +667,165 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
       {activeTab === "vaccinations" && (
         <View style={themed($section)}>
           <Text preset="formLabel" text={t("uxFixes.historyLabel")} />
-          <Text text={t(`uxFixes.${getVaccinationHistory(animal) === "current" ? "historyCurrent" : getVaccinationHistory(animal) === "needs_review" ? "historyReview" : "historyUnknown"}`)} />
+          <Text
+            text={t(
+              `uxFixes.${profileHistory === "current" ? "historyCurrent" : profileHistory === "needs_review" ? "historyReview" : "historyUnknown"}`,
+            )}
+          />
           {!animal.vaccinationHistory && <Text text={t("uxFixes.historyLegacyHelp")} size="xs" />}
-          <Button text={t("uxFixes.reviewHistoryAction")} onPress={() => navigation.navigate("AnimalForm", { mode: "edit", animalId })} />
+          <Button
+            text={t("uxFixes.reviewHistoryAction")}
+            onPress={() => navigation.navigate("AnimalForm", { mode: "edit", animalId })}
+          />
           {/* Vaccinations Section */}
           <Text preset="subheading" text="Vaccination Schedule" style={themed($sectionTitle)} />
           {vaccinations.length === 0 ? (
             <View style={themed($emptyState)}>
-              <MaterialCommunityIcons name="needle" size={48} color={theme.colors.palette.neutral300} />
+              <MaterialCommunityIcons
+                name="needle"
+                size={48}
+                color={theme.colors.palette.neutral300}
+              />
               <Text text="No vaccinations scheduled" style={themed($emptyText)} />
-              <Text text="Vaccinations are automatically scheduled based on age and active schedules" size="xs" style={themed($dimText)} />
+              <Text
+                text="Vaccinations are automatically scheduled based on age and active schedules"
+                size="xs"
+                style={themed($dimText)}
+              />
             </View>
           ) : (
             <>
-            {vaccinations.map((v) => {
-              const getUrgencyColor = () => {
-                if (v.urgencyLevel === "critical" || v.urgencyLevel === "overdue") return theme.colors.error
-                if (v.urgencyLevel === "soon") return theme.colors.palette.accent500
-                return theme.colors.textDim
-              }
+              {vaccinations.map((v) => {
+                const getUrgencyColor = () => {
+                  if (v.urgencyLevel === "critical" || v.urgencyLevel === "overdue")
+                    return theme.colors.error
+                  if (v.urgencyLevel === "soon") return theme.colors.palette.accent500
+                  return theme.colors.textDim
+                }
 
-              const getStatusBadgeColor = () => {
-                if (v.status === "administered") return theme.colors.palette.primary100
-                if (v.status === "skipped") return theme.colors.palette.neutral200
-                return theme.colors.palette.accent100
-              }
+                const getStatusBadgeColor = () => {
+                  if (v.status === "administered") return theme.colors.palette.primary100
+                  if (v.status === "skipped") return theme.colors.palette.neutral200
+                  return theme.colors.palette.accent100
+                }
 
-              return (
-                <View key={v.id} style={[themed($vaccinationCard), { borderLeftColor: getUrgencyColor() }]}>
-                  <View style={themed($recordHeader)}>
-                    <View style={themed($vaccinationHeaderLeft)}>
-                      <MaterialCommunityIcons name="needle" size={20} color={getUrgencyColor()} />
-                      <Text
-                        preset="bold"
-                        text={v.schedule?.name || "Unknown Vaccination"}
-                        style={{ marginLeft: 8, flex: 1 }}
-                        numberOfLines={2}
-                      />
-                    </View>
-                    <View style={[themed($vaccinationBadge), { backgroundColor: getStatusBadgeColor() }]}>
-                      <Text text={v.status} size="xxs" style={themed($vaccinationBadgeText)} />
-                    </View>
-                  </View>
-
-                  {v.schedule?.protocol && (
-                    <Text text={v.schedule.protocol.productName} size="sm" style={themed($dimText)} />
-                  )}
-
-                  <View style={themed($vaccinationDetails)}>
-                    <View style={themed($vaccinationDetailRow)}>
-                      <MaterialCommunityIcons name="calendar" size={14} color={theme.colors.textDim} />
-                      <Text text={`Due: ${formatDate(v.dueDate)}`} size="xs" style={themed($vaccinationDetailText)} />
-                    </View>
-
-                    {v.status === "pending" && v.daysUntilDue !== undefined && (
-                      <View style={themed($vaccinationDetailRow)}>
-                        <MaterialCommunityIcons name="clock-outline" size={14} color={getUrgencyColor()} />
+                return (
+                  <View
+                    key={v.id}
+                    style={[themed($vaccinationCard), { borderLeftColor: getUrgencyColor() }]}
+                  >
+                    <View style={themed($recordHeader)}>
+                      <View style={themed($vaccinationHeaderLeft)}>
+                        <MaterialCommunityIcons name="needle" size={20} color={getUrgencyColor()} />
                         <Text
-                          text={v.daysUntilDue < 0 ? `${Math.abs(v.daysUntilDue)} days overdue` : `${v.daysUntilDue} days until due`}
-                          size="xs"
-                          style={[themed($vaccinationDetailText), { color: getUrgencyColor() }]}
+                          preset="bold"
+                          text={v.schedule?.name || "Unknown Vaccination"}
+                          style={{ marginLeft: 8, flex: 1 }}
+                          numberOfLines={2}
                         />
                       </View>
-                    )}
-
-                    {v.administeredDate && (
-                      <View style={themed($vaccinationDetailRow)}>
-                        <MaterialCommunityIcons name="check-circle" size={14} color={theme.colors.palette.primary500} />
-                        <Text text={`Administered: ${formatDate(v.administeredDate)}`} size="xs" style={themed($vaccinationDetailText)} />
+                      <View
+                        style={[
+                          themed($vaccinationBadge),
+                          { backgroundColor: getStatusBadgeColor() },
+                        ]}
+                      >
+                        <Text text={v.status} size="xxs" style={themed($vaccinationBadgeText)} />
                       </View>
+                    </View>
+
+                    {v.schedule?.protocol && (
+                      <Text
+                        text={v.schedule.protocol.productName}
+                        size="sm"
+                        style={themed($dimText)}
+                      />
                     )}
 
-                    <View style={themed($vaccinationDetailRow)}>
-                      <MaterialCommunityIcons name="needle" size={14} color={theme.colors.textDim} />
-                      <Text text={`Dose ${v.doseNumber}${v.schedule?.boosterCount ? ` of ${v.schedule.boosterCount}` : ""}`} size="xs" style={themed($vaccinationDetailText)} />
-                    </View>
-                  </View>
+                    <View style={themed($vaccinationDetails)}>
+                      <View style={themed($vaccinationDetailRow)}>
+                        <MaterialCommunityIcons
+                          name="calendar"
+                          size={14}
+                          color={theme.colors.textDim}
+                        />
+                        <Text
+                          text={`Due: ${formatDate(v.dueDate)}`}
+                          size="xs"
+                          style={themed($vaccinationDetailText)}
+                        />
+                      </View>
 
-                  {v.status === "pending" && (
-                    <Button
-                      text="Administer Vaccination"
-                      preset="filled"
-                      style={themed($administerButton)}
-                      onPress={() => navigation.navigate("Main", {
-                        screen: "Chute",
-                        params: {
-                          mode: "single",
-                          animalId,
-                          protocolId: v.schedule?.protocol?.id,
-                          vaccinationId: v.id,
-                          requestId: Date.now(),
+                      {v.status === "pending" && v.daysUntilDue !== undefined && (
+                        <View style={themed($vaccinationDetailRow)}>
+                          <MaterialCommunityIcons
+                            name="clock-outline"
+                            size={14}
+                            color={getUrgencyColor()}
+                          />
+                          <Text
+                            text={
+                              v.daysUntilDue < 0
+                                ? `${Math.abs(v.daysUntilDue)} days overdue`
+                                : `${v.daysUntilDue} days until due`
+                            }
+                            size="xs"
+                            style={[themed($vaccinationDetailText), { color: getUrgencyColor() }]}
+                          />
+                        </View>
+                      )}
+
+                      {v.administeredDate && (
+                        <View style={themed($vaccinationDetailRow)}>
+                          <MaterialCommunityIcons
+                            name="check-circle"
+                            size={14}
+                            color={theme.colors.palette.primary500}
+                          />
+                          <Text
+                            text={`Administered: ${formatDate(v.administeredDate)}`}
+                            size="xs"
+                            style={themed($vaccinationDetailText)}
+                          />
+                        </View>
+                      )}
+
+                      <View style={themed($vaccinationDetailRow)}>
+                        <MaterialCommunityIcons
+                          name="needle"
+                          size={14}
+                          color={theme.colors.textDim}
+                        />
+                        <Text
+                          text={`Dose ${v.doseNumber}${v.schedule?.boosterCount ? ` of ${v.schedule.boosterCount}` : ""}`}
+                          size="xs"
+                          style={themed($vaccinationDetailText)}
+                        />
+                      </View>
+                    </View>
+
+                    {v.status === "pending" && (
+                      <Button
+                        text="Administer Vaccination"
+                        preset="filled"
+                        style={themed($administerButton)}
+                        onPress={() =>
+                          navigation.navigate("Main", {
+                            screen: "Chute",
+                            params: {
+                              mode: "single",
+                              animalId,
+                              protocolId: v.schedule?.protocol?.id,
+                              vaccinationId: v.id,
+                              requestId: Date.now(),
+                            },
+                          })
                         }
-                      })}
-                    />
-                  )}
-                </View>
-              )
-            })}
+                      />
+                    )}
+                  </View>
+                )
+              })}
             </>
           )}
 
@@ -755,11 +840,7 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
                 <View key={record.id} style={themed($recordCard)}>
                   <View style={themed($recordHeader)}>
                     <Text preset="bold" text={record.description || "Vaccination"} />
-                    <Text
-                      size="xs"
-                      text={formatDate(record.recordDate)}
-                      style={themed($dimText)}
-                    />
+                    <Text size="xs" text={formatDate(record.recordDate)} style={themed($dimText)} />
                   </View>
                   {record.productName ? (
                     <Text
@@ -775,7 +856,6 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
               ))}
             </>
           )}
-
         </View>
       )}
 
@@ -798,11 +878,19 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
                   <Text size="xs" text={formatDate(r.recordDate)} style={themed($dimText)} />
                 </View>
                 <Text text={r.description} size="sm" />
-                {r.productName ? <Text text={t("animalDetailScreen.health.product", { product: r.productName })} size="xs" style={themed($dimText)} /> : null}
+                {r.productName ? (
+                  <Text
+                    text={t("animalDetailScreen.health.product", { product: r.productName })}
+                    size="xs"
+                    style={themed($dimText)}
+                  />
+                ) : null}
                 <PhotoGallery photosJson={r.photos} />
                 {r.createdByName ? (
                   <Text
-                    text={t("animalDetailScreen.health.recordedBy", { name: r.createdByName.split('@')[0] })}
+                    text={t("animalDetailScreen.health.recordedBy", {
+                      name: r.createdByName.split("@")[0],
+                    })}
                     size="xxs"
                     style={themed($createdByText)}
                   />
@@ -828,14 +916,24 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
             weightRecords.map((r) => (
               <View key={r.id} style={themed($recordCard)}>
                 <View style={themed($recordHeader)}>
-                  <Text preset="bold" text={t("animalDetailScreen.weight.weightValue", { weight: r.weightKg })} />
+                  <Text
+                    preset="bold"
+                    text={t("animalDetailScreen.weight.weightValue", { weight: r.weightKg })}
+                  />
                   <Text size="xs" text={formatDate(r.recordDate)} style={themed($dimText)} />
                 </View>
-                {r.conditionScore ? <Text text={t("animalDetailScreen.weight.condition", { score: r.conditionScore })} size="sm" /> : null}
+                {r.conditionScore ? (
+                  <Text
+                    text={t("animalDetailScreen.weight.condition", { score: r.conditionScore })}
+                    size="sm"
+                  />
+                ) : null}
                 <PhotoGallery photosJson={r.photos} />
                 {r.createdByName ? (
                   <Text
-                    text={t("animalDetailScreen.weight.recordedBy", { name: r.createdByName.split('@')[0] })}
+                    text={t("animalDetailScreen.weight.recordedBy", {
+                      name: r.createdByName.split("@")[0],
+                    })}
                     size="xxs"
                     style={themed($createdByText)}
                   />
@@ -868,7 +966,11 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
                       }
                     }}
                   >
-                    <Text text={sireName || "Loading..."} preset="bold" style={{ textDecorationLine: "underline" }} />
+                    <Text
+                      text={sireName || "Loading..."}
+                      preset="bold"
+                      style={{ textDecorationLine: "underline" }}
+                    />
                   </Pressable>
                 ) : externalSireLabel ? (
                   <>
@@ -892,10 +994,7 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
                     <MaterialCommunityIcons name="plus" size={15} color={theme.colors.tint} />
                     <Text text="Add new" size="xs" style={themed($parentActionText)} />
                   </Pressable>
-                  <Pressable
-                    onPress={() => setShowSirePicker(true)}
-                    style={themed($parentAction)}
-                  >
+                  <Pressable onPress={() => setShowSirePicker(true)} style={themed($parentAction)}>
                     <MaterialCommunityIcons name="link" size={15} color={theme.colors.tint} />
                     <Text text="Link existing" size="xs" style={themed($parentActionText)} />
                   </Pressable>
@@ -905,7 +1004,11 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
 
             {/* Dam */}
             <View style={themed($lineageRow)}>
-              <MaterialCommunityIcons name="gender-female" size={18} color={theme.colors.palette.accent500} />
+              <MaterialCommunityIcons
+                name="gender-female"
+                size={18}
+                color={theme.colors.palette.accent500}
+              />
               <View style={{ flex: 1, marginLeft: 12 }}>
                 <Text text="Dam" size="xs" style={themed($dimText)} />
                 {animal.damId ? (
@@ -919,7 +1022,11 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
                       }
                     }}
                   >
-                    <Text text={damName || "Loading..."} preset="bold" style={{ textDecorationLine: "underline" }} />
+                    <Text
+                      text={damName || "Loading..."}
+                      preset="bold"
+                      style={{ textDecorationLine: "underline" }}
+                    />
                   </Pressable>
                 ) : externalDamLabel ? (
                   <>
@@ -943,10 +1050,7 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
                     <MaterialCommunityIcons name="plus" size={15} color={theme.colors.tint} />
                     <Text text="Add new" size="xs" style={themed($parentActionText)} />
                   </Pressable>
-                  <Pressable
-                    onPress={() => setShowDamPicker(true)}
-                    style={themed($parentAction)}
-                  >
+                  <Pressable onPress={() => setShowDamPicker(true)} style={themed($parentAction)}>
                     <MaterialCommunityIcons name="link" size={15} color={theme.colors.tint} />
                     <Text text="Link existing" size="xs" style={themed($parentActionText)} />
                   </Pressable>
@@ -961,64 +1065,91 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
               <Text preset="subheading" text="Offspring" style={themed($sectionTitle)} />
               <Pressable onPress={() => setShowOffspringPicker(true)} style={themed($addButton)}>
                 <MaterialCommunityIcons name="link" size={20} color={theme.colors.tint} />
-                <Text text="Link Existing" size="sm" style={{ color: theme.colors.tint, marginLeft: 4 }} />
+                <Text
+                  text="Link Existing"
+                  size="sm"
+                  style={{ color: theme.colors.tint, marginLeft: 4 }}
+                />
               </Pressable>
             </View>
 
             {offspringStats.total > 0 && (
               <>
-
-              {/* Stats Card */}
-              <View style={themed($offspringStatsCard)}>
-                <View style={themed($statsRow)}>
-                  <View style={themed($statItem)}>
-                    <Text text={offspringStats.total.toString()} preset="heading" style={{ color: theme.colors.tint }} />
-                    <Text text="Total" size="xs" style={themed($dimText)} />
-                  </View>
-                  <View style={themed($statItem)}>
-                    <Text text={offspringStats.alive.toString()} preset="heading" style={{ color: theme.colors.palette.primary500 }} />
-                    <Text text="Active" size="xs" style={themed($dimText)} />
-                  </View>
-                  <View style={themed($statItem)}>
-                    <Text text={offspringStats.male.toString()} preset="heading" />
-                    <Text text="Male" size="xs" style={themed($dimText)} />
-                  </View>
-                  <View style={themed($statItem)}>
-                    <Text text={offspringStats.female.toString()} preset="heading" />
-                    <Text text="Female" size="xs" style={themed($dimText)} />
+                {/* Stats Card */}
+                <View style={themed($offspringStatsCard)}>
+                  <View style={themed($statsRow)}>
+                    <View style={themed($statItem)}>
+                      <Text
+                        text={offspringStats.total.toString()}
+                        preset="heading"
+                        style={{ color: theme.colors.tint }}
+                      />
+                      <Text text="Total" size="xs" style={themed($dimText)} />
+                    </View>
+                    <View style={themed($statItem)}>
+                      <Text
+                        text={offspringStats.alive.toString()}
+                        preset="heading"
+                        style={{ color: theme.colors.palette.primary500 }}
+                      />
+                      <Text text="Active" size="xs" style={themed($dimText)} />
+                    </View>
+                    <View style={themed($statItem)}>
+                      <Text text={offspringStats.male.toString()} preset="heading" />
+                      <Text text="Male" size="xs" style={themed($dimText)} />
+                    </View>
+                    <View style={themed($statItem)}>
+                      <Text text={offspringStats.female.toString()} preset="heading" />
+                      <Text text="Female" size="xs" style={themed($dimText)} />
+                    </View>
                   </View>
                 </View>
-              </View>
 
-              {/* Offspring List (first 5) */}
-              <View style={themed($offspringList)}>
-                {offspring.slice(0, 5).map((child) => (
-                  <Pressable
-                    key={child.id}
-                    onPress={() => navigation.navigate("AnimalDetail", { animalId: child.id })}
-                    style={themed($offspringRow)}
-                  >
-                    <View style={{ flex: 1 }}>
-                      <Text text={child.displayName} preset="bold" />
-                      <Text text={`${child.breed} | ${child.sexLabel}`} size="xs" style={themed($dimText)} />
-                    </View>
-                    <View style={[$statusBadge, { backgroundColor: theme.colors.tint + "22" }]}>
-                      <Text text={child.status} size="xxs" style={{ color: theme.colors.tint }} />
-                    </View>
-                    <MaterialCommunityIcons name="chevron-right" size={20} color={theme.colors.textDim} />
-                  </Pressable>
-                ))}
+                {/* Offspring List (first 5) */}
+                <View style={themed($offspringList)}>
+                  {offspring.slice(0, 5).map((child) => (
+                    <Pressable
+                      key={child.id}
+                      onPress={() => navigation.navigate("AnimalDetail", { animalId: child.id })}
+                      style={themed($offspringRow)}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text text={child.displayName} preset="bold" />
+                        <Text
+                          text={`${child.breed} | ${child.sexLabel}`}
+                          size="xs"
+                          style={themed($dimText)}
+                        />
+                      </View>
+                      <View style={[$statusBadge, { backgroundColor: theme.colors.tint + "22" }]}>
+                        <Text text={child.status} size="xxs" style={{ color: theme.colors.tint }} />
+                      </View>
+                      <MaterialCommunityIcons
+                        name="chevron-right"
+                        size={20}
+                        color={theme.colors.textDim}
+                      />
+                    </Pressable>
+                  ))}
 
-                {offspring.length > 5 && (
-                  <Text text={`+ ${offspring.length - 5} more offspring`} size="sm" style={themed($dimText)} />
-                )}
-              </View>
-            </>
+                  {offspring.length > 5 && (
+                    <Text
+                      text={`+ ${offspring.length - 5} more offspring`}
+                      size="sm"
+                      style={themed($dimText)}
+                    />
+                  )}
+                </View>
+              </>
             )}
 
             {offspringStats.total === 0 && (
               <View style={themed($helpText)}>
-                <MaterialCommunityIcons name="information-outline" size={16} color={theme.colors.textDim} />
+                <MaterialCommunityIcons
+                  name="information-outline"
+                  size={16}
+                  color={theme.colors.textDim}
+                />
                 <Text
                   text="No offspring yet. Use 'Link Existing' to connect existing animals, or add a breeding record below to track pregnancies."
                   size="xs"
@@ -1052,14 +1183,25 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
                   <Text preset="bold" text={r.method} />
                   <Text size="xs" text={r.outcome} style={themed($dimText)} />
                 </View>
-                <Text text={t("animalDetailScreen.breeding.bred", { date: formatDate(r.breedingDate) })} size="sm" />
+                <Text
+                  text={t("animalDetailScreen.breeding.bred", { date: formatDate(r.breedingDate) })}
+                  size="sm"
+                />
                 {r.expectedCalvingDate ? (
-                  <Text text={t("animalDetailScreen.breeding.expectedCalving", { date: formatDate(r.expectedCalvingDate) })} size="xs" style={themed($dimText)} />
+                  <Text
+                    text={t("animalDetailScreen.breeding.expectedCalving", {
+                      date: formatDate(r.expectedCalvingDate),
+                    })}
+                    size="xs"
+                    style={themed($dimText)}
+                  />
                 ) : null}
                 <PhotoGallery photosJson={r.photos} />
                 {r.createdByName ? (
                   <Text
-                    text={t("animalDetailScreen.breeding.recordedBy", { name: r.createdByName.split('@')[0] })}
+                    text={t("animalDetailScreen.breeding.recordedBy", {
+                      name: r.createdByName.split("@")[0],
+                    })}
                     size="xxs"
                     style={themed($createdByText)}
                   />
@@ -1103,23 +1245,6 @@ export const AnimalDetailScreen: FC<AppStackScreenProps<"AnimalDetail">> = ({ ro
   )
 }
 
-function HeroStat({
-  label,
-  value,
-  themed,
-}: {
-  label: string
-  value: string
-  themed: (style: ThemedStyle<any>) => any
-}) {
-  return (
-    <View style={themed($heroStat)}>
-      <Text text={value} preset="bold" size="sm" numberOfLines={1} style={themed($heroStatValue)} />
-      <Text text={label} size="xxs" numberOfLines={1} style={themed($dimText)} />
-    </View>
-  )
-}
-
 function InfoTile({
   action,
   icon,
@@ -1158,13 +1283,19 @@ function InfoTile({
 }
 
 function formatRecordType(recordType: string) {
-  return recordType
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase())
+  return recordType.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase())
 }
 
 // Simple detail row component
-function DetailRow({ label, value, themed }: { label: string; value: string; themed: (style: ThemedStyle<any>) => any }) {
+function DetailRow({
+  label,
+  value,
+  themed,
+}: {
+  label: string
+  value: string
+  themed: (style: ThemedStyle<any>) => any
+}) {
   return (
     <View style={themed($detailRow)}>
       <Text text={label} size="sm" style={themed($detailLabel)} />
@@ -1193,14 +1324,12 @@ const $headerRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 })
 
 const $headerIconButton: ThemedStyle<ViewStyle> = ({ colors }) => ({
-  width: 40,
-  height: 40,
+  width: 44,
+  height: 44,
   alignItems: "center",
   justifyContent: "center",
-  borderRadius: 20,
+  borderRadius: 22,
   backgroundColor: colors.palette.neutral100,
-  borderWidth: 1,
-  borderColor: colors.border,
 })
 
 const $headerTitle: ThemedStyle<TextStyle> = () => ({
@@ -1213,87 +1342,15 @@ const $editProfileButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   alignItems: "center",
   justifyContent: "center",
   gap: spacing.xxs,
-  height: 40,
+  minHeight: 44,
   paddingHorizontal: spacing.sm,
   borderRadius: 20,
-  borderWidth: 1,
-  borderColor: colors.tint,
-  backgroundColor: colors.background,
+  borderWidth: 0,
+  backgroundColor: colors.palette.primary100,
 })
 
 const $editProfileText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.tint,
-})
-
-const $animalHero: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  padding: spacing.md,
-  borderRadius: 18,
-  backgroundColor: colors.palette.neutral100,
-  marginBottom: spacing.md,
-  gap: spacing.md,
-})
-
-const $animalIdentity: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flexDirection: "row",
-  alignItems: "center",
-  gap: spacing.sm,
-})
-
-const $animalAvatar: ThemedStyle<ViewStyle> = ({ colors }) => ({
-  width: 58,
-  height: 58,
-  borderRadius: 18,
-  alignItems: "center",
-  justifyContent: "center",
-  backgroundColor: colors.palette.primary100,
-})
-
-const $animalIdentityText: ThemedStyle<ViewStyle> = () => ({
-  flex: 1,
-  minWidth: 0,
-})
-
-const $heroStatusBadge: ViewStyle = {
-  flexDirection: "row",
-  alignItems: "center",
-  gap: 5,
-  borderRadius: 14,
-  paddingHorizontal: 9,
-  paddingVertical: 5,
-}
-
-const $statusDot: ViewStyle = {
-  width: 6,
-  height: 6,
-  borderRadius: 3,
-}
-
-const $heroStats: ThemedStyle<ViewStyle> = ({ colors }) => ({
-  flexDirection: "row",
-  alignItems: "center",
-  borderRadius: 12,
-  backgroundColor: colors.background,
-  borderWidth: 1,
-  borderColor: colors.border,
-  paddingVertical: 10,
-})
-
-const $heroStat: ThemedStyle<ViewStyle> = () => ({
-  flex: 1,
-  minWidth: 0,
-  alignItems: "center",
-  paddingHorizontal: 4,
-})
-
-const $heroStatValue: ThemedStyle<TextStyle> = ({ colors }) => ({
-  color: colors.text,
-  textAlign: "center",
-})
-
-const $heroStatDivider: ThemedStyle<ViewStyle> = ({ colors }) => ({
-  width: 1,
-  height: 30,
-  backgroundColor: colors.separator,
 })
 
 const $statusBadge: ViewStyle = {
@@ -1302,89 +1359,51 @@ const $statusBadge: ViewStyle = {
   paddingVertical: 3,
 }
 
-const $tabScroller: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  marginHorizontal: -spacing.md,
-  marginBottom: spacing.md,
-})
-
 const $tabRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
-  gap: spacing.xs,
-  paddingHorizontal: spacing.md,
+  gap: 5,
+  marginBottom: spacing.md,
 })
-
-const $tab: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  minWidth: 94,
-  minHeight: 52,
+const $tabIconRow: ThemedStyle<ViewStyle> = () => ({
   flexDirection: "row",
-  backgroundColor: colors.background,
-  borderRadius: 16,
-  paddingVertical: spacing.xs,
-  paddingHorizontal: spacing.sm,
+  gap: 4,
   alignItems: "center",
   justifyContent: "center",
-  gap: spacing.xxs,
-  borderWidth: 1,
-  borderColor: colors.border,
 })
-
-const $tabActive: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  minWidth: 94,
-  minHeight: 52,
-  flexDirection: "row",
-  backgroundColor: colors.tint,
-  borderRadius: 16,
-  paddingVertical: spacing.xs,
-  paddingHorizontal: spacing.sm,
+const $tab: ThemedStyle<ViewStyle> = ({ isDark }) => ({
+  flex: 1,
+  minWidth: 0,
+  minHeight: 68,
+  borderRadius: 18,
+  paddingVertical: 10,
+  paddingHorizontal: 3,
   alignItems: "center",
   justifyContent: "center",
-  gap: spacing.xxs,
-  borderWidth: 1,
-  borderColor: colors.tint,
+  gap: 5,
+  backgroundColor: bentoColors(isDark).surface,
 })
-
-const $tabText: ThemedStyle<TextStyle> = ({ colors }) => ({
-  color: colors.textDim,
-  fontSize: 11,
+const $tabActive: ThemedStyle<ViewStyle> = (theme) => ({
+  ...$tab(theme),
+  backgroundColor: bentoColors(theme.isDark).forest,
+})
+const $tabText: ThemedStyle<TextStyle> = ({ isDark }) => ({
+  color: bentoColors(isDark).muted,
+  fontSize: 10,
+  lineHeight: 13,
   textAlign: "center",
 })
-
-const $tabTextActive: ThemedStyle<TextStyle> = () => ({
-  color: "#FFFFFF",
-  fontSize: 11,
-  fontWeight: "600",
-  textAlign: "center",
+const $tabTextActive: ThemedStyle<TextStyle> = (theme) => ({
+  ...$tabText(theme),
+  color: bentoColors(theme.isDark).onForest,
 })
-
-const $tabCount: ThemedStyle<ViewStyle> = ({ colors }) => ({
-  minWidth: 18,
-  height: 18,
-  paddingHorizontal: 4,
-  borderRadius: 9,
+const $historySummary: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
   alignItems: "center",
-  justifyContent: "center",
-  backgroundColor: colors.palette.neutral200,
+  gap: spacing.sm,
+  borderRadius: bentoRadii.card,
+  padding: spacing.md,
 })
-
-const $tabCountActive: ThemedStyle<ViewStyle> = () => ({
-  minWidth: 18,
-  height: 18,
-  paddingHorizontal: 4,
-  borderRadius: 9,
-  alignItems: "center",
-  justifyContent: "center",
-  backgroundColor: "rgba(255,255,255,0.22)",
-})
-
-const $tabCountText: ThemedStyle<TextStyle> = ({ colors }) => ({
-  color: colors.textDim,
-  fontWeight: "700",
-})
-
-const $tabCountTextActive: ThemedStyle<TextStyle> = () => ({
-  color: "#FFFFFF",
-  fontWeight: "700",
-})
+const $historySummaryCopy: ThemedStyle<ViewStyle> = () => ({ flex: 1, gap: 3 })
 
 const $section: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   gap: spacing.md,
@@ -1408,8 +1427,6 @@ const $overviewCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   padding: spacing.md,
   borderRadius: bentoRadii.card,
   backgroundColor: colors.palette.neutral100,
-  borderWidth: 1,
-  borderColor: colors.border,
   gap: spacing.sm,
 })
 
@@ -1441,8 +1458,6 @@ const $infoTile: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   padding: spacing.sm,
   borderRadius: 12,
   backgroundColor: colors.background,
-  borderWidth: 1,
-  borderColor: colors.border,
   justifyContent: "space-between",
   gap: spacing.xs,
 })
@@ -1491,8 +1506,6 @@ const $recordCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
   borderRadius: bentoRadii.card,
   padding: spacing.md,
-  borderWidth: 1,
-  borderColor: colors.border,
   gap: spacing.xs,
 })
 
@@ -1593,8 +1606,6 @@ const $tagsSection: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   padding: spacing.md,
   borderRadius: 16,
   backgroundColor: colors.palette.neutral100,
-  borderWidth: 1,
-  borderColor: colors.border,
 })
 
 const $tagsSectionHeader: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -1640,8 +1651,6 @@ const $lineageSection: ThemedStyle<ViewStyle> = ({ spacing, colors }) => ({
   padding: spacing.md,
   borderRadius: 16,
   backgroundColor: colors.palette.neutral100,
-  borderWidth: 1,
-  borderColor: colors.border,
   gap: spacing.xs,
 })
 

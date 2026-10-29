@@ -26,3 +26,10 @@ This branch has not been published to the app stores. Android hardware and physi
 - Six additional action checks cover all Chute modes and pasture actions in light/dark layouts. All 175 tests pass across 34 suites; both mobile JavaScript exports pass.
 - No new TypeScript or lint errors were found against the existing code. The repository still has 95 pre-existing TypeScript diagnostics and legacy lint findings.
 - Native iOS 18.2 inspection covered the new Chute picker, active weighing session, lookup of an existing animal and the Pastures header. No farm record was saved. The simulator is left on the Chute picker.
+
+
+## Individual animal profile
+
+The cow profile now uses a forest identity hero, separate weight/age/offspring tiles, and direct weight/health recording actions. All five record tabs fit in one row. The overview surfaces vaccination-history confidence; legacy settings are shown as unconfirmed until reviewed. Ordinary information panels use borderless surfaces, while semantic vaccination alerts retain their severity styling.
+
+Native iOS inspection covered the overview, weight history, vaccination history and breeding tab for an existing animal without saving changes. Two action tests exercise identity and recording/history callbacks in both themes. All 177 tests pass across 35 suites, both mobile JavaScript exports pass, and no new TypeScript or lint errors were introduced. The existing 95 TypeScript diagnostics remain.
