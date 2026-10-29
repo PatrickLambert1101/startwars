@@ -1,21 +1,21 @@
 const palette = {
   neutral100: "#FFFFFF",
-  neutral200: "#F5F3F0",
-  neutral300: "#DDD8D0",
-  neutral400: "#B5AFA6",
-  neutral500: "#8C857C",
-  neutral600: "#5C564F",
-  neutral700: "#3D3832",
-  neutral800: "#1E1A16",
+  neutral200: "#F3F4EE",
+  neutral300: "#E1E7DA",
+  neutral400: "#B9C1B0",
+  neutral500: "#8B9785",
+  neutral600: "#64715F",
+  neutral700: "#354332",
+  neutral800: "#1D2B22",
   neutral900: "#000000",
 
-  // Earthy green — primary brand color, anchored on the logo green (#739134)
-  primary100: "#EEF2E7",
-  primary200: "#D8E0C6",
+  // Forest green for primary actions; sage for supporting surfaces
+  primary100: "#EDF2E4",
+  primary200: "#D5E4B7",
   primary300: "#B6C695",
   primary400: "#95AB65",
-  primary500: "#739134",
-  primary600: "#576E28",
+  primary500: "#3D643B",
+  primary600: "#274A2B",
 
   // Warm brown — secondary (leather/earth)
   secondary100: "#EDE5DA",

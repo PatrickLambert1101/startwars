@@ -1,15 +1,12 @@
 import { FC, useEffect, useMemo, useState } from "react"
 import { ActivityIndicator, FlatList, Pressable, View, ViewStyle, TextStyle } from "react-native"
-import { format } from "date-fns"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
+import { format } from "date-fns"
 
 import { AnimalPicker, AppHeader, Button, Screen, Text, TextField } from "@/components"
+import { PlanSwitcher } from "@/components/PlanSwitcher"
 import type { Animal } from "@/db/models/Animal"
-import type {
-  BreedingMethod,
-  BreedingOutcome,
-  BreedingRecord,
-} from "@/db/models/BreedingRecord"
+import type { BreedingMethod, BreedingOutcome, BreedingRecord } from "@/db/models/BreedingRecord"
 import { useAnimals } from "@/hooks/useAnimals"
 import { useAllBreedingRecords } from "@/hooks/useRecords"
 import type { MainTabScreenProps } from "@/navigators/navigationTypes"
@@ -151,7 +148,8 @@ export const BreedingScreen: FC<MainTabScreenProps<"Breeding">> = ({ navigation,
             <Text
               text={isPending ? timing.label : OUTCOME_LABELS[item.outcome]}
               size="xxs"
-              style={{ color: tone, fontWeight: "700" }}
+              preset="bold"
+              style={{ color: tone }}
             />
           </View>
         </View>
@@ -231,7 +229,11 @@ export const BreedingScreen: FC<MainTabScreenProps<"Breeding">> = ({ navigation,
               preset="bold"
               size="sm"
             />
-            <Text text="Tap to review animals needing attention." size="xs" style={themed($dimText)} />
+            <Text
+              text="Tap to review animals needing attention."
+              size="xs"
+              style={themed($dimText)}
+            />
           </View>
           <MaterialCommunityIcons name="chevron-right" size={20} color={colors.error} />
         </Pressable>
@@ -321,7 +323,8 @@ export const BreedingScreen: FC<MainTabScreenProps<"Breeding">> = ({ navigation,
 
   return (
     <Screen preset="fixed" contentContainerStyle={themed($screenContent)} safeAreaEdges={["top"]}>
-      <AppHeader title="Breeding" />
+      <AppHeader title="Plan" />
+      <PlanSwitcher selected="Breeding" />
 
       <FlatList
         data={visibleRecords}
@@ -411,7 +414,7 @@ const $heroCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   padding: spacing.md,
   marginTop: spacing.xs,
   marginBottom: spacing.sm,
-  borderRadius: 14,
+  borderRadius: 22,
   backgroundColor: colors.palette.primary100,
 })
 
@@ -453,7 +456,7 @@ const $statCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   paddingVertical: spacing.sm,
   borderWidth: 1,
   borderColor: colors.border,
-  borderRadius: 12,
+  borderRadius: 22,
   backgroundColor: colors.palette.neutral100,
 })
 
@@ -503,7 +506,7 @@ const $listHeading: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $recordCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   padding: spacing.md,
   marginBottom: spacing.sm,
-  borderRadius: 14,
+  borderRadius: 22,
   borderWidth: 1,
   borderLeftWidth: 4,
   borderColor: colors.border,

@@ -25,6 +25,7 @@ import {
   Screen,
   Text,
 } from "@/components"
+import { BentoActions, BentoOverview } from "@/components/BentoDashboard"
 import { RfidLoadingAnimation } from "@/components/RfidLoadingAnimation"
 import { useAuth } from "@/context/AuthContext"
 import { useDatabase } from "@/context/DatabaseContext"
@@ -41,6 +42,7 @@ import { usePendingInvites } from "@/hooks/usePendingInvites"
 import { useRfidReader } from "@/hooks/useRfidReader"
 import { usePendingVaccinations } from "@/hooks/useVaccinationSchedules"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
+import { bentoColors } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import type { DashboardActivityItem } from "@/utils/dashboardActivity"
@@ -354,7 +356,12 @@ export const DashboardScreen: FC<MainTabScreenProps<"Dashboard">> = ({ navigatio
     vaccinationsNeedingAttention === 0 &&
     pastureAlerts.length === 0
 
-  const confidence = getDashboardConfidence({ lastSynced, syncStatus, historiesToReview: stats.historiesToReview, activeSchedules: stats.activeSchedules })
+  const confidence = getDashboardConfidence({
+    lastSynced,
+    syncStatus,
+    historiesToReview: stats.historiesToReview,
+    activeSchedules: stats.activeSchedules,
+  })
 
   const syncStatusText =
     syncStatus === "syncing"
@@ -371,9 +378,204 @@ export const DashboardScreen: FC<MainTabScreenProps<"Dashboard">> = ({ navigatio
         ? "cloud-alert"
         : "cloud-check-outline"
 
+  const hasUrgentItems =
+    stats.dueToCalve > 0 || vaccinationsNeedingAttention > 0 || pastureAlerts.length > 0
+  const attentionPanel = (
+    <View style={themed($section)}>
+      <View style={themed($sectionHeader)}>
+        <Text preset="subheading" text="Needs attention" />
+        {(statsLoading || pasturesLoading || pastureActivitiesLoading || vaccinationsLoading) && (
+          <ActivityIndicator size="small" color={colors.tint} />
+        )}
+      </View>
+
+      {(allCaughtUp || (!statsLoading && confidence !== "localSummary")) && (
+        <View
+          style={[
+            themed($caughtUpCard),
+            confidence !== "localSummary" && { backgroundColor: colors.palette.accent100 },
+          ]}
+        >
+          <MaterialCommunityIcons
+            name={
+              confidence === "localSummary"
+                ? "check-circle-outline"
+                : confidence === "syncProblem"
+                  ? "cloud-alert"
+                  : "information-outline"
+            }
+            size={24}
+            color={confidence === "localSummary" ? colors.palette.primary500 : colors.text}
+          />
+          <View style={themed($alertText)}>
+            <Text preset="bold" text={t(`uxFixes.dashboard.${confidence}.title`)} />
+            <Text
+              text={t(`uxFixes.dashboard.${confidence}.message`, {
+                count: stats.historiesToReview,
+              })}
+              size="xs"
+              style={themed($dimText)}
+            />
+            {confidence === "setUpSchedules" && (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => navigation.navigate("VaccinationSchedules")}
+                style={$reviewLink}
+              >
+                <Text
+                  text={t("uxFixes.scheduleAction")}
+                  preset="bold"
+                  size="xs"
+                  style={{ color: colors.tint }}
+                />
+              </Pressable>
+            )}
+            {confidence === "reviewHistory" && (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => navigation.navigate("HerdList", {})}
+                style={$reviewLink}
+              >
+                <Text
+                  text={t("uxFixes.openHerd")}
+                  preset="bold"
+                  size="xs"
+                  style={{ color: colors.tint }}
+                />
+              </Pressable>
+            )}
+          </View>
+        </View>
+      )}
+
+      {stats.dueToCalve > 0 && (
+        <Pressable
+          onPress={handleBreedingAttentionPress}
+          style={themed($calvingCard)}
+          accessibilityRole="button"
+        >
+          <View style={themed($alertIcon)}>
+            <MaterialCommunityIcons name="cow" size={24} color={colors.tint} />
+          </View>
+          <View style={themed($alertText)}>
+            <Text
+              preset="bold"
+              text={`${stats.dueToCalve} expected calving${
+                stats.dueToCalve === 1 ? "" : "s"
+              } need attention`}
+            />
+            <Text
+              text={
+                stats.overdueCalvings > 0 && upcomingCalvings > 0
+                  ? `${stats.overdueCalvings} overdue · ${upcomingCalvings} due within 60 days`
+                  : stats.overdueCalvings > 0
+                    ? `${stats.overdueCalvings} overdue`
+                    : "Due within the next 60 days"
+              }
+              size="xs"
+              style={themed($dimText)}
+            />
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={21} color={colors.tint} />
+        </Pressable>
+      )}
+
+      {vaccinationsNeedingAttention > 0 && (
+        <Pressable onPress={handleViewVaccinations} style={themed($vaccinationCard)}>
+          <View style={themed($vaccinationHeader)}>
+            <MaterialCommunityIcons name="needle" size={24} color={colors.palette.accent500} />
+            <Text
+              preset="subheading"
+              text={`${vaccinationsNeedingAttention} vaccination${
+                vaccinationsNeedingAttention === 1 ? "" : "s"
+              } due`}
+              style={themed($vaccinationTitle)}
+            />
+          </View>
+          <View style={themed($vaccinationCounts)}>
+            {vaccinationCounts.overdue > 0 && (
+              <View style={themed($vaccinationBadge($vaccinationBadgeError))}>
+                <Text style={themed($vaccinationBadgeText)}>
+                  {vaccinationCounts.overdue} {t("dashboardScreen.vaccinations.overdue")}
+                </Text>
+              </View>
+            )}
+            {vaccinationCounts.dueToday > 0 && (
+              <View style={themed($vaccinationBadge($vaccinationBadgeWarning))}>
+                <Text style={themed($vaccinationBadgeText)}>
+                  {vaccinationCounts.dueToday} {t("dashboardScreen.vaccinations.dueToday")}
+                </Text>
+              </View>
+            )}
+            {vaccinationCounts.dueSoon > 0 && (
+              <View style={themed($vaccinationBadge($vaccinationBadgeInfo))}>
+                <Text style={themed($vaccinationBadgeText)}>
+                  {vaccinationCounts.dueSoon} {t("dashboardScreen.vaccinations.dueSoon")}
+                </Text>
+              </View>
+            )}
+          </View>
+          <View style={themed($vaccinationFooter)}>
+            <Text text="Review due vaccinations" style={themed($vaccinationLink)} />
+            <MaterialCommunityIcons name="chevron-right" size={16} color={colors.tint} />
+          </View>
+        </Pressable>
+      )}
+
+      {pastureAlerts.length > 0 && (
+        <View style={themed($pastureAlertCard)}>
+          <Pressable onPress={handlePasturesPress} style={themed($pastureAlertHeader)}>
+            <View style={themed($pastureHeaderTitle)}>
+              <MaterialCommunityIcons name="grass" size={24} color={colors.error} />
+              <Text
+                preset="subheading"
+                text={`${pastureAlerts.length} pasture alert${
+                  pastureAlerts.length === 1 ? "" : "s"
+                }`}
+              />
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={21} color={colors.tint} />
+          </Pressable>
+          {pastureAlerts.slice(0, 3).map(({ pasture, status }) => (
+            <Pressable
+              key={pasture.id}
+              onPress={() => navigation.navigate("PastureDetail", { pastureId: pasture.id })}
+              style={themed($pastureAlertRow)}
+            >
+              <View
+                style={[
+                  themed($alertDot),
+                  {
+                    backgroundColor:
+                      status.level === "red" ? colors.error : colors.palette.accent500,
+                  },
+                ]}
+              />
+              <View style={themed($alertText)}>
+                <Text text={pasture.name} preset="bold" size="sm" />
+                <Text
+                  text={`${status.label} · ${status.reason}`}
+                  size="xs"
+                  style={themed($dimText)}
+                />
+              </View>
+            </Pressable>
+          ))}
+          {pastureAlerts.length > 3 && (
+            <Text
+              text={`+ ${pastureAlerts.length - 3} more pasture alerts`}
+              size="xs"
+              style={themed($moreAlerts)}
+            />
+          )}
+        </View>
+      )}
+    </View>
+  )
+
   return (
     <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
-      <AppHeader title={t("dashboardScreen.title")} showSettings={true} />
+      <AppHeader title="Your farm" showSettings={true} />
 
       {/* Pending farm invites, matched by the signed-in user's email. */}
       {pendingInvites.map((invite) => (
@@ -411,19 +613,18 @@ export const DashboardScreen: FC<MainTabScreenProps<"Dashboard">> = ({ navigatio
         </View>
       ) : (
         <>
+          <BentoOverview
+            farm={currentOrg.name}
+            animals={stats.activeCount}
+            grazing={stats.assignedToPastureCount}
+            occupied={occupiedPastureCount}
+            loading={statsLoading}
+            pasturesLoading={pasturesLoading}
+            onFarm={() => setShowFarmPicker(true)}
+            onHerd={handleActiveAnimalsPress}
+            onPastures={handlePasturesPress}
+          />
           <View style={themed($farmCard)}>
-            <Pressable
-              onPress={() => setShowFarmPicker(true)}
-              style={themed($farmSwitcher)}
-              accessibilityRole="button"
-              accessibilityLabel="Switch farm"
-            >
-              <View>
-                <Text text={t("dashboardScreen.currentFarm")} size="xs" style={themed($dimText)} />
-                <Text text={currentOrg.name} preset="bold" />
-              </View>
-              <MaterialCommunityIcons name="chevron-down" size={22} color={colors.textDim} />
-            </Pressable>
             <Pressable
               onPress={() => void sync()}
               disabled={syncStatus === "syncing"}
@@ -453,277 +654,52 @@ export const DashboardScreen: FC<MainTabScreenProps<"Dashboard">> = ({ navigatio
             </Pressable>
           </View>
 
-          <View style={themed($section)}>
-            <View style={themed($sectionHeader)}>
-              <Text preset="subheading" text="Needs attention" />
-              {(statsLoading ||
-                pasturesLoading ||
-                pastureActivitiesLoading ||
-                vaccinationsLoading) && <ActivityIndicator size="small" color={colors.tint} />}
-            </View>
-
-            {(allCaughtUp || (!statsLoading && confidence !== "localSummary")) && (
-              <View style={[themed($caughtUpCard), confidence !== "localSummary" && { backgroundColor: colors.palette.accent100 }]}>
-                <MaterialCommunityIcons
-                  name={confidence === "localSummary" ? "check-circle-outline" : confidence === "syncProblem" ? "cloud-alert" : "information-outline"}
-                  size={24}
-                  color={confidence === "localSummary" ? colors.palette.primary500 : colors.text}
-                />
-                <View style={themed($alertText)}>
-                  <Text preset="bold" text={t(`uxFixes.dashboard.${confidence}.title`)} />
-                  <Text
-                    text={t(`uxFixes.dashboard.${confidence}.message`, { count: stats.historiesToReview })}
-                    size="xs"
-                    style={themed($dimText)}
-                  />
-                  {confidence === "setUpSchedules" && <Button text={t("uxFixes.scheduleAction")} onPress={() => navigation.navigate("VaccinationSchedules")} />}
-                  {confidence === "reviewHistory" && <Button text={t("uxFixes.openHerd")} onPress={() => navigation.navigate("HerdList", {})} />}
-                </View>
-              </View>
-            )}
-
-            {stats.dueToCalve > 0 && (
-              <Pressable
-                onPress={handleBreedingAttentionPress}
-                style={themed($calvingCard)}
-                accessibilityRole="button"
-              >
-                <View style={themed($alertIcon)}>
-                  <MaterialCommunityIcons name="cow" size={24} color={colors.tint} />
-                </View>
-                <View style={themed($alertText)}>
-                  <Text
-                    preset="bold"
-                    text={`${stats.dueToCalve} expected calving${
-                      stats.dueToCalve === 1 ? "" : "s"
-                    } need attention`}
-                  />
-                  <Text
-                    text={
-                      stats.overdueCalvings > 0 && upcomingCalvings > 0
-                        ? `${stats.overdueCalvings} overdue · ${upcomingCalvings} due within 60 days`
-                        : stats.overdueCalvings > 0
-                          ? `${stats.overdueCalvings} overdue`
-                          : "Due within the next 60 days"
-                    }
-                    size="xs"
-                    style={themed($dimText)}
-                  />
-                </View>
-                <MaterialCommunityIcons name="chevron-right" size={21} color={colors.tint} />
-              </Pressable>
-            )}
-
-            {vaccinationsNeedingAttention > 0 && (
-              <Pressable onPress={handleViewVaccinations} style={themed($vaccinationCard)}>
-                <View style={themed($vaccinationHeader)}>
-                  <MaterialCommunityIcons
-                    name="needle"
-                    size={24}
-                    color={colors.palette.accent500}
-                  />
-                  <Text
-                    preset="subheading"
-                    text={`${vaccinationsNeedingAttention} vaccination${
-                      vaccinationsNeedingAttention === 1 ? "" : "s"
-                    } due`}
-                    style={themed($vaccinationTitle)}
-                  />
-                </View>
-                <View style={themed($vaccinationCounts)}>
-                  {vaccinationCounts.overdue > 0 && (
-                    <View style={themed($vaccinationBadge($vaccinationBadgeError))}>
-                      <Text style={themed($vaccinationBadgeText)}>
-                        {vaccinationCounts.overdue} {t("dashboardScreen.vaccinations.overdue")}
-                      </Text>
-                    </View>
-                  )}
-                  {vaccinationCounts.dueToday > 0 && (
-                    <View style={themed($vaccinationBadge($vaccinationBadgeWarning))}>
-                      <Text style={themed($vaccinationBadgeText)}>
-                        {vaccinationCounts.dueToday} {t("dashboardScreen.vaccinations.dueToday")}
-                      </Text>
-                    </View>
-                  )}
-                  {vaccinationCounts.dueSoon > 0 && (
-                    <View style={themed($vaccinationBadge($vaccinationBadgeInfo))}>
-                      <Text style={themed($vaccinationBadgeText)}>
-                        {vaccinationCounts.dueSoon} {t("dashboardScreen.vaccinations.dueSoon")}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-                <View style={themed($vaccinationFooter)}>
-                  <Text text="Review due vaccinations" style={themed($vaccinationLink)} />
-                  <MaterialCommunityIcons name="chevron-right" size={16} color={colors.tint} />
-                </View>
-              </Pressable>
-            )}
-
-            {pastureAlerts.length > 0 && (
-              <View style={themed($pastureAlertCard)}>
-                <Pressable onPress={handlePasturesPress} style={themed($pastureAlertHeader)}>
-                  <View style={themed($pastureHeaderTitle)}>
-                    <MaterialCommunityIcons name="grass" size={24} color={colors.error} />
-                    <Text
-                      preset="subheading"
-                      text={`${pastureAlerts.length} pasture alert${
-                        pastureAlerts.length === 1 ? "" : "s"
-                      }`}
-                    />
-                  </View>
-                  <MaterialCommunityIcons name="chevron-right" size={21} color={colors.tint} />
-                </Pressable>
-                {pastureAlerts.slice(0, 3).map(({ pasture, status }) => (
-                  <Pressable
-                    key={pasture.id}
-                    onPress={() => navigation.navigate("PastureDetail", { pastureId: pasture.id })}
-                    style={themed($pastureAlertRow)}
-                  >
-                    <View
-                      style={[
-                        themed($alertDot),
-                        {
-                          backgroundColor:
-                            status.level === "red" ? colors.error : colors.palette.accent500,
-                        },
-                      ]}
-                    />
-                    <View style={themed($alertText)}>
-                      <Text text={pasture.name} preset="bold" size="sm" />
-                      <Text
-                        text={`${status.label} · ${status.reason}`}
-                        size="xs"
-                        style={themed($dimText)}
-                      />
-                    </View>
-                  </Pressable>
-                ))}
-                {pastureAlerts.length > 3 && (
-                  <Text
-                    text={`+ ${pastureAlerts.length - 3} more pasture alerts`}
-                    size="xs"
-                    style={themed($moreAlerts)}
-                  />
-                )}
-              </View>
-            )}
-          </View>
+          {hasUrgentItems ? attentionPanel : null}
 
           <View style={themed($section)}>
             <Text preset="subheading" text="Quick actions" />
-            <View style={themed($quickActionGrid)}>
-              {hasRfidHardware ? (
-                <Pressable
-                  onPress={handleRfidQuickActionPress}
-                  style={[
-                    themed($quickActionButton),
-                    { backgroundColor: colors.tint, borderColor: colors.tint },
-                  ]}
-                  accessibilityRole="button"
-                  accessibilityLabel="Scan cow with RFID"
-                >
-                  {isRfidScanning ? (
-                    <ActivityIndicator size="small" color={colors.palette.neutral100} />
-                  ) : (
-                    <MaterialCommunityIcons
-                      name="access-point"
-                      size={23}
-                      color={colors.palette.neutral100}
+            <BentoActions
+              scanner={
+                hasRfidHardware ? (
+                  <Pressable
+                    onPress={handleRfidQuickActionPress}
+                    style={themed($bentoScanner)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Scan cow with RFID"
+                  >
+                    {isRfidScanning ? (
+                      <ActivityIndicator size="small" color={colors.palette.neutral100} />
+                    ) : (
+                      <MaterialCommunityIcons
+                        name="access-point"
+                        size={23}
+                        color={colors.palette.neutral100}
+                      />
+                    )}
+                    <Text
+                      text={isRfidScanning ? "Scanning for RFID…" : "Scan cow with RFID"}
+                      preset="bold"
+                      size="sm"
+                      style={themed($primaryQuickActionText)}
                     />
-                  )}
-                  <Text
-                    text={isRfidScanning ? "Scanning for RFID…" : "Scan cow with RFID"}
-                    preset="bold"
-                    size="sm"
-                    style={themed($primaryQuickActionText)}
+                  </Pressable>
+                ) : (
+                  <ScanTagButton
+                    label="Scan cow"
+                    onTagScanned={handleDashboardScan}
+                    style={themed($bentoScanner)}
                   />
-                </Pressable>
-              ) : (
-                <ScanTagButton
-                  label="Scan cow"
-                  onTagScanned={handleDashboardScan}
-                  style={[
-                    themed($quickActionButton),
-                    { backgroundColor: colors.tint, borderColor: colors.tint },
-                  ]}
-                />
-              )}
-              <Pressable accessibilityRole="button" onPress={() => setAnimalQuickAction("weight")} style={themed($quickActionButton)}>
-                <MaterialCommunityIcons name="scale" size={23} color={colors.tint} />
-                <Text text={t("chuteScreen.modes.weight.title")} preset="bold" size="sm" />
-              </Pressable>
-              <Pressable
-                onPress={() => setAnimalQuickAction("treatment")}
-                style={themed($quickActionButton)}
-              >
-                <MaterialCommunityIcons name="medical-bag" size={23} color={colors.tint} />
-                <Text text="Record treatment" preset="bold" size="sm" />
-              </Pressable>
-              <Pressable accessibilityRole="button" onPress={() => navigation.navigate("AnimalForm", { mode: "create" })} style={themed($quickActionButton)}>
-                <MaterialCommunityIcons name="plus" size={23} color={colors.tint} />
-                <Text text={t("herdListScreen.addButton")} preset="bold" size="sm" />
-              </Pressable>
-              <Pressable
-                onPress={() => navigation.navigate("MovementForm", {})}
-                style={themed($quickActionButton)}
-              >
-                <MaterialCommunityIcons name="swap-horizontal" size={25} color={colors.tint} />
-                <Text text="Move animals" preset="bold" size="sm" />
-              </Pressable>
-              <Pressable
-                onPress={() => setAnimalQuickAction("breeding")}
-                style={themed($quickActionButton)}
-              >
-                <MaterialCommunityIcons name="heart-plus-outline" size={23} color={colors.tint} />
-                <Text text="Record breeding" preset="bold" size="sm" />
-              </Pressable>
-            </View>
+                )
+              }
+              onWeigh={() => setAnimalQuickAction("weight")}
+              onAdd={() => navigation.navigate("AnimalForm", { mode: "create" })}
+              onTreat={() => setAnimalQuickAction("treatment")}
+              onMove={() => navigation.navigate("MovementForm", {})}
+              onBreed={() => setAnimalQuickAction("breeding")}
+            />
           </View>
 
-          <View style={themed($section)}>
-            <Text preset="subheading" text="Herd snapshot" />
-            <View style={themed($statsRow)}>
-              <Pressable onPress={handleActiveAnimalsPress} style={themed($statCard)}>
-                {statsLoading ? (
-                  <ActivityIndicator color={colors.tint} />
-                ) : (
-                  <Text
-                    preset="subheading"
-                    text={String(stats.activeCount)}
-                    style={themed($statNumber)}
-                  />
-                )}
-                <Text preset="formHelper" text="Active animals" />
-              </Pressable>
-              <Pressable onPress={handlePasturesPress} style={themed($statCard)}>
-                {statsLoading ? (
-                  <ActivityIndicator color={colors.tint} />
-                ) : (
-                  <Text
-                    preset="subheading"
-                    text={String(stats.assignedToPastureCount)}
-                    style={themed($statNumber)}
-                  />
-                )}
-                <Text preset="formHelper" text="In pastures" />
-              </Pressable>
-              <Pressable onPress={handlePasturesPress} style={themed($statCard)}>
-                {pasturesLoading ? (
-                  <ActivityIndicator color={colors.tint} />
-                ) : (
-                  <Text
-                    preset="subheading"
-                    text={String(occupiedPastureCount)}
-                    style={themed($statNumber)}
-                  />
-                )}
-                <Text preset="formHelper" text="Occupied" />
-              </Pressable>
-            </View>
-          </View>
-
-
+          {!hasUrgentItems ? attentionPanel : null}
 
           <View style={themed($section)}>
             <HerdInsightsCard />
@@ -811,7 +787,9 @@ export const DashboardScreen: FC<MainTabScreenProps<"Dashboard">> = ({ navigatio
         title={
           animalQuickAction === "breeding"
             ? "Choose female to breed"
-            : animalQuickAction === "weight" ? t("uxFixes.chooseAnimalForWeight") : "Choose animal for treatment"
+            : animalQuickAction === "weight"
+              ? t("uxFixes.chooseAnimalForWeight")
+              : "Choose animal for treatment"
         }
         allowClear={false}
       />
@@ -937,35 +915,9 @@ const $loadingCard: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   gap: spacing.sm,
 })
 
-const $statsRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flexDirection: "row",
-  gap: spacing.xs,
-  marginBottom: spacing.xs,
-})
-
-const $statCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  flex: 1,
-  backgroundColor: colors.palette.neutral100,
-  borderRadius: 12,
-  padding: spacing.sm,
-  alignItems: "center",
-  shadowColor: "#000",
-  shadowOpacity: 0.05,
-  shadowRadius: 4,
-  shadowOffset: { width: 0, height: 1 },
-  elevation: 1,
-})
-
-const $statNumber: ThemedStyle<TextStyle> = ({ colors }) => ({
-  color: colors.tint,
-  fontSize: 28,
-  fontWeight: "700",
-  lineHeight: 32,
-})
-
-const $section: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  marginTop: spacing.md,
-  gap: spacing.xs,
+const $section: ThemedStyle<ViewStyle> = () => ({
+  marginTop: 20,
+  gap: 10,
 })
 
 const $sectionHeader: ThemedStyle<ViewStyle> = () => ({
@@ -974,22 +926,15 @@ const $sectionHeader: ThemedStyle<ViewStyle> = () => ({
   justifyContent: "space-between",
 })
 
-const $farmCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+const $farmCard: ThemedStyle<ViewStyle> = ({ colors }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 12,
-  marginBottom: spacing.xs,
+  borderRadius: 18,
+  marginTop: 10,
   overflow: "hidden",
 })
 
 const $dimText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.textDim,
-})
-
-const $farmSwitcher: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  padding: spacing.sm,
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "center",
 })
 
 const $syncRow: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
@@ -1006,12 +951,12 @@ const $syncText: ThemedStyle<ViewStyle> = () => ({
   flex: 1,
 })
 
-const $caughtUpCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+const $caughtUpCard: ThemedStyle<ViewStyle> = ({ colors }) => ({
   flexDirection: "row",
-  alignItems: "center",
-  gap: spacing.sm,
-  padding: spacing.sm,
-  borderRadius: 12,
+  alignItems: "flex-start",
+  gap: 12,
+  padding: 16,
+  borderRadius: 22,
   backgroundColor: colors.palette.primary100,
 })
 
@@ -1080,27 +1025,6 @@ const $moreAlerts: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   fontWeight: "600",
   marginTop: spacing.xs,
   textAlign: "right",
-})
-
-const $quickActionGrid: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flexDirection: "row",
-  flexWrap: "wrap",
-  gap: spacing.xs,
-})
-
-const $quickActionButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  width: "48.5%",
-  minHeight: 58,
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: spacing.xs,
-  paddingHorizontal: spacing.sm,
-  paddingVertical: spacing.sm,
-  borderRadius: 12,
-  borderWidth: 1,
-  borderColor: colors.border,
-  backgroundColor: colors.palette.neutral100,
 })
 
 const $primaryQuickActionText: ThemedStyle<TextStyle> = ({ colors }) => ({
@@ -1338,3 +1262,17 @@ const $vaccinationLink: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontWeight: "600",
   color: colors.tint,
 })
+
+const $bentoScanner: ThemedStyle<ViewStyle> = () => ({
+  flex: 1,
+  minHeight: 134,
+  width: "100%",
+  padding: 16,
+  borderRadius: 24,
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 12,
+  backgroundColor: bentoColors(false).forest,
+})
+
+const $reviewLink: ViewStyle = { paddingVertical: 8 }

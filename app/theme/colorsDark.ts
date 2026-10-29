@@ -1,13 +1,13 @@
 const palette = {
   neutral900: "#F5F3F0",
-  neutral800: "#E8E4DF",
+  neutral800: "#EFF4E9",
   neutral700: "#C5BEB5",
-  neutral600: "#9C958B",
+  neutral600: "#B1BFA9",
   neutral500: "#7A736A",
   neutral400: "#524C45",
-  neutral300: "#3A3530",
-  neutral200: "#252220",
-  neutral100: "#1A1816",
+  neutral300: "#344439",
+  neutral200: "#141D18",
+  neutral100: "#1F2D24",
 
   // Reversed ramp (lightest at 600), anchored on the logo green (#739134)
   primary600: "#EEF2E7",

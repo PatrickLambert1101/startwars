@@ -2,9 +2,11 @@ import { FC, ReactNode } from "react"
 import { View, Pressable, ViewStyle, TextStyle } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useNavigation } from "@react-navigation/native"
-import { Text } from "./Text"
+
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
+
+import { Text } from "./Text"
 
 export interface AppHeaderProps {
   title?: string
@@ -28,7 +30,10 @@ export const AppHeader: FC<AppHeaderProps> = ({
   actions,
 }) => {
   const navigation = useNavigation<any>()
-  const { themed, theme: { colors } } = useAppTheme()
+  const {
+    themed,
+    theme: { colors },
+  } = useAppTheme()
 
   return (
     <View style={themed($container)}>
@@ -51,11 +56,7 @@ export const AppHeader: FC<AppHeaderProps> = ({
         {/* Sync indicator - future enhancement */}
         {showSync && (
           <View style={themed($iconButton)}>
-            <MaterialCommunityIcons
-              name="sync"
-              size={22}
-              color={colors.textDim}
-            />
+            <MaterialCommunityIcons name="sync" size={22} color={colors.textDim} />
           </View>
         )}
 
@@ -64,14 +65,12 @@ export const AppHeader: FC<AppHeaderProps> = ({
         {/* Settings button */}
         {showSettings && (
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Settings"
             onPress={() => navigation.navigate("Settings")}
             style={themed($iconButton)}
           >
-            <MaterialCommunityIcons
-              name="cog-outline"
-              size={24}
-              color={colors.text}
-            />
+            <MaterialCommunityIcons name="cog-outline" size={24} color={colors.text} />
           </Pressable>
         )}
       </View>
@@ -90,6 +89,9 @@ const $container: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
 
 const $title: ThemedStyle<TextStyle> = () => ({
   flex: 1,
+  fontSize: 29,
+  lineHeight: 38,
+  letterSpacing: -0.8,
 })
 
 const $rightSection: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -98,7 +100,10 @@ const $rightSection: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   gap: spacing.xs,
 })
 
-const $iconButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+const $iconButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  minWidth: 44,
+  minHeight: 44,
+  backgroundColor: colors.palette.neutral100,
   padding: spacing.xs,
   borderRadius: 20,
   alignItems: "center",

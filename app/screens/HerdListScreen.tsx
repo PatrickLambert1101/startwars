@@ -496,9 +496,7 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation,
           <>
             <Text
               text={t(
-                filtered.length === 1
-                  ? "herdListScreen.count_one"
-                  : "herdListScreen.count_other",
+                filtered.length === 1 ? "herdListScreen.count_one" : "herdListScreen.count_other",
                 { count: filtered.length },
               )}
               size="xs"
@@ -935,7 +933,7 @@ const $scanNotFoundCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   alignItems: "center",
   backgroundColor: colors.palette.neutral100,
   borderColor: colors.palette.primary200,
-  borderRadius: 16,
+  borderRadius: 22,
   borderWidth: 1,
   marginTop: spacing.sm,
   paddingHorizontal: spacing.lg,
@@ -994,7 +992,7 @@ const $scanNotFoundButton: ThemedStyle<ViewStyle> = () => ({
 
 const $animalCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 12,
+  borderRadius: 22,
   padding: spacing.sm,
   marginBottom: spacing.xs,
   shadowColor: "#000",
@@ -1070,7 +1068,7 @@ const $onboardingCards: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 
 const $onboardingCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 8,
+  borderRadius: 22,
   padding: spacing.sm,
   flexDirection: "row",
   alignItems: "flex-start",

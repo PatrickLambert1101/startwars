@@ -1,13 +1,23 @@
 import { FC, useState, useMemo } from "react"
-import { View, ViewStyle, TextStyle, FlatList, Pressable, Modal, Image, ImageStyle } from "react-native"
+import {
+  View,
+  ViewStyle,
+  TextStyle,
+  FlatList,
+  Pressable,
+  Modal,
+  Image,
+  ImageStyle,
+} from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
 
 import { Screen, Text, AppHeader } from "@/components"
+import { PlanSwitcher } from "@/components/PlanSwitcher"
+import { usePendingVaccinations } from "@/hooks/useVaccinationSchedules"
+import type { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-import type { MainTabScreenProps } from "@/navigators/navigationTypes"
-import { usePendingVaccinations } from "@/hooks/useVaccinationSchedules"
 import { getVaccinationDaysUntilDue } from "@/utils/vaccinationDates"
 
 type CalendarFilter = "all" | "today" | "week" | "month"
@@ -27,7 +37,10 @@ type CalendarEvent = {
 
 export const CalendarScreen: FC<MainTabScreenProps<"Calendar">> = ({ navigation }) => {
   const { t } = useTranslation()
-  const { themed, theme: { colors } } = useAppTheme()
+  const {
+    themed,
+    theme: { colors },
+  } = useAppTheme()
   const { vaccinations } = usePendingVaccinations()
   const [activeFilter, setActiveFilter] = useState<CalendarFilter>("all")
   const [showManageMenu, setShowManageMenu] = useState(false)
@@ -89,8 +102,7 @@ export const CalendarScreen: FC<MainTabScreenProps<"Calendar">> = ({ navigation 
   // Filter events based on selected filter
   const filteredEvents = useMemo(() => {
     const now = new Date()
-    const daysFromToday = (event: CalendarEvent) =>
-      getVaccinationDaysUntilDue(event.date, now)
+    const daysFromToday = (event: CalendarEvent) => getVaccinationDaysUntilDue(event.date, now)
 
     switch (activeFilter) {
       case "today":
@@ -114,9 +126,9 @@ export const CalendarScreen: FC<MainTabScreenProps<"Calendar">> = ({ navigation 
   const groupedEvents = useMemo(() => {
     const groups: { date: string; events: CalendarEvent[] }[] = []
 
-    filteredEvents.forEach(event => {
+    filteredEvents.forEach((event) => {
       const dateKey = event.date.toLocaleDateString()
-      const existingGroup = groups.find(g => g.date === dateKey)
+      const existingGroup = groups.find((g) => g.date === dateKey)
 
       if (existingGroup) {
         existingGroup.events.push(event)
@@ -185,7 +197,11 @@ export const CalendarScreen: FC<MainTabScreenProps<"Calendar">> = ({ navigation 
       style={[themed($eventCard), { backgroundColor: getUrgencyBackground(event.urgency) }]}
     >
       <View style={themed($eventIcon)}>
-        <MaterialCommunityIcons name={event.icon as any} size={20} color={getUrgencyColor(event.urgency)} />
+        <MaterialCommunityIcons
+          name={event.icon as any}
+          size={20}
+          color={getUrgencyColor(event.urgency)}
+        />
       </View>
       <View style={themed($eventContent)}>
         <Text preset="bold" text={event.title} size="sm" />
@@ -196,9 +212,7 @@ export const CalendarScreen: FC<MainTabScreenProps<"Calendar">> = ({ navigation 
             style={themed($eventAnimal)}
           />
         )}
-        {event.description && (
-          <Text text={event.description} size="xs" style={themed($dimText)} />
-        )}
+        {event.description && <Text text={event.description} size="xs" style={themed($dimText)} />}
       </View>
       {event.urgency !== "ok" && (
         <View style={themed($urgencyBadge)}>
@@ -213,7 +227,12 @@ export const CalendarScreen: FC<MainTabScreenProps<"Calendar">> = ({ navigation 
           />
         </View>
       )}
-      <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textDim} style={themed($chevron)} />
+      <MaterialCommunityIcons
+        name="chevron-right"
+        size={20}
+        color={colors.textDim}
+        style={themed($chevron)}
+      />
     </Pressable>
   )
 
@@ -233,7 +252,12 @@ export const CalendarScreen: FC<MainTabScreenProps<"Calendar">> = ({ navigation 
   const renderEmpty = () => (
     <View style={themed($emptyState)}>
       <MaterialCommunityIcons name="calendar-check" size={64} color={colors.palette.neutral300} />
-      <Text preset="heading" text={t("calendarScreen.empty.title")} size="md" style={themed($emptyTitle)} />
+      <Text
+        preset="heading"
+        text={t("calendarScreen.empty.title")}
+        size="md"
+        style={themed($emptyTitle)}
+      />
       <Text
         text={
           activeFilter !== "all"
@@ -249,11 +273,27 @@ export const CalendarScreen: FC<MainTabScreenProps<"Calendar">> = ({ navigation 
             onPress={() => navigation.navigate("VaccinationSchedules")}
             style={themed($emptyActionCard)}
           >
-            <Image source={require("@/assets/icons/herdtrackr-hex/calendar-clock.png")} style={$emptyActionIcon} resizeMode="contain" />
-            <Text preset="bold" text={t("calendarScreen.manage.schedules")} style={themed($emptyActionTitle)} />
-            <Text text={t("calendarScreen.manage.schedulesHelp")} size="xs" style={themed($emptyActionText)} />
+            <Image
+              source={require("@/assets/icons/herdtrackr-hex/calendar-clock.png")}
+              style={$emptyActionIcon}
+              resizeMode="contain"
+            />
+            <Text
+              preset="bold"
+              text={t("calendarScreen.manage.schedules")}
+              style={themed($emptyActionTitle)}
+            />
+            <Text
+              text={t("calendarScreen.manage.schedulesHelp")}
+              size="xs"
+              style={themed($emptyActionText)}
+            />
             <View style={themed($emptyActionButton)}>
-              <Text text={t("calendarScreen.manage.setUp")} size="xs" style={themed($emptyActionButtonText)} />
+              <Text
+                text={t("calendarScreen.manage.setUp")}
+                size="xs"
+                style={themed($emptyActionButtonText)}
+              />
             </View>
           </Pressable>
 
@@ -261,11 +301,27 @@ export const CalendarScreen: FC<MainTabScreenProps<"Calendar">> = ({ navigation 
             onPress={() => navigation.navigate("TreatmentProtocols")}
             style={themed($emptyActionCard)}
           >
-            <Image source={require("@/assets/icons/herdtrackr-hex/medical-bag.png")} style={$emptyActionIcon} resizeMode="contain" />
-            <Text preset="bold" text={t("calendarScreen.manage.protocols")} style={themed($emptyActionTitle)} />
-            <Text text={t("calendarScreen.manage.protocolsHelp")} size="xs" style={themed($emptyActionText)} />
+            <Image
+              source={require("@/assets/icons/herdtrackr-hex/medical-bag.png")}
+              style={$emptyActionIcon}
+              resizeMode="contain"
+            />
+            <Text
+              preset="bold"
+              text={t("calendarScreen.manage.protocols")}
+              style={themed($emptyActionTitle)}
+            />
+            <Text
+              text={t("calendarScreen.manage.protocolsHelp")}
+              size="xs"
+              style={themed($emptyActionText)}
+            />
             <View style={themed($emptyActionButton)}>
-              <Text text={t("calendarScreen.manage.setUp")} size="xs" style={themed($emptyActionButtonText)} />
+              <Text
+                text={t("calendarScreen.manage.setUp")}
+                size="xs"
+                style={themed($emptyActionButtonText)}
+              />
             </View>
           </Pressable>
         </View>
@@ -276,7 +332,7 @@ export const CalendarScreen: FC<MainTabScreenProps<"Calendar">> = ({ navigation 
   return (
     <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={themed($container)}>
       <AppHeader
-        title={t("calendarScreen.title")}
+        title="Plan"
         showSettings={true}
         actions={
           <Pressable
@@ -289,6 +345,7 @@ export const CalendarScreen: FC<MainTabScreenProps<"Calendar">> = ({ navigation 
           </Pressable>
         }
       />
+      <PlanSwitcher selected="Calendar" />
       <View style={themed($header)}>
         <View style={themed($headerStats)}>
           <MaterialCommunityIcons name="bell-outline" size={20} color={colors.textDim} />
@@ -339,11 +396,7 @@ export const CalendarScreen: FC<MainTabScreenProps<"Calendar">> = ({ navigation 
                   <Text preset="bold" text={d.title} />
                   <Text text={d.help} size="xs" style={themed($manageItemHelp)} />
                 </View>
-                <MaterialCommunityIcons
-                  name="chevron-right"
-                  size={22}
-                  color={colors.textDim}
-                />
+                <MaterialCommunityIcons name="chevron-right" size={22} color={colors.textDim} />
               </Pressable>
             ))}
           </Pressable>
@@ -489,7 +542,7 @@ const $dateBadgeText: ThemedStyle<TextStyle> = ({ colors }) => ({
 })
 
 const $eventCard: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  borderRadius: 8,
+  borderRadius: 22,
   padding: spacing.sm,
   marginBottom: spacing.xs,
   flexDirection: "row",
@@ -550,7 +603,7 @@ const $emptyActions: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 
 const $emptyActionCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 12,
+  borderRadius: 22,
   padding: spacing.lg,
   alignItems: "center",
   borderWidth: 1.5,

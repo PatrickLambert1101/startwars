@@ -36,7 +36,11 @@ final class HerdDeviceChecks: XCTestCase {
  }
 
  func tab(_ name: String, _ app: XCUIApplication) {
-  let item = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", name + ", tab,")).firstMatch
+  let route = ["Home": "Dashboard", "Herd": "HerdList", "Calendar": "Calendar", "Breeding": "Calendar"][name] ?? name
+  let bento = app.descendants(matching: .any).matching(identifier: "navigation-" + route).firstMatch
+  var item: XCUIElement {
+   bento.exists ? bento : app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", name + ", tab,")).firstMatch
+  }
   if app.buttons["Close animal picker"].exists { app.buttons["Close animal picker"].tap() }
   for _ in 0..<3 {
    for _ in 0..<8 {
@@ -55,13 +59,22 @@ final class HerdDeviceChecks: XCTestCase {
    XCTAssertTrue(item.waitForExistence(timeout: 20))
    if item.isHittable { item.tap() }
    usleep(350000)
-   if item.isSelected { return }
+   if item.isSelected {
+    if bento.exists && (name == "Calendar" || name == "Breeding") {
+     let segment = app.descendants(matching: .any).matching(identifier: "plan-" + name).firstMatch
+     XCTAssertTrue(segment.waitForExistence(timeout: 5)); segment.tap(); usleep(350000)
+     XCTAssertTrue(segment.isSelected)
+    }
+    return
+   }
   }
   XCTFail("Tab did not become selected: " + name)
  }
  func addAnimal(_ app: XCUIApplication) {
-  let add = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "+ Add")).firstMatch
-  XCTAssertTrue(add.waitForExistence(timeout: 5)); add.tap()
+  let add = app.buttons.matching(NSPredicate(format: "label CONTAINS %@ OR label == %@", "+ Add", "Add animal")).firstMatch
+  XCTAssertTrue(add.waitForExistence(timeout: 5))
+  for _ in 0..<4 { if add.isHittable { break }; app.swipeUp() }
+  add.tap()
   XCTAssertTrue(app.textFields.matching(NSPredicate(format: "label BEGINSWITH %@", "Visual Tag")).firstMatch.waitForExistence(timeout: 5))
  }
  func testDraftAndWeightEditing() throws {
@@ -76,7 +89,7 @@ final class HerdDeviceChecks: XCTestCase {
   capture("animal-form-untouched", app)
   print("ANIMAL_FORM_BEGIN\n\(app.debugDescription)\nANIMAL_FORM_END")
   app.buttons["Cancel"].tap()
-  XCTAssertTrue(app.staticTexts["Dashboard"].firstMatch.waitForExistence(timeout: 5))
+  XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label == %@ OR label == %@", "Dashboard", "Your farm")).firstMatch.waitForExistence(timeout: 5))
   XCTAssertFalse(app.alerts.firstMatch.exists)
 
   addAnimal(app)
@@ -88,7 +101,7 @@ final class HerdDeviceChecks: XCTestCase {
   XCTAssertEqual(field.value as? String, "UX-DEVICE-DRAFT")
   app.buttons["Cancel"].tap()
   app.alerts.buttons["Discard changes"].tap()
-  XCTAssertTrue(app.staticTexts["Dashboard"].firstMatch.waitForExistence(timeout: 5))
+  XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label == %@ OR label == %@", "Dashboard", "Your farm")).firstMatch.waitForExistence(timeout: 5))
 
   let weigh = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Weigh")).firstMatch
   weigh.tap(); sleep(1)
@@ -113,7 +126,7 @@ final class HerdDeviceChecks: XCTestCase {
   app.buttons["Cancel"].tap()
   XCTAssertTrue(app.alerts["Discard unsaved changes?"].waitForExistence(timeout: 5))
   app.alerts.buttons["Discard changes"].tap()
-  XCTAssertTrue(app.staticTexts["Dashboard"].firstMatch.waitForExistence(timeout: 5))
+  XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label == %@ OR label == %@", "Dashboard", "Your farm")).firstMatch.waitForExistence(timeout: 5))
  }
  func testConditionOnlyEntry() throws {
   continueAfterFailure = false
