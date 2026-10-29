@@ -16,6 +16,7 @@ import {
   type ReportRow,
 } from "@/services/reports/reportEngine"
 import { exportReportAsXlsx } from "@/services/reports/xlsxExport"
+import { bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
@@ -238,7 +239,11 @@ const $centered: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   gap: spacing.sm,
 })
 
-const $empty: ThemedStyle<ViewStyle> = () => ({
+const $empty: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  backgroundColor: colors.palette.neutral100,
+  borderRadius: bentoRadii.card,
+  padding: 20,
+  margin: 16,
   flex: 1,
   justifyContent: "center",
 })
@@ -261,7 +266,7 @@ const $sectionHeader: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   justifyContent: "space-between",
   alignItems: "center",
   backgroundColor: colors.palette.primary100,
-  borderRadius: 8,
+  borderRadius: bentoRadii.input,
   paddingHorizontal: spacing.sm,
   paddingVertical: spacing.xs,
   marginTop: spacing.xs,

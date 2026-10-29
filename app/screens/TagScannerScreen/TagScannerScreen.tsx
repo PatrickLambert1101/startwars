@@ -1,13 +1,25 @@
 import { FC, useCallback, useEffect, useRef, useState } from "react"
-import { View, ViewStyle, TextStyle, StyleSheet, Alert, Pressable, TextInput, ActivityIndicator, Linking } from "react-native"
+import {
+  View,
+  ViewStyle,
+  TextStyle,
+  StyleSheet,
+  Alert,
+  Pressable,
+  TextInput,
+  ActivityIndicator,
+  Linking,
+} from "react-native"
+import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useCameraDevice, useCameraPermission } from "react-native-vision-camera"
 import { Camera } from "react-native-vision-camera-ocr-plus"
 import type { Text as OCRText } from "react-native-vision-camera-ocr-plus"
-import { MaterialCommunityIcons } from "@expo/vector-icons"
+
+import { Button, Text, Screen } from "@/components"
 import { extractTagNumbers } from "@/hooks/useTagScanner/tagParser"
+import { bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-import { Button, Text, Screen } from "@/components"
 
 interface TagScannerScreenProps {
   navigation: any
@@ -109,15 +121,17 @@ export const TagScannerScreen: FC<TagScannerScreenProps> = ({ navigation, route 
     }
 
     // Extract tags from OCR results
-    const ocrResults = blocks.map(block => ({
+    const ocrResults = blocks.map((block) => ({
       text: block.blockText,
       confidence: 0.8,
-      boundingBox: block.blockFrame ? {
-        x: block.blockFrame.x,
-        y: block.blockFrame.y,
-        width: block.blockFrame.width,
-        height: block.blockFrame.height,
-      } : undefined,
+      boundingBox: block.blockFrame
+        ? {
+            x: block.blockFrame.x,
+            y: block.blockFrame.y,
+            width: block.blockFrame.width,
+            height: block.blockFrame.height,
+          }
+        : undefined,
     }))
 
     const tagResults = extractTagNumbers(ocrResults)
@@ -150,7 +164,7 @@ export const TagScannerScreen: FC<TagScannerScreenProps> = ({ navigation, route 
   }, [manualInput, onTagScanned, navigation])
 
   const toggleTorch = useCallback(() => {
-    setTorch(prev => prev === "off" ? "on" : "off")
+    setTorch((prev) => (prev === "off" ? "on" : "off"))
   }, [])
 
   // No permission
@@ -165,11 +179,7 @@ export const TagScannerScreen: FC<TagScannerScreenProps> = ({ navigation, route 
           <View style={themed($permissionIcon)}>
             <MaterialCommunityIcons name="camera-off-outline" size={44} color="#0E95D8" />
           </View>
-          <Text
-            text="Camera permission required"
-            preset="heading"
-            style={themed($errorTitle)}
-          />
+          <Text text="Camera permission required" preset="heading" style={themed($errorTitle)} />
           <Text
             text="Allow camera access to scan ear tags. If Android does not show the permission prompt, open the app settings and enable Camera."
             style={themed($errorText)}
@@ -249,16 +259,35 @@ export const TagScannerScreen: FC<TagScannerScreenProps> = ({ navigation, route 
           {/* Instructions Card */}
           <View style={themed($instructionsCard)}>
             <View style={themed($instructionRow)}>
-              <MaterialCommunityIcons name="camera-outline" size={18} color="#FFF" style={{ marginRight: 8 }} />
+              <MaterialCommunityIcons
+                name="camera-outline"
+                size={18}
+                color="#FFF"
+                style={{ marginRight: 8 }}
+              />
               <Text text="Position tag within frame" size="xs" style={{ color: "#FFF", flex: 1 }} />
             </View>
             <View style={themed($instructionRow)}>
-              <MaterialCommunityIcons name="lightbulb-on-outline" size={18} color="#FFF" style={{ marginRight: 8 }} />
+              <MaterialCommunityIcons
+                name="lightbulb-on-outline"
+                size={18}
+                color="#FFF"
+                style={{ marginRight: 8 }}
+              />
               <Text text="Use torch for low light" size="xs" style={{ color: "#FFF", flex: 1 }} />
             </View>
             <View style={themed($instructionRow)}>
-              <MaterialCommunityIcons name="hand-back-right-outline" size={18} color="#FFF" style={{ marginRight: 8 }} />
-              <Text text="Hold steady for best results" size="xs" style={{ color: "#FFF", flex: 1 }} />
+              <MaterialCommunityIcons
+                name="hand-back-right-outline"
+                size={18}
+                color="#FFF"
+                style={{ marginRight: 8 }}
+              />
+              <Text
+                text="Hold steady for best results"
+                size="xs"
+                style={{ color: "#FFF", flex: 1 }}
+              />
             </View>
           </View>
 
@@ -281,7 +310,11 @@ export const TagScannerScreen: FC<TagScannerScreenProps> = ({ navigation, route 
 
           {/* Bottom hint */}
           <View style={themed($bottomBar)}>
-            <Text text="Tag number will appear automatically when detected" size="sm" style={{ color: "#FFF", textAlign: "center", opacity: 0.9 }} />
+            <Text
+              text="Tag number will appear automatically when detected"
+              size="sm"
+              style={{ color: "#FFF", textAlign: "center", opacity: 0.9 }}
+            />
           </View>
         </View>
       </View>
@@ -381,7 +414,7 @@ const $cancelButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flex: 1,
   backgroundColor: colors.palette.neutral200,
   padding: spacing.md,
-  borderRadius: 12,
+  borderRadius: bentoRadii.button,
   alignItems: "center",
 })
 
@@ -395,7 +428,7 @@ const $approveButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flex: 2,
   backgroundColor: colors.palette.primary500,
   padding: spacing.md,
-  borderRadius: 12,
+  borderRadius: bentoRadii.button,
   alignItems: "center",
 })
 
@@ -485,7 +518,7 @@ const $torchButton: ThemedStyle<ViewStyle> = () => ({
 
 const $instructionsCard: ThemedStyle<ViewStyle> = () => ({
   backgroundColor: "rgba(0,0,0,0.7)",
-  borderRadius: 12,
+  borderRadius: bentoRadii.card,
   padding: 12,
   gap: 8,
   marginBottom: 16,

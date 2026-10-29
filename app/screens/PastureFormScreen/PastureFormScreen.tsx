@@ -1,12 +1,20 @@
 import React, { useState, useEffect, useMemo } from "react"
 import { View, ViewStyle, TextStyle, Pressable } from "react-native"
-import { KeyboardAwareScrollView } from "react-native-keyboard-controller"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller"
+
 import { Screen, Text, TextField, Button, Icon } from "@/components"
+import {
+  usePasture,
+  usePastureActions,
+  PastureFormData,
+  DuplicatePastureCodeError,
+  usePastures,
+} from "@/hooks/usePastures"
+import { AppStackScreenProps } from "@/navigators/navigationTypes"
+import { bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-import { AppStackScreenProps } from "@/navigators/navigationTypes"
-import { usePasture, usePastureActions, PastureFormData, DuplicatePastureCodeError, usePastures } from "@/hooks/usePastures"
 import { forageTypeOptions } from "@/utils/forageTypes"
 
 interface PastureFormScreenProps extends AppStackScreenProps<"PastureForm"> {}
@@ -125,7 +133,10 @@ export function PastureFormScreen({ navigation, route }: PastureFormScreenProps)
 
     // Auto-generate code from name if creating new pasture (min 2-3 chars)
     if (field === "name" && !isEdit && typeof value === "string") {
-      const words = value.trim().split(" ").filter(w => w.length > 0)
+      const words = value
+        .trim()
+        .split(" ")
+        .filter((w) => w.length > 0)
       let autoCode = ""
 
       if (words.length === 1) {
@@ -136,7 +147,10 @@ export function PastureFormScreen({ navigation, route }: PastureFormScreenProps)
         autoCode = (words[0].slice(0, 2) + words[1].slice(0, 2)).toUpperCase()
       } else {
         // Multiple words: first letter of each word (max 4)
-        autoCode = words.slice(0, 4).map(w => w.charAt(0).toUpperCase()).join("")
+        autoCode = words
+          .slice(0, 4)
+          .map((w) => w.charAt(0).toUpperCase())
+          .join("")
       }
 
       if (autoCode.length >= 2) {
@@ -151,7 +165,11 @@ export function PastureFormScreen({ navigation, route }: PastureFormScreenProps)
         <Pressable onPress={() => navigation.goBack()} style={themed($backButton)}>
           <Icon icon="back" size={24} />
         </Pressable>
-        <Text preset="heading" text={isEdit ? "Edit Pasture" : "New Pasture"} style={themed($headerTitle)} />
+        <Text
+          preset="heading"
+          text={isEdit ? "Edit Pasture" : "New Pasture"}
+          style={themed($headerTitle)}
+        />
       </View>
 
       <KeyboardAwareScrollView
@@ -289,8 +307,15 @@ export function PastureFormScreen({ navigation, route }: PastureFormScreenProps)
               onPress={() => updateField("hasSaltBlocks", !formData.hasSaltBlocks)}
               style={themed($checkbox)}
             >
-              <View style={[themed($checkboxBox), formData.hasSaltBlocks && themed($checkboxBoxChecked)]}>
-                {formData.hasSaltBlocks && <MaterialCommunityIcons name="check" size={16} color="#FFF" />}
+              <View
+                style={[
+                  themed($checkboxBox),
+                  formData.hasSaltBlocks && themed($checkboxBoxChecked),
+                ]}
+              >
+                {formData.hasSaltBlocks && (
+                  <MaterialCommunityIcons name="check" size={16} color="#FFF" />
+                )}
               </View>
               <Text style={themed($checkboxLabel)}>Salt Blocks</Text>
             </Pressable>
@@ -298,8 +323,15 @@ export function PastureFormScreen({ navigation, route }: PastureFormScreenProps)
               onPress={() => updateField("hasMineralFeeders", !formData.hasMineralFeeders)}
               style={themed($checkbox)}
             >
-              <View style={[themed($checkboxBox), formData.hasMineralFeeders && themed($checkboxBoxChecked)]}>
-                {formData.hasMineralFeeders && <MaterialCommunityIcons name="check" size={16} color="#FFF" />}
+              <View
+                style={[
+                  themed($checkboxBox),
+                  formData.hasMineralFeeders && themed($checkboxBoxChecked),
+                ]}
+              >
+                {formData.hasMineralFeeders && (
+                  <MaterialCommunityIcons name="check" size={16} color="#FFF" />
+                )}
               </View>
               <Text style={themed($checkboxLabel)}>Mineral Feeders</Text>
             </Pressable>
@@ -322,7 +354,9 @@ export function PastureFormScreen({ navigation, route }: PastureFormScreenProps)
         <TextField
           label="Target Grazing Days"
           value={formData.targetGrazingDays?.toString() || ""}
-          onChangeText={(text) => updateField("targetGrazingDays", text ? parseInt(text) : undefined)}
+          onChangeText={(text) =>
+            updateField("targetGrazingDays", text ? parseInt(text) : undefined)
+          }
           placeholder="7"
           keyboardType="number-pad"
           returnKeyType="done"
@@ -377,7 +411,7 @@ export function PastureFormScreen({ navigation, route }: PastureFormScreenProps)
 
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flex: 1,
-  paddingHorizontal: spacing.lg,
+  paddingHorizontal: spacing.md,
 })
 
 const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -386,6 +420,7 @@ const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   alignItems: "center",
   marginTop: spacing.md,
   marginBottom: spacing.sm,
+  gap: 10,
 })
 
 const $backButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -396,10 +431,14 @@ const $backButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $headerTitle: ThemedStyle<TextStyle> = () => ({
   flex: 1,
   marginLeft: 0,
+  flexShrink: 1,
 })
 
-const $form: ThemedStyle<ViewStyle> = () => ({
+const $form: ThemedStyle<ViewStyle> = ({ colors }) => ({
   flex: 1,
+  backgroundColor: colors.palette.neutral100,
+  borderRadius: bentoRadii.card,
+  padding: 18,
 })
 
 const $field: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -474,12 +513,6 @@ const $checkboxBox: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
 const $checkboxBoxChecked: ThemedStyle<ViewStyle> = ({ colors }) => ({
   borderColor: colors.palette.primary500,
   backgroundColor: colors.palette.primary500,
-})
-
-const $checkboxCheck: ThemedStyle<TextStyle> = () => ({
-  color: "white",
-  fontSize: 16,
-  fontWeight: "bold",
 })
 
 const $checkboxLabel: ThemedStyle<TextStyle> = ({ colors }) => ({

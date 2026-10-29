@@ -1,12 +1,19 @@
 import React, { useMemo, useState } from "react"
 import { View, ViewStyle, TextStyle, Pressable, Alert } from "react-native"
-import { KeyboardAwareScrollView } from "react-native-keyboard-controller"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller"
+
 import { Screen, Text, TextField, Button, Icon } from "@/components"
+import {
+  usePastureActions,
+  PastureFormData,
+  DuplicatePastureCodeError,
+  usePastures,
+} from "@/hooks/usePastures"
+import { AppStackScreenProps } from "@/navigators/navigationTypes"
+import { bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-import { AppStackScreenProps } from "@/navigators/navigationTypes"
-import { usePastureActions, PastureFormData, DuplicatePastureCodeError, usePastures } from "@/hooks/usePastures"
 import { forageTypeOptions } from "@/utils/forageTypes"
 
 interface PastureWizardScreenProps extends AppStackScreenProps<"PastureWizard"> {}
@@ -28,7 +35,10 @@ const REST_PRESETS = [
 const WATER_SOURCES = ["Dam", "Trough", "River", "Borehole", "None"]
 
 export function PastureWizardScreen({ navigation }: PastureWizardScreenProps) {
-  const { themed, theme: { colors } } = useAppTheme()
+  const {
+    themed,
+    theme: { colors },
+  } = useAppTheme()
   const { createPasture } = usePastureActions()
   const { pastures } = usePastures()
 
@@ -55,7 +65,10 @@ export function PastureWizardScreen({ navigation }: PastureWizardScreenProps) {
 
     // Auto-generate code from name (min 2-3 chars)
     if (field === "name" && typeof value === "string") {
-      const words = value.trim().split(" ").filter(w => w.length > 0)
+      const words = value
+        .trim()
+        .split(" ")
+        .filter((w) => w.length > 0)
       let autoCode = ""
 
       if (words.length === 1) {
@@ -66,7 +79,10 @@ export function PastureWizardScreen({ navigation }: PastureWizardScreenProps) {
         autoCode = (words[0].slice(0, 2) + words[1].slice(0, 2)).toUpperCase()
       } else {
         // Multiple words: first letter of each word (max 4)
-        autoCode = words.slice(0, 4).map(w => w.charAt(0).toUpperCase()).join("")
+        autoCode = words
+          .slice(0, 4)
+          .map((w) => w.charAt(0).toUpperCase())
+          .join("")
       }
 
       if (autoCode.length >= 2) {
@@ -146,248 +162,276 @@ export function PastureWizardScreen({ navigation }: PastureWizardScreenProps) {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-      {/* Step 1: Basics */}
-      {currentStep === 1 && (
-        <View style={themed($stepContainer)}>
-          <Text style={themed($stepTitle)}>What's the name of your pasture?</Text>
-          <Text style={themed($stepDescription)}>
-            Give it a descriptive name so you can easily identify it
-          </Text>
+        {/* Step 1: Basics */}
+        {currentStep === 1 && (
+          <View style={themed($stepContainer)}>
+            <Text style={themed($stepTitle)}>What's the name of your pasture?</Text>
+            <Text style={themed($stepDescription)}>
+              Give it a descriptive name so you can easily identify it
+            </Text>
 
-          <TextField
-            value={formData.name}
-            onChangeText={(text) => updateField("name", text)}
-            placeholder="e.g., North Paddock, Lower 40, Home Field"
-            containerStyle={themed($field)}
-            autoFocus
-            LabelTextProps={{ style: themed($inputLabel) }}
-          />
-
-          <View style={themed($codePreview)}>
-            <Text style={themed($codeLabel)}>Short code:</Text>
-            <Text style={themed($codeValue)}>{formData.code || "___"}</Text>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-              <MaterialCommunityIcons name="check" size={12} color="#10B981" />
-              <Text style={themed($codeHint)}>Auto-generated</Text>
-            </View>
-          </View>
-
-          <View style={themed($buttonRow)}>
-            <Button
-              text="Skip Setup"
-              preset="default"
-              onPress={handleSkipSetup}
-              style={themed($skipButton)}
-            />
-            <Button
-              text="Next →"
-              preset="filled"
-              onPress={handleNext}
-              disabled={!canProceedStep1}
-              style={themed($nextButton)}
-            />
-          </View>
-        </View>
-      )}
-
-      {/* Step 2: Capacity & Rotation */}
-      {currentStep === 2 && (
-        <View style={themed($stepContainer)}>
-          <Text style={themed($stepTitle)}>Set capacity & rotation</Text>
-          <Text style={themed($stepDescription)}>
-            These help you manage grazing and avoid overuse
-          </Text>
-
-          <View style={themed($field)}>
-            <Text style={themed($fieldLabel)}>Max animals in this pasture?</Text>
             <TextField
-              value={formData.maxCapacity?.toString() || ""}
-              onChangeText={(text) => updateField("maxCapacity", text ? parseInt(text) : undefined)}
-              placeholder="e.g., 50"
-              keyboardType="number-pad"
+              value={formData.name}
+              onChangeText={(text) => updateField("name", text)}
+              placeholder="e.g., North Paddock, Lower 40, Home Field"
+              containerStyle={themed($field)}
+              autoFocus
               LabelTextProps={{ style: themed($inputLabel) }}
             />
-          </View>
 
-          <View style={themed($field)}>
-            <Text style={themed($fieldLabel)}>Rotate every...</Text>
-            <View style={themed($presetRow)}>
-              {ROTATION_PRESETS.map((preset) => {
-                const selected = formData.targetGrazingDays === preset.value
-                return (
-                  <Pressable
-                    key={preset.value}
-                    onPress={() => updateField("targetGrazingDays", preset.value)}
-                    style={[themed($presetChip), selected && themed($presetChipSelected)]}
-                  >
-                    <Text style={[themed($presetChipText), selected && themed($presetChipTextSelected)]}>
-                      {preset.label}
-                    </Text>
-                  </Pressable>
-                )
-              })}
+            <View style={themed($codePreview)}>
+              <Text style={themed($codeLabel)}>Short code:</Text>
+              <Text style={themed($codeValue)}>{formData.code || "___"}</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                <MaterialCommunityIcons name="check" size={12} color="#10B981" />
+                <Text style={themed($codeHint)}>Auto-generated</Text>
+              </View>
             </View>
-            <Text style={themed($fieldHint)}>Animals graze before moving to next pasture</Text>
-          </View>
 
-          <View style={themed($field)}>
-            <Text style={themed($fieldLabel)}>Rest for...</Text>
-            <View style={themed($presetRow)}>
-              {REST_PRESETS.map((preset) => {
-                const selected = formData.targetRestDays === preset.value
-                return (
-                  <Pressable
-                    key={preset.value}
-                    onPress={() => updateField("targetRestDays", preset.value)}
-                    style={[themed($presetChip), selected && themed($presetChipSelected)]}
-                  >
-                    <Text style={[themed($presetChipText), selected && themed($presetChipTextSelected)]}>
-                      {preset.label}
-                    </Text>
-                  </Pressable>
-                )
-              })}
-            </View>
-            <Text style={themed($fieldHint)}>Pasture recovers before animals return</Text>
-          </View>
-
-          <View style={themed($buttonRow)}>
-            <Button
-              text="← Back"
-              preset="default"
-              onPress={handleBack}
-              style={themed($backButtonStyle)}
-            />
-            <Button
-              text="Next →"
-              preset="filled"
-              onPress={handleNext}
-              style={themed($nextButton)}
-            />
-          </View>
-        </View>
-      )}
-
-      {/* Step 3: Details (Optional) */}
-      {currentStep === 3 && (
-        <View style={themed($stepContainer)}>
-          <Text style={themed($stepTitle)}>Pasture details</Text>
-          <Text style={themed($stepDescription)}>
-            Optional - you can skip this and add details later
-          </Text>
-
-          <View style={themed($field)}>
-            <Text style={themed($fieldLabel)}>Forage Type (Optional)</Text>
-            <View style={themed($chipRow)}>
-              {forageOptions.map((type) => {
-                const selected = formData.forageType === type
-                return (
-                  <Pressable
-                    key={type}
-                    style={[themed($chip), selected && themed($chipSelected)]}
-                    onPress={() => updateField("forageType", selected ? "" : type)}
-                  >
-                    <Text style={[themed($chipText), selected && themed($chipTextSelected)]}>
-                      {type}
-                    </Text>
-                  </Pressable>
-                )
-              })}
-            </View>
-            <View style={themed($customOption)}>
-              <TextField
-                value={customForageType}
-                onChangeText={setCustomForageType}
-                placeholder="Custom grass or mixture"
-                autoCapitalize="words"
-                LabelTextProps={{ style: themed($inputLabel) }}
+            <View style={themed($buttonRow)}>
+              <Button
+                text="Skip Setup"
+                preset="default"
+                onPress={handleSkipSetup}
+                style={themed($skipButton)}
               />
               <Button
-                text="Use custom forage"
-                preset="default"
-                disabled={!customForageType.trim()}
-                onPress={() => {
-                  const customValue = customForageType.trim()
-                  if (!customValue) return
-                  updateField("forageType", customValue)
-                  setCustomForageType("")
-                }}
+                text="Next →"
+                preset="filled"
+                onPress={handleNext}
+                disabled={!canProceedStep1}
+                style={themed($nextButton)}
               />
             </View>
           </View>
+        )}
 
-          <View style={themed($field)}>
-            <Text style={themed($fieldLabel)}>Water Source (Optional)</Text>
-            <View style={themed($chipRow)}>
-              {WATER_SOURCES.map((source) => {
-                const selected = formData.waterSource === source
-                return (
-                  <Pressable
-                    key={source}
-                    style={[themed($chip), selected && themed($chipSelected)]}
-                    onPress={() => updateField("waterSource", selected ? "" : source)}
+        {/* Step 2: Capacity & Rotation */}
+        {currentStep === 2 && (
+          <View style={themed($stepContainer)}>
+            <Text style={themed($stepTitle)}>Set capacity & rotation</Text>
+            <Text style={themed($stepDescription)}>
+              These help you manage grazing and avoid overuse
+            </Text>
+
+            <View style={themed($field)}>
+              <Text style={themed($fieldLabel)}>Max animals in this pasture?</Text>
+              <TextField
+                value={formData.maxCapacity?.toString() || ""}
+                onChangeText={(text) =>
+                  updateField("maxCapacity", text ? parseInt(text) : undefined)
+                }
+                placeholder="e.g., 50"
+                keyboardType="number-pad"
+                LabelTextProps={{ style: themed($inputLabel) }}
+              />
+            </View>
+
+            <View style={themed($field)}>
+              <Text style={themed($fieldLabel)}>Rotate every...</Text>
+              <View style={themed($presetRow)}>
+                {ROTATION_PRESETS.map((preset) => {
+                  const selected = formData.targetGrazingDays === preset.value
+                  return (
+                    <Pressable
+                      key={preset.value}
+                      onPress={() => updateField("targetGrazingDays", preset.value)}
+                      style={[themed($presetChip), selected && themed($presetChipSelected)]}
+                    >
+                      <Text
+                        style={[
+                          themed($presetChipText),
+                          selected && themed($presetChipTextSelected),
+                        ]}
+                      >
+                        {preset.label}
+                      </Text>
+                    </Pressable>
+                  )
+                })}
+              </View>
+              <Text style={themed($fieldHint)}>Animals graze before moving to next pasture</Text>
+            </View>
+
+            <View style={themed($field)}>
+              <Text style={themed($fieldLabel)}>Rest for...</Text>
+              <View style={themed($presetRow)}>
+                {REST_PRESETS.map((preset) => {
+                  const selected = formData.targetRestDays === preset.value
+                  return (
+                    <Pressable
+                      key={preset.value}
+                      onPress={() => updateField("targetRestDays", preset.value)}
+                      style={[themed($presetChip), selected && themed($presetChipSelected)]}
+                    >
+                      <Text
+                        style={[
+                          themed($presetChipText),
+                          selected && themed($presetChipTextSelected),
+                        ]}
+                      >
+                        {preset.label}
+                      </Text>
+                    </Pressable>
+                  )
+                })}
+              </View>
+              <Text style={themed($fieldHint)}>Pasture recovers before animals return</Text>
+            </View>
+
+            <View style={themed($buttonRow)}>
+              <Button
+                text="← Back"
+                preset="default"
+                onPress={handleBack}
+                style={themed($backButtonStyle)}
+              />
+              <Button
+                text="Next →"
+                preset="filled"
+                onPress={handleNext}
+                style={themed($nextButton)}
+              />
+            </View>
+          </View>
+        )}
+
+        {/* Step 3: Details (Optional) */}
+        {currentStep === 3 && (
+          <View style={themed($stepContainer)}>
+            <Text style={themed($stepTitle)}>Pasture details</Text>
+            <Text style={themed($stepDescription)}>
+              Optional - you can skip this and add details later
+            </Text>
+
+            <View style={themed($field)}>
+              <Text style={themed($fieldLabel)}>Forage Type (Optional)</Text>
+              <View style={themed($chipRow)}>
+                {forageOptions.map((type) => {
+                  const selected = formData.forageType === type
+                  return (
+                    <Pressable
+                      key={type}
+                      style={[themed($chip), selected && themed($chipSelected)]}
+                      onPress={() => updateField("forageType", selected ? "" : type)}
+                    >
+                      <Text style={[themed($chipText), selected && themed($chipTextSelected)]}>
+                        {type}
+                      </Text>
+                    </Pressable>
+                  )
+                })}
+              </View>
+              <View style={themed($customOption)}>
+                <TextField
+                  value={customForageType}
+                  onChangeText={setCustomForageType}
+                  placeholder="Custom grass or mixture"
+                  autoCapitalize="words"
+                  LabelTextProps={{ style: themed($inputLabel) }}
+                />
+                <Button
+                  text="Use custom forage"
+                  preset="default"
+                  disabled={!customForageType.trim()}
+                  onPress={() => {
+                    const customValue = customForageType.trim()
+                    if (!customValue) return
+                    updateField("forageType", customValue)
+                    setCustomForageType("")
+                  }}
+                />
+              </View>
+            </View>
+
+            <View style={themed($field)}>
+              <Text style={themed($fieldLabel)}>Water Source (Optional)</Text>
+              <View style={themed($chipRow)}>
+                {WATER_SOURCES.map((source) => {
+                  const selected = formData.waterSource === source
+                  return (
+                    <Pressable
+                      key={source}
+                      style={[themed($chip), selected && themed($chipSelected)]}
+                      onPress={() => updateField("waterSource", selected ? "" : source)}
+                    >
+                      <Text style={[themed($chipText), selected && themed($chipTextSelected)]}>
+                        {source}
+                      </Text>
+                    </Pressable>
+                  )
+                })}
+              </View>
+            </View>
+
+            <View style={themed($field)}>
+              <Text style={themed($fieldLabel)}>Size (Hectares, Optional)</Text>
+              <TextField
+                value={formData.sizeHectares?.toString() || ""}
+                onChangeText={(text) =>
+                  updateField("sizeHectares", text ? parseFloat(text) : undefined)
+                }
+                placeholder="e.g., 40"
+                keyboardType="decimal-pad"
+                LabelTextProps={{ style: themed($inputLabel) }}
+              />
+            </View>
+
+            <View style={themed($field)}>
+              <Text style={themed($fieldLabel)}>Supplements (Optional)</Text>
+              <View style={themed($checkboxRow)}>
+                <Pressable
+                  onPress={() => updateField("hasSaltBlocks", !formData.hasSaltBlocks)}
+                  style={themed($checkbox)}
+                >
+                  <View
+                    style={[
+                      themed($checkboxBox),
+                      formData.hasSaltBlocks && themed($checkboxBoxChecked),
+                    ]}
                   >
-                    <Text style={[themed($chipText), selected && themed($chipTextSelected)]}>
-                      {source}
-                    </Text>
-                  </Pressable>
-                )
-              })}
+                    {formData.hasSaltBlocks && (
+                      <MaterialCommunityIcons name="check" size={16} color="#FFF" />
+                    )}
+                  </View>
+                  <Text style={themed($checkboxLabel)}>Salt Blocks</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => updateField("hasMineralFeeders", !formData.hasMineralFeeders)}
+                  style={themed($checkbox)}
+                >
+                  <View
+                    style={[
+                      themed($checkboxBox),
+                      formData.hasMineralFeeders && themed($checkboxBoxChecked),
+                    ]}
+                  >
+                    {formData.hasMineralFeeders && (
+                      <MaterialCommunityIcons name="check" size={16} color="#FFF" />
+                    )}
+                  </View>
+                  <Text style={themed($checkboxLabel)}>Mineral Feeders</Text>
+                </Pressable>
+              </View>
+            </View>
+
+            <View style={themed($buttonRow)}>
+              <Button
+                text="← Back"
+                preset="default"
+                onPress={handleBack}
+                style={themed($backButtonStyle)}
+              />
+              <Button
+                text="Create Pasture →"
+                preset="filled"
+                onPress={handleFinish}
+                disabled={isSaving}
+                style={themed($nextButton)}
+              />
             </View>
           </View>
-
-          <View style={themed($field)}>
-            <Text style={themed($fieldLabel)}>Size (Hectares, Optional)</Text>
-            <TextField
-              value={formData.sizeHectares?.toString() || ""}
-              onChangeText={(text) => updateField("sizeHectares", text ? parseFloat(text) : undefined)}
-              placeholder="e.g., 40"
-              keyboardType="decimal-pad"
-              LabelTextProps={{ style: themed($inputLabel) }}
-            />
-          </View>
-
-          <View style={themed($field)}>
-            <Text style={themed($fieldLabel)}>Supplements (Optional)</Text>
-            <View style={themed($checkboxRow)}>
-              <Pressable
-                onPress={() => updateField("hasSaltBlocks", !formData.hasSaltBlocks)}
-                style={themed($checkbox)}
-              >
-                <View style={[themed($checkboxBox), formData.hasSaltBlocks && themed($checkboxBoxChecked)]}>
-                  {formData.hasSaltBlocks && <MaterialCommunityIcons name="check" size={16} color="#FFF" />}
-                </View>
-                <Text style={themed($checkboxLabel)}>Salt Blocks</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => updateField("hasMineralFeeders", !formData.hasMineralFeeders)}
-                style={themed($checkbox)}
-              >
-                <View style={[themed($checkboxBox), formData.hasMineralFeeders && themed($checkboxBoxChecked)]}>
-                  {formData.hasMineralFeeders && <MaterialCommunityIcons name="check" size={16} color="#FFF" />}
-                </View>
-                <Text style={themed($checkboxLabel)}>Mineral Feeders</Text>
-              </Pressable>
-            </View>
-          </View>
-
-          <View style={themed($buttonRow)}>
-            <Button
-              text="← Back"
-              preset="default"
-              onPress={handleBack}
-              style={themed($backButtonStyle)}
-            />
-            <Button
-              text="Create Pasture →"
-              preset="filled"
-              onPress={handleFinish}
-              disabled={isSaving}
-              style={themed($nextButton)}
-            />
-          </View>
-        </View>
-      )}
+        )}
       </KeyboardAwareScrollView>
     </Screen>
   )
@@ -395,7 +439,7 @@ export function PastureWizardScreen({ navigation }: PastureWizardScreenProps) {
 
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flex: 1,
-  paddingHorizontal: spacing.lg,
+  paddingHorizontal: spacing.md,
 })
 
 const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -403,6 +447,7 @@ const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   alignItems: "center",
   marginTop: spacing.md,
   marginBottom: spacing.lg,
+  gap: 10,
 })
 
 const $backButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -417,6 +462,7 @@ const $headerContent: ThemedStyle<ViewStyle> = () => ({
 
 const $headerTitle: ThemedStyle<TextStyle> = ({ spacing }) => ({
   marginBottom: spacing.xs,
+  flexShrink: 1,
 })
 
 const $stepsIndicator: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -437,10 +483,13 @@ const $stepDotActive: ThemedStyle<ViewStyle> = ({ colors }) => ({
 })
 
 const $stepDotComplete: ThemedStyle<ViewStyle> = ({ colors }) => ({
-  backgroundColor: colors.palette.success500,
+  backgroundColor: colors.palette.primary500,
 })
 
-const $stepContainer: ThemedStyle<ViewStyle> = () => ({
+const $stepContainer: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  backgroundColor: colors.palette.neutral100,
+  borderRadius: bentoRadii.card,
+  padding: 18,
   flex: 1,
 })
 
@@ -504,7 +553,7 @@ const $codeValue: ThemedStyle<TextStyle> = ({ colors }) => ({
 
 const $codeHint: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 12,
-  color: colors.palette.success600,
+  color: colors.palette.primary600,
 })
 
 const $presetRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -516,7 +565,7 @@ const $presetChip: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flex: 1,
   paddingVertical: spacing.md,
   paddingHorizontal: spacing.sm,
-  borderRadius: 8,
+  borderRadius: bentoRadii.button,
   borderWidth: 2,
   borderColor: colors.palette.neutral300,
   backgroundColor: colors.palette.neutral100,
@@ -619,12 +668,6 @@ const $checkboxBox: ThemedStyle<ViewStyle> = ({ colors }) => ({
 const $checkboxBoxChecked: ThemedStyle<ViewStyle> = ({ colors }) => ({
   borderColor: colors.palette.primary500,
   backgroundColor: colors.palette.primary500,
-})
-
-const $checkboxCheck: ThemedStyle<TextStyle> = () => ({
-  color: "#FFF",
-  fontSize: 16,
-  fontWeight: "700",
 })
 
 const $checkboxLabel: ThemedStyle<TextStyle> = ({ colors }) => ({

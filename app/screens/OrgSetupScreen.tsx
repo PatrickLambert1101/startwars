@@ -17,6 +17,7 @@ import { useDatabase } from "@/context/DatabaseContext"
 import type { LivestockType } from "@/db/models/Organization"
 import { useSync } from "@/hooks/useSync"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
+import { bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { loadString, saveString } from "@/utils/storage"
@@ -297,7 +298,7 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
       )}
       {/* Header */}
       <View style={themed($hero)}>
-        <RfidLoadingAnimation size={196} />
+        <RfidLoadingAnimation size={112} />
         <Text
           text={step <= 4 ? t("orgSetupScreen.subtitle") : t("orgSetupScreen.allSet")}
           preset="subheading"
@@ -610,7 +611,7 @@ export const OrgSetupScreen: FC<AppStackScreenProps<"OrgSetup">> = ({ navigation
 }
 
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  paddingHorizontal: spacing.lg,
+  paddingHorizontal: spacing.md,
   paddingBottom: spacing.xxl,
 })
 
@@ -664,7 +665,7 @@ const $stepLineActive: ThemedStyle<ViewStyle> = ({ colors }) => ({
 
 const $card: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 20,
+  borderRadius: bentoRadii.card,
   padding: spacing.lg,
   gap: spacing.sm,
   marginBottom: spacing.md,
@@ -714,7 +715,7 @@ const $typesGrid: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $typeCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   width: "47%",
   backgroundColor: colors.palette.neutral200,
-  borderRadius: 14,
+  borderRadius: bentoRadii.card,
   padding: spacing.sm,
   borderWidth: 2,
   borderColor: "transparent",
@@ -774,7 +775,7 @@ const $sizeGrid: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $sizeCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   width: "48%",
   backgroundColor: colors.palette.neutral200,
-  borderRadius: 12,
+  borderRadius: bentoRadii.card,
   padding: spacing.sm,
   borderWidth: 2,
   borderColor: "transparent",
@@ -804,7 +805,7 @@ const $purposeGrid: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $purposeCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   width: "48%",
   backgroundColor: colors.palette.neutral200,
-  borderRadius: 12,
+  borderRadius: bentoRadii.card,
   padding: spacing.sm,
   borderWidth: 2,
   borderColor: "transparent",
@@ -835,7 +836,7 @@ const $getStartedCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   alignItems: "center",
   gap: spacing.md,
   backgroundColor: colors.palette.neutral200,
-  borderRadius: 14,
+  borderRadius: bentoRadii.card,
   padding: spacing.md,
 })
 
@@ -860,7 +861,7 @@ const $breedGrid: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 
 const $breedCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral200,
-  borderRadius: 8,
+  borderRadius: bentoRadii.card,
   paddingVertical: spacing.xs,
   paddingHorizontal: spacing.sm,
   borderWidth: 2,

@@ -43,6 +43,7 @@ import { useRfidReader } from "@/hooks/useRfidReader"
 import { usePendingVaccinations } from "@/hooks/useVaccinationSchedules"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { bentoColors } from "@/theme/bento"
+import { bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import type { DashboardActivityItem } from "@/utils/dashboardActivity"
@@ -902,7 +903,7 @@ const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 
 const $setupCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 12,
+  borderRadius: bentoRadii.card,
   padding: spacing.md,
   marginTop: spacing.sm,
   gap: spacing.xs,
@@ -928,7 +929,7 @@ const $sectionHeader: ThemedStyle<ViewStyle> = () => ({
 
 const $farmCard: ThemedStyle<ViewStyle> = ({ colors }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 18,
+  borderRadius: bentoRadii.card,
   marginTop: 10,
   overflow: "hidden",
 })
@@ -956,7 +957,7 @@ const $caughtUpCard: ThemedStyle<ViewStyle> = ({ colors }) => ({
   alignItems: "flex-start",
   gap: 12,
   padding: 16,
-  borderRadius: 22,
+  borderRadius: bentoRadii.card,
   backgroundColor: colors.palette.primary100,
 })
 
@@ -965,7 +966,7 @@ const $calvingCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   alignItems: "center",
   gap: spacing.sm,
   padding: spacing.sm,
-  borderRadius: 12,
+  borderRadius: bentoRadii.card,
   borderLeftWidth: 3,
   borderLeftColor: colors.tint,
   backgroundColor: colors.palette.primary100,
@@ -986,7 +987,7 @@ const $alertText: ThemedStyle<ViewStyle> = () => ({
 
 const $pastureAlertCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   padding: spacing.sm,
-  borderRadius: 12,
+  borderRadius: bentoRadii.card,
   borderLeftWidth: 3,
   borderLeftColor: colors.error,
   backgroundColor: colors.errorBackground,
@@ -1091,7 +1092,7 @@ const $modalOverlay: ThemedStyle<ViewStyle> = () => ({
 
 const $modalContent: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.background,
-  borderRadius: 16,
+  borderRadius: bentoRadii.card,
   padding: spacing.lg,
   width: "100%",
   maxHeight: "80%",
@@ -1139,7 +1140,7 @@ const $modalTitle: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 
 const $farmOption: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 10,
+  borderRadius: bentoRadii.button,
   padding: spacing.md,
   marginBottom: spacing.xs,
   flexDirection: "row",
@@ -1161,7 +1162,7 @@ const $leaveButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 
 const $inviteCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 12,
+  borderRadius: bentoRadii.card,
   marginTop: spacing.sm,
 })
 
@@ -1177,7 +1178,7 @@ const $cancelButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 
 const $reportsCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.primary100,
-  borderRadius: 12,
+  borderRadius: bentoRadii.card,
   padding: spacing.sm,
   marginTop: spacing.md,
   marginBottom: spacing.sm,
@@ -1198,7 +1199,7 @@ const $reportsTitle: TextStyle = {
 
 const $vaccinationCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.accent100,
-  borderRadius: 12,
+  borderRadius: bentoRadii.card,
   padding: spacing.sm,
   marginBottom: spacing.sm,
   borderLeftWidth: 3,

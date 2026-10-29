@@ -1335,6 +1335,7 @@ const $headerIconButton: ThemedStyle<ViewStyle> = ({ colors }) => ({
 const $headerTitle: ThemedStyle<TextStyle> = () => ({
   flex: 1,
   textAlign: "center",
+  flexShrink: 1,
 })
 
 const $editProfileButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
@@ -1542,10 +1543,8 @@ const $createdByText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
 const $emptyState: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   alignItems: "center",
   padding: spacing.xl,
-  borderRadius: 16,
+  borderRadius: bentoRadii.card,
   backgroundColor: colors.palette.neutral100,
-  borderWidth: 1,
-  borderColor: colors.border,
 })
 
 const $emptyText: ThemedStyle<TextStyle> = ({ spacing }) => ({
@@ -1604,7 +1603,7 @@ const $administerButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 
 const $tagsSection: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   padding: spacing.md,
-  borderRadius: 16,
+  borderRadius: bentoRadii.card,
   backgroundColor: colors.palette.neutral100,
 })
 
@@ -1632,7 +1631,7 @@ const $tagChip: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.primary100,
   paddingHorizontal: spacing.sm,
   paddingVertical: spacing.xs,
-  borderRadius: 12,
+  borderRadius: bentoRadii.button,
   borderWidth: 1,
   borderColor: colors.palette.primary300,
 })
@@ -1649,7 +1648,7 @@ const $saveTagsButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 
 const $lineageSection: ThemedStyle<ViewStyle> = ({ spacing, colors }) => ({
   padding: spacing.md,
-  borderRadius: 16,
+  borderRadius: bentoRadii.card,
   backgroundColor: colors.palette.neutral100,
   gap: spacing.xs,
 })
@@ -1690,10 +1689,8 @@ const $parentActionText: ThemedStyle<TextStyle> = ({ colors }) => ({
 
 const $traitsSection: ThemedStyle<ViewStyle> = ({ spacing, colors }) => ({
   padding: spacing.md,
-  borderRadius: 16,
+  borderRadius: bentoRadii.card,
   backgroundColor: colors.palette.neutral100,
-  borderWidth: 1,
-  borderColor: colors.border,
 })
 
 const $traitsGrid: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -1709,7 +1706,7 @@ const $traitChip: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.background,
   paddingHorizontal: spacing.sm,
   paddingVertical: spacing.xs,
-  borderRadius: 12,
+  borderRadius: bentoRadii.button,
   borderWidth: 1,
   borderColor: colors.border,
 })
@@ -1719,8 +1716,6 @@ const $offspringStatsCard: ThemedStyle<ViewStyle> = ({ spacing, colors }) => ({
   borderRadius: bentoRadii.card,
   padding: spacing.md,
   marginBottom: spacing.md,
-  borderWidth: 1,
-  borderColor: colors.border,
 })
 
 const $statsRow: ThemedStyle<ViewStyle> = () => ({

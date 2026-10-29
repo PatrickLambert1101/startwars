@@ -12,6 +12,7 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 
 import { Screen, Text, Button, Icon } from "@/components"
+import { BentoPageIntro } from "@/components/BentoPageChrome"
 import { Animal, PastureMovement, PASTURE_ACTIVITY_LABELS, PastureActivity } from "@/db/models"
 import { usePastureActivities, usePastureActivityActions } from "@/hooks/usePastureActivities"
 import { usePastureBoundary } from "@/hooks/usePastureBoundaries"
@@ -195,7 +196,7 @@ export function PastureDetailScreen({ navigation, route }: PastureDetailScreenPr
         </Pressable>
         <View style={themed($titleRow)}>
           <View style={themed($titleContainer)}>
-            <Text preset="heading" text={pasture.name} style={themed($title)} />
+            <Text preset="heading" text="Pasture" style={themed($title)} />
             <Text style={themed($code)}>({pasture.code})</Text>
           </View>
           {!pasture.isActive && (
@@ -213,6 +214,7 @@ export function PastureDetailScreen({ navigation, route }: PastureDetailScreenPr
       </View>
 
       <ScrollView style={themed($content)} showsVerticalScrollIndicator={false}>
+        <BentoPageIntro title={pasture.name} description={pasture.code} icon="grass" />
         {/* Stats Cards */}
         <View style={themed($statsRow)}>
           <View style={themed($statCard)}>
@@ -551,7 +553,7 @@ export function PastureDetailScreen({ navigation, route }: PastureDetailScreenPr
 
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flex: 1,
-  paddingHorizontal: spacing.lg,
+  paddingHorizontal: spacing.md,
 })
 
 const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -560,6 +562,7 @@ const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   alignItems: "center",
   marginTop: spacing.md,
   marginBottom: spacing.sm,
+  gap: 10,
 })
 
 const $backButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -619,7 +622,7 @@ const $statusDot: ThemedStyle<ViewStyle> = () => ({
 
 const $editButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   padding: spacing.xs,
-  borderRadius: 8,
+  borderRadius: bentoRadii.button,
   backgroundColor: colors.palette.neutral200,
 })
 
@@ -639,8 +642,6 @@ const $statCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   borderRadius: bentoRadii.card,
   padding: spacing.md,
   alignItems: "center",
-  borderWidth: 1,
-  borderColor: colors.palette.neutral200,
 })
 
 const $statValue: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
@@ -714,7 +715,7 @@ const $locationMeta: ThemedStyle<TextStyle> = ({ colors }) => ({
 })
 
 const $moveAllButton: ThemedStyle<ViewStyle> = () => ({
-  minHeight: 32,
+  minHeight: 44,
   paddingVertical: 4,
   paddingHorizontal: 12,
 })
@@ -748,7 +749,7 @@ const $moveOutButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral200,
   paddingHorizontal: spacing.sm,
   paddingVertical: spacing.xs,
-  borderRadius: 6,
+  borderRadius: bentoRadii.button,
 })
 
 const $moveOutButtonText: ThemedStyle<TextStyle> = ({ colors }) => ({
@@ -925,7 +926,7 @@ const $scanButtonIcon: ImageStyle = {
 
 const $scanButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.primary500,
-  borderRadius: 12,
+  borderRadius: bentoRadii.button,
   paddingHorizontal: spacing.md,
   paddingVertical: spacing.md,
   flexDirection: "row",

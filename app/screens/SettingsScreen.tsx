@@ -1,11 +1,13 @@
 import { FC, useCallback, useState, useEffect } from "react"
 import { View, ViewStyle, TextStyle, Pressable, Alert, Switch } from "react-native"
+import * as Application from "expo-application"
 import * as LocalAuthentication from "expo-local-authentication"
 import { Q } from "@nozbe/watermelondb"
 import * as Sentry from "@sentry/react-native"
 import { useTranslation } from "react-i18next"
 
-import { Screen, Text, ListItem, Button, Icon, BIOMETRIC_LOCK_KEY } from "@/components"
+import { AppHeader, Screen, Text, Button, BIOMETRIC_LOCK_KEY } from "@/components"
+import { BentoSettingsOverview, BentoManagementGrid } from "@/components/BentoPageChrome"
 import { RfidScannerSettings } from "@/components/RfidScannerSettings"
 import { useAuth } from "@/context/AuthContext"
 import { useDatabase } from "@/context/DatabaseContext"
@@ -14,7 +16,7 @@ import { database } from "@/db"
 import { useSync } from "@/hooks/useSync"
 import { seedDefaultSchedules } from "@/services/defaultSchedules"
 import { calculateScheduledVaccinations } from "@/services/vaccinationScheduler"
-import { bentoRadii } from "@/theme/bento"
+import { bentoColors, bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { loadString, saveString } from "@/utils/storage"
@@ -32,8 +34,10 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
   // restore them here if the APPEARANCE section comes back.
   const {
     themed,
-    theme: { colors },
+    theme: { colors, isDark },
   } = useAppTheme()
+  const c = bentoColors(isDark)
+  const [showAdvanced, setShowAdvanced] = useState(false)
   const { logout, user } = useAuth()
   const { currentOrg } = useDatabase()
   const { plan, isPremium, isLoading } = useSubscription()
@@ -272,14 +276,51 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
 
   return (
     <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
-      <View style={themed($headerRow)}>
-        <Pressable onPress={() => navigation.goBack()} style={themed($backButton)}>
-          <Icon icon="caretLeft" size={24} color={themed($backIcon).color} />
-        </Pressable>
-        <Text preset="heading" text={t("settingsScreen.title")} style={themed($heading)} />
-        <View style={themed($backButtonPlaceholder)} />
+      <AppHeader title={t("settingsScreen.title")} showBack showSettings={false} />
+      <BentoSettingsOverview
+        farm={currentOrg?.name || t("settingsScreen.account.noOrg")}
+        email={user?.email || t("settingsScreen.account.notSignedIn")}
+        plan={
+          isLoading
+            ? t("settingsScreen.subscription.status.loading")
+            : t(
+                `settingsScreen.subscription.plans.${plan === "commercial" ? "commercial" : plan === "farm" ? "farm" : "starter"}`,
+              )
+        }
+        language={currentLanguage.nativeName}
+        onPlan={() => navigation.navigate(isPremium ? "CustomerCenter" : "Paywall")}
+      />
+      <View style={themed($section)}>
+        <Text
+          text={t("settingsScreen.sections.management")}
+          preset="subheading"
+          style={themed($sectionLabel)}
+        />
+        <BentoManagementGrid
+          actions={[
+            {
+              label: t("settingsScreen.management.team"),
+              icon: "account-group-outline",
+              onPress: () => navigation.navigate("Team"),
+            },
+            {
+              label: t("settingsScreen.management.treatmentProtocols"),
+              icon: "medical-bag",
+              onPress: () => navigation.navigate("TreatmentProtocols"),
+            },
+            {
+              label: t("settingsScreen.management.vaccinationSchedules"),
+              icon: "calendar-check-outline",
+              onPress: () => navigation.navigate("VaccinationSchedules"),
+            },
+            {
+              label: "Import CSV or Excel data",
+              icon: "tray-arrow-down",
+              onPress: () => navigation.navigate("DataImports"),
+            },
+          ]}
+        />
       </View>
-
       <RfidScannerSettings />
 
       {/* APPEARANCE / dark mode toggle intentionally hidden — the app is
@@ -303,6 +344,8 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
               return (
                 <Pressable
                   key={lang.code}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: isActive }}
                   style={[themed($languageChip), isActive && themed($languageChipActive)]}
                   onPress={() => handleChangeLanguage(lang.code)}
                 >
@@ -326,38 +369,33 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
         </View>
       </View>
 
-      <View style={themed($section)}>
-        <Text
-          preset="formLabel"
-          text={t("settingsScreen.sections.account")}
-          style={themed($sectionLabel)}
-        />
-        <ListItem text={user?.email || t("settingsScreen.account.notSignedIn")} bottomSeparator />
-        <ListItem
-          text={t("settingsScreen.account.org", {
-            orgName: currentOrg?.name || t("settingsScreen.account.noOrg"),
-          })}
-          bottomSeparator
-        />
-        {biometricAvailable && (
-          <View style={themed($appLockRow)}>
-            <View style={themed($appLockText)}>
-              <Text text={t("settingsScreen.account.appLock")} />
-              <Text
-                size="xxs"
-                style={themed($appLockHint)}
-                text={t("settingsScreen.account.appLockHint")}
+      {biometricAvailable && (
+        <View style={themed($section)}>
+          <Text
+            preset="formLabel"
+            text={t("settingsScreen.sections.account")}
+            style={themed($sectionLabel)}
+          />
+          {biometricAvailable && (
+            <View style={themed($appLockRow)}>
+              <View style={themed($appLockText)}>
+                <Text text={t("settingsScreen.account.appLock")} />
+                <Text
+                  size="xxs"
+                  style={themed($appLockHint)}
+                  text={t("settingsScreen.account.appLockHint")}
+                />
+              </View>
+              <Switch
+                value={biometricEnabled}
+                onValueChange={handleToggleBiometricLock}
+                trackColor={{ false: "#D1D5DB", true: colors.palette.primary500 }}
+                thumbColor="#FFFFFF"
               />
             </View>
-            <Switch
-              value={biometricEnabled}
-              onValueChange={handleToggleBiometricLock}
-              trackColor={{ false: "#D1D5DB", true: colors.palette.primary500 }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
-        )}
-      </View>
+          )}
+        </View>
+      )}
 
       <View style={themed($section)}>
         <Text
@@ -436,97 +474,88 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
         </View>
       </View>
 
-      <View style={themed($section)}>
-        <Text
-          preset="formLabel"
-          text={t("settingsScreen.sections.management")}
-          style={themed($sectionLabel)}
-        />
-        <ListItem
-          text={t("settingsScreen.management.team")}
-          bottomSeparator
-          rightIcon="caretRight"
-          onPress={() => navigation.navigate("Team")}
-        />
-        <ListItem
-          text={t("settingsScreen.management.treatmentProtocols")}
-          bottomSeparator
-          rightIcon="caretRight"
-          onPress={() => navigation.navigate("TreatmentProtocols")}
-        />
-        <ListItem
-          text={t("settingsScreen.management.vaccinationSchedules")}
-          bottomSeparator
-          rightIcon="caretRight"
-          onPress={() => navigation.navigate("VaccinationSchedules")}
-        />
-        <ListItem
-          text="Import CSV or Excel data"
-          bottomSeparator
-          rightIcon="caretRight"
-          onPress={() => navigation.navigate("DataImports")}
-        />
+      {(hasSchedules || currentOrg?.livestockTypes.includes("cattle")) && (
+        <View style={themed($section)}>
+          <Text
+            preset="formLabel"
+            text={t("settingsScreen.management.vaccinationSchedules")}
+            style={themed($sectionLabel)}
+          />
+          {hasSchedules && (
+            <View style={themed($recalculateCard)}>
+              <Text style={themed($recalculateTitle)}>Recalculate Vaccinations</Text>
+              <Text style={themed($recalculateText)}>
+                Calculate upcoming vaccinations for all animals based on active schedules. Run this
+                after adding new animals or modifying schedules.
+              </Text>
+              <Button
+                text="Recalculate Now"
+                preset="default"
+                onPress={handleRecalculateVaccinations}
+                style={themed($recalculateButton)}
+              />
+            </View>
+          )}
 
-        {hasSchedules && (
-          <View style={themed($recalculateCard)}>
-            <Text style={themed($recalculateTitle)}>Recalculate Vaccinations</Text>
-            <Text style={themed($recalculateText)}>
-              Calculate upcoming vaccinations for all animals based on active schedules. Run this
-              after adding new animals or modifying schedules.
-            </Text>
-            <Button
-              text="Recalculate Now"
-              preset="default"
-              onPress={handleRecalculateVaccinations}
-              style={themed($recalculateButton)}
-            />
-          </View>
-        )}
-
-        {currentOrg?.livestockTypes.includes("cattle") && !hasSchedules && (
-          <View style={themed($seedCard)}>
-            <Text style={themed($seedTitle)}>Add Default Vaccination Schedules</Text>
-            <Text style={themed($seedText)}>
-              Add standard South African cattle vaccination schedules (FMD, Multivax, Brucellosis,
-              LSD, BVD, Botulism) to your farm
-            </Text>
-            <Button
-              text="Add Default Schedules"
-              preset="default"
-              onPress={handleSeedDefaultSchedules}
-              style={themed($seedButton)}
-            />
-          </View>
-        )}
-      </View>
+          {currentOrg?.livestockTypes.includes("cattle") && !hasSchedules && (
+            <View style={themed($seedCard)}>
+              <Text style={themed($seedTitle)}>Add Default Vaccination Schedules</Text>
+              <Text style={themed($seedText)}>
+                Add standard South African cattle vaccination schedules (FMD, Multivax, Brucellosis,
+                LSD, BVD, Botulism) to your farm
+              </Text>
+              <Button
+                text="Add Default Schedules"
+                preset="default"
+                onPress={handleSeedDefaultSchedules}
+                style={themed($seedButton)}
+              />
+            </View>
+          )}
+        </View>
+      )}
 
       <View style={themed($section)}>
         <Text preset="formLabel" text="Sync" style={themed($sectionLabel)} />
         <View style={themed($seedCard)}>
           <Text style={themed($seedText)}>
-            ✅ Auto-sync is active! Your data syncs automatically when you make changes, when the
-            app opens, and every 5 minutes.
+            {status === "syncing"
+              ? "Syncing your farm records…"
+              : status === "error"
+                ? "Sync needs attention. Check your connection and try again."
+                : "Automatic sync keeps your farm records in step across devices."}
           </Text>
         </View>
-        {__DEV__ && (
-          <View style={themed($seedCard)}>
-            <Text style={themed($seedTitle)}>Force Full Sync</Text>
-            <Text style={themed($seedText)}>
-              Only use this if data is missing or out of sync. This will re-download all data from
-              the server.
-            </Text>
-            <Button
-              text={status === "syncing" ? "Syncing..." : "Force Full Sync"}
-              preset="default"
-              onPress={handleForceFullSync}
-              disabled={status === "syncing"}
-              style={themed($seedButton)}
-            />
-          </View>
-        )}
       </View>
 
       {__DEV__ && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ expanded: showAdvanced }}
+          onPress={() => setShowAdvanced(!showAdvanced)}
+          style={themed($advancedToggle)}
+        >
+          <Text text="Advanced tools" preset="bold" style={{ color: c.ink }} />
+          <Text text={showAdvanced ? "−" : "+"} preset="bold" style={{ color: c.ink }} />
+        </Pressable>
+      )}
+      {__DEV__ && showAdvanced && (
+        <View style={themed([$seedCard, $section])}>
+          <Text style={themed($seedTitle)}>Force Full Sync</Text>
+          <Text style={themed($seedText)}>
+            Only use this if data is missing or out of sync. This will re-download all data from the
+            server.
+          </Text>
+          <Button
+            text={status === "syncing" ? "Syncing..." : "Force Full Sync"}
+            preset="default"
+            onPress={handleForceFullSync}
+            disabled={status === "syncing"}
+            style={themed($seedButton)}
+          />
+        </View>
+      )}
+      {__DEV__ && showAdvanced && (
         <View style={themed($section)}>
           <Text preset="formLabel" text="DEBUG & TESTING" style={themed($sectionLabel)} />
           <View style={themed($seedCard)}>
@@ -545,7 +574,7 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
         </View>
       )}
 
-      {__DEV__ && (
+      {__DEV__ && showAdvanced && (
         <View style={themed($section)}>
           <Text
             preset="formLabel"
@@ -574,40 +603,22 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
         style={themed($logoutButton)}
       />
 
-      <Text preset="formHelper" text={t("settingsScreen.version")} style={themed($version)} />
+      <Text
+        preset="formHelper"
+        text={
+          Application.nativeApplicationVersion
+            ? `HerdTrackr v${Application.nativeApplicationVersion}`
+            : "HerdTrackr"
+        }
+        style={themed($version)}
+      />
     </Screen>
   )
 }
 
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  paddingHorizontal: spacing.lg,
+  paddingHorizontal: spacing.md,
   paddingBottom: spacing.xxl,
-})
-
-const $headerRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "space-between",
-  marginTop: spacing.md,
-  marginBottom: spacing.lg,
-})
-
-const $backButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  padding: spacing.xs,
-  marginLeft: -spacing.xs,
-})
-
-const $backIcon: ThemedStyle<TextStyle> = ({ colors }) => ({
-  color: colors.text,
-})
-
-const $backButtonPlaceholder: ThemedStyle<ViewStyle> = () => ({
-  width: 40,
-})
-
-const $heading: ThemedStyle<ViewStyle> = () => ({
-  flex: 1,
-  textAlign: "center",
 })
 
 const $section: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -617,14 +628,19 @@ const $section: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $sectionLabel: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   color: colors.textDim,
   marginBottom: spacing.xs,
-  letterSpacing: 1,
+  letterSpacing: 0,
+  fontSize: 18,
+  lineHeight: 25,
 })
 
-const $appLockRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+const $appLockRow: ThemedStyle<ViewStyle> = ({ spacing, isDark }) => ({
   flexDirection: "row",
   alignItems: "center",
   justifyContent: "space-between",
   paddingVertical: spacing.sm,
+  backgroundColor: bentoColors(isDark).surface,
+  padding: 18,
+  borderRadius: bentoRadii.card,
 })
 
 const $appLockText: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -647,13 +663,11 @@ const $version: ThemedStyle<TextStyle> = ({ spacing }) => ({
 
 // --- RECALCULATE VACCINATIONS styles ---
 
-const $recalculateCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  backgroundColor: colors.palette.primary100,
+const $recalculateCard: ThemedStyle<ViewStyle> = ({ spacing, isDark }) => ({
   borderRadius: bentoRadii.card,
-  borderWidth: 2,
-  borderColor: colors.palette.primary300,
   padding: spacing.md,
   marginTop: spacing.sm,
+  backgroundColor: bentoColors(isDark).sage,
 })
 
 const $recalculateTitle: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
@@ -676,13 +690,11 @@ const $recalculateButton: ThemedStyle<ViewStyle> = () => ({
 
 // --- SEED SCHEDULES styles ---
 
-const $seedCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  backgroundColor: colors.palette.accent100,
+const $seedCard: ThemedStyle<ViewStyle> = ({ spacing, isDark }) => ({
   borderRadius: bentoRadii.card,
-  borderWidth: 2,
-  borderColor: colors.palette.accent300,
   padding: spacing.md,
   marginTop: spacing.sm,
+  backgroundColor: bentoColors(isDark).surface,
 })
 
 const $seedTitle: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
@@ -711,7 +723,7 @@ const $dangerLabel: ThemedStyle<TextStyle> = ({ spacing }) => ({
   letterSpacing: 1,
 })
 
-const $dangerCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+const $dangerCard: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   backgroundColor: "#FFF5F5",
   borderRadius: bentoRadii.card,
   borderWidth: 2,
@@ -737,49 +749,12 @@ const $dangerButton: ThemedStyle<ViewStyle> = () => ({
   backgroundColor: "#E53E3E",
 })
 
-// --- THEME / DARK MODE styles ---
-
-const $themeCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  backgroundColor: colors.palette.neutral100,
-  borderRadius: bentoRadii.card,
-  padding: spacing.md,
-})
-
-const $themeRow: ThemedStyle<ViewStyle> = () => ({
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "center",
-})
-
-const $themeContent: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flexDirection: "row",
-  alignItems: "center",
-  gap: spacing.md,
-  flex: 1,
-})
-
-const $themeIcon: ThemedStyle<TextStyle> = ({ colors }) => ({
-  color: colors.palette.primary500,
-})
-
-const $themeTitle: ThemedStyle<TextStyle> = ({ colors }) => ({
-  fontSize: 16,
-  fontWeight: "600",
-  color: colors.text,
-})
-
-const $themeSubtext: ThemedStyle<TextStyle> = ({ colors }) => ({
-  fontSize: 13,
-  color: colors.textDim,
-  marginTop: 2,
-})
-
 // --- LANGUAGE styles ---
 
-const $languageCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  backgroundColor: colors.palette.neutral100,
+const $languageCard: ThemedStyle<ViewStyle> = ({ spacing, isDark }) => ({
   borderRadius: bentoRadii.card,
   padding: spacing.md,
+  backgroundColor: bentoColors(isDark).surface,
 })
 
 const $languageTitle: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
@@ -805,7 +780,7 @@ const $languageChip: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flex: 1,
   minWidth: "48%",
   padding: spacing.sm,
-  borderRadius: 10,
+  borderRadius: bentoRadii.button,
   borderWidth: 2,
   borderColor: colors.palette.neutral300,
   backgroundColor: colors.background,
@@ -839,12 +814,10 @@ const $languageChipSubtextActive: ThemedStyle<TextStyle> = ({ colors }) => ({
 
 // --- SUBSCRIPTION styles ---
 
-const $subscriptionCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  backgroundColor: colors.palette.neutral100,
+const $subscriptionCard: ThemedStyle<ViewStyle> = ({ spacing, isDark }) => ({
   borderRadius: bentoRadii.card,
   padding: spacing.md,
-  borderWidth: 1,
-  borderColor: colors.palette.neutral200,
+  backgroundColor: bentoColors(isDark).surface,
 })
 
 const $subscriptionHeader: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -889,4 +862,15 @@ const $subscriptionDescription: ThemedStyle<TextStyle> = ({ colors, spacing }) =
 
 const $subscriptionButton: ThemedStyle<ViewStyle> = () => ({
   marginTop: 0,
+})
+
+const $advancedToggle: ThemedStyle<ViewStyle> = ({ spacing, isDark }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+  minHeight: 52,
+  backgroundColor: bentoColors(isDark).surface,
+  borderRadius: bentoRadii.button,
+  padding: spacing.md,
+  marginBottom: spacing.md,
 })

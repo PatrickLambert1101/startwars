@@ -605,6 +605,7 @@ const $headerTitle: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.text,
   fontSize: 17,
   fontWeight: "700",
+  flexShrink: 1,
 })
 
 const $headerSubtitle: ThemedStyle<TextStyle> = ({ colors }) => ({

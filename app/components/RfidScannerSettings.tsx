@@ -11,6 +11,7 @@ import {
   RFID_READ_POWER_MIN_DBM,
   saveRfidReadPower,
 } from "@/services/rfidReaderSettings"
+import { bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
@@ -23,14 +24,8 @@ export function RfidScannerSettings() {
     themed,
     theme: { colors },
   } = useAppTheme()
-  const {
-    error,
-    hasRfidHardware,
-    initialize,
-    isInitialized,
-    reset,
-    setOutputPower,
-  } = useRfidReader()
+  const { error, hasRfidHardware, initialize, isInitialized, reset, setOutputPower } =
+    useRfidReader()
   const [readerPower, setReaderPower] = useState(RFID_READ_POWER_DEFAULT_DBM)
   const [powerSaved, setPowerSaved] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
@@ -226,7 +221,7 @@ const $sectionLabel: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
 })
 const $card: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 12,
+  borderRadius: bentoRadii.card,
   padding: spacing.md,
 })
 const $statusRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -325,7 +320,7 @@ const $presetRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $presetChip: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   alignItems: "center",
   borderColor: colors.palette.neutral300,
-  borderRadius: 8,
+  borderRadius: bentoRadii.button,
   borderWidth: 1.5,
   flex: 1,
   paddingVertical: spacing.xs,

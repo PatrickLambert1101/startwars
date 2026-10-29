@@ -511,7 +511,7 @@ const $selectedCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   right: spacing.sm,
   bottom: spacing.sm,
   padding: spacing.md,
-  borderRadius: 15,
+  borderRadius: bentoRadii.card,
   backgroundColor: colors.palette.neutral100,
   shadowColor: colors.palette.neutral900,
   shadowOpacity: 0.18,

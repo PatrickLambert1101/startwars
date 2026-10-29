@@ -4,6 +4,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
 
 import { Screen, Text, Button, Icon, TextField, FriendlyEmpty } from "@/components"
+import { BentoPageIntro } from "@/components/BentoPageChrome"
 import { useAuth } from "@/context/AuthContext"
 import { useDatabase } from "@/context/DatabaseContext"
 import { useSync } from "@/hooks/useSync"
@@ -18,7 +19,10 @@ interface TeamScreenProps extends AppStackScreenProps<"Team"> {}
 
 export function TeamScreen({ navigation }: TeamScreenProps) {
   const { t } = useTranslation()
-  const { themed, theme: { colors } } = useAppTheme()
+  const {
+    themed,
+    theme: { colors },
+  } = useAppTheme()
   const { members, invites, isLoading, refetch } = useTeam()
   const { inviteMember, cancelInvite, updateMemberRole, removeMember } = useTeamActions()
   const { user } = useAuth()
@@ -32,7 +36,7 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
   const [isInviting, setIsInviting] = useState(false)
   const [inviteError, setInviteError] = useState("")
 
-  const currentMember = members.find(m => m.userId === user?.id)
+  const currentMember = members.find((m) => m.userId === user?.id)
   const isAdmin = currentMember?.role === "admin"
   const hasNoMembership = !currentMember && members.length === 0
 
@@ -65,8 +69,12 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
       const contactLabel = inviteMethod === "email" ? inviteContact : inviteContact
       Alert.alert(
         t("teamScreen.alerts.inviteSent.title"),
-        t("teamScreen.alerts.inviteSent.message", { contact: contactLabel, code: result.inviteCode, method: inviteMethod }),
-        [{ text: t("teamScreen.alerts.inviteSent.ok") }]
+        t("teamScreen.alerts.inviteSent.message", {
+          contact: contactLabel,
+          code: result.inviteCode,
+          method: inviteMethod,
+        }),
+        [{ text: t("teamScreen.alerts.inviteSent.ok") }],
       )
       setInviteContact("")
       setShowInviteForm(false)
@@ -94,24 +102,25 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
             } else {
               Alert.alert(
                 t("teamScreen.alerts.error.title"),
-                result.error || t("teamScreen.alerts.error.cancelInviteFailed")
+                result.error || t("teamScreen.alerts.error.cancelInviteFailed"),
               )
             }
           },
         },
-      ]
+      ],
     )
   }
 
   const handleChangeRole = async (member: TeamMember) => {
     const newRole = member.role === "admin" ? "worker" : "admin"
-    const roleText = newRole === "admin" ? t("teamScreen.member.roleAdmin") : t("teamScreen.member.roleWorker")
+    const roleText =
+      newRole === "admin" ? t("teamScreen.member.roleAdmin") : t("teamScreen.member.roleWorker")
 
     Alert.alert(
       t("teamScreen.alerts.changeRole.title"),
       t("teamScreen.alerts.changeRole.message", {
         name: member.userDisplayName || member.userEmail,
-        role: roleText
+        role: roleText,
       }),
       [
         { text: t("teamScreen.alerts.changeRole.cancel"), style: "cancel" },
@@ -124,19 +133,21 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
             } else {
               Alert.alert(
                 t("teamScreen.alerts.error.title"),
-                result.error || t("teamScreen.alerts.error.updateRoleFailed")
+                result.error || t("teamScreen.alerts.error.updateRoleFailed"),
               )
             }
           },
         },
-      ]
+      ],
     )
   }
 
   const handleRemoveMember = async (member: TeamMember) => {
     Alert.alert(
       t("teamScreen.alerts.removeMember.title"),
-      t("teamScreen.alerts.removeMember.message", { name: member.userDisplayName || member.userEmail }),
+      t("teamScreen.alerts.removeMember.message", {
+        name: member.userDisplayName || member.userEmail,
+      }),
       [
         { text: t("teamScreen.alerts.removeMember.cancel"), style: "cancel" },
         {
@@ -149,12 +160,12 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
             } else {
               Alert.alert(
                 t("teamScreen.alerts.error.title"),
-                result.error || t("teamScreen.alerts.error.removeMemberFailed")
+                result.error || t("teamScreen.alerts.error.removeMemberFailed"),
               )
             }
           },
         },
-      ]
+      ],
     )
   }
 
@@ -169,18 +180,20 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
               {member.userDisplayName || member.userEmail}
               {isCurrentUser && <Text style={themed($youLabel)}>{t("teamScreen.member.you")}</Text>}
             </Text>
-            <View style={[
-              themed($roleBadge),
-              member.role === "admin" ? themed($roleBadgeAdmin) : themed($roleBadgeWorker)
-            ]}>
+            <View
+              style={[
+                themed($roleBadge),
+                member.role === "admin" ? themed($roleBadgeAdmin) : themed($roleBadgeWorker),
+              ]}
+            >
               <Text style={themed($roleBadgeText)}>
-                {member.role === "admin" ? t("teamScreen.member.roleAdmin") : t("teamScreen.member.roleWorker")}
+                {member.role === "admin"
+                  ? t("teamScreen.member.roleAdmin")
+                  : t("teamScreen.member.roleWorker")}
               </Text>
             </View>
           </View>
-          {member.userDisplayName && (
-            <Text style={themed($memberEmail)}>{member.userEmail}</Text>
-          )}
+          {member.userDisplayName && <Text style={themed($memberEmail)}>{member.userEmail}</Text>}
           {member.joinedAt && (
             <Text style={themed($memberJoined)}>
               {t("teamScreen.member.joined", { date: formatDate(member.joinedAt, "PP") })}
@@ -190,13 +203,8 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
 
         {isAdmin && !isCurrentUser && (
           <View style={themed($memberActions)}>
-            <Pressable
-              onPress={() => handleChangeRole(member)}
-              style={themed($actionButton)}
-            >
-              <Text style={themed($actionButtonText)}>
-                {member.role === "admin" ? "↓" : "↑"}
-              </Text>
+            <Pressable onPress={() => handleChangeRole(member)} style={themed($actionButton)}>
+              <Text style={themed($actionButtonText)}>{member.role === "admin" ? "↓" : "↑"}</Text>
             </Pressable>
             <Pressable
               onPress={() => handleRemoveMember(member)}
@@ -215,27 +223,29 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
       <View style={themed($inviteInfo)}>
         <Text style={themed($inviteEmail)}>{invite.email}</Text>
         <View style={themed($inviteDetails)}>
-          <View style={[
-            themed($roleBadge),
-            invite.role === "admin" ? themed($roleBadgeAdmin) : themed($roleBadgeWorker)
-          ]}>
+          <View
+            style={[
+              themed($roleBadge),
+              invite.role === "admin" ? themed($roleBadgeAdmin) : themed($roleBadgeWorker),
+            ]}
+          >
             <Text style={themed($roleBadgeText)}>
-              {invite.role === "admin" ? t("teamScreen.member.roleAdmin") : t("teamScreen.member.roleWorker")}
+              {invite.role === "admin"
+                ? t("teamScreen.member.roleAdmin")
+                : t("teamScreen.member.roleWorker")}
             </Text>
           </View>
           {invite.expiresAt && (
             <Text style={themed($inviteExpires)}>
-              {t("teamScreen.invite.code", { code: invite.inviteCode })} • {t("teamScreen.invite.expires", { date: formatDate(invite.expiresAt, "PP") })}
+              {t("teamScreen.invite.code", { code: invite.inviteCode })} •{" "}
+              {t("teamScreen.invite.expires", { date: formatDate(invite.expiresAt, "PP") })}
             </Text>
           )}
         </View>
       </View>
 
       {isAdmin && (
-        <Pressable
-          onPress={() => handleCancelInvite(invite)}
-          style={themed($cancelButton)}
-        >
+        <Pressable onPress={() => handleCancelInvite(invite)} style={themed($cancelButton)}>
           <Text style={themed($cancelButtonText)}>{t("teamScreen.invite.cancelButton")}</Text>
         </Pressable>
       )}
@@ -247,7 +257,9 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
       <Pressable onPress={() => navigation.goBack()} style={themed($backButton)}>
         <Icon icon="back" size={24} />
       </Pressable>
-      <Text preset="heading" style={themed($headerTitle)}>{t("teamScreen.title")}</Text>
+      <Text preset="heading" style={themed($headerTitle)}>
+        {t("teamScreen.title")}
+      </Text>
     </View>
   )
 
@@ -302,10 +314,15 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
         <ScrollView style={themed($content)}>
           {hasNoMembership ? (
             <View style={themed($syncNotice)}>
-              <MaterialCommunityIcons name="account-off-outline" size={48} color={colors.palette.accent500} />
+              <MaterialCommunityIcons
+                name="account-off-outline"
+                size={48}
+                color={colors.palette.accent500}
+              />
               <Text style={themed($syncNoticeTitle)}>No Team Access</Text>
               <Text style={themed($syncNoticeText)}>
-                You don't appear to be a member of this organization. Try syncing to refresh your team membership from the cloud.
+                You don't appear to be a member of this organization. Try syncing to refresh your
+                team membership from the cloud.
               </Text>
               <Button
                 text={isSyncing ? "Syncing..." : "Sync Now"}
@@ -334,9 +351,7 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
                   scrollEnabled={false}
                 />
               </View>
-              <Text style={themed($noAccessText)}>
-                {t("teamScreen.noAccess.text")}
-              </Text>
+              <Text style={themed($noAccessText)}>{t("teamScreen.noAccess.text")}</Text>
             </>
           )}
         </ScrollView>
@@ -347,6 +362,11 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
   return (
     <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={themed($container)}>
       {renderHeader()}
+      <BentoPageIntro
+        title="Your farm team"
+        description="Manage people, roles and pending invitations."
+        icon="account-group-outline"
+      />
       <ScrollView style={themed($content)} showsVerticalScrollIndicator={false}>
         {/* Invite Form */}
         {showInviteForm ? (
@@ -355,11 +375,16 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
 
             {/* Method Selector */}
             <View style={themed($roleSelector)}>
-              <Text style={themed($roleSelectorLabel)}>{t("teamScreen.inviteForm.methodLabel")}</Text>
+              <Text style={themed($roleSelectorLabel)}>
+                {t("teamScreen.inviteForm.methodLabel")}
+              </Text>
               <View style={themed($roleOptions)}>
                 <Pressable
                   onPress={() => setInviteMethod("email")}
-                  style={[themed($roleOption), inviteMethod === "email" && themed($roleOptionSelected)]}
+                  style={[
+                    themed($roleOption),
+                    inviteMethod === "email" && themed($roleOptionSelected),
+                  ]}
                 >
                   <MaterialCommunityIcons
                     name="email"
@@ -367,13 +392,21 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
                     color={inviteMethod === "email" ? colors.tint : colors.text}
                     style={{ marginRight: 6 }}
                   />
-                  <Text style={[themed($roleOptionText), inviteMethod === "email" && themed($roleOptionTextSelected)]}>
+                  <Text
+                    style={[
+                      themed($roleOptionText),
+                      inviteMethod === "email" && themed($roleOptionTextSelected),
+                    ]}
+                  >
                     {t("teamScreen.inviteForm.methodEmail")}
                   </Text>
                 </Pressable>
                 <Pressable
                   onPress={() => setInviteMethod("sms")}
-                  style={[themed($roleOption), inviteMethod === "sms" && themed($roleOptionSelected)]}
+                  style={[
+                    themed($roleOption),
+                    inviteMethod === "sms" && themed($roleOptionSelected),
+                  ]}
                 >
                   <MaterialCommunityIcons
                     name="message-text"
@@ -381,7 +414,12 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
                     color={inviteMethod === "sms" ? colors.tint : colors.text}
                     style={{ marginRight: 6 }}
                   />
-                  <Text style={[themed($roleOptionText), inviteMethod === "sms" && themed($roleOptionTextSelected)]}>
+                  <Text
+                    style={[
+                      themed($roleOptionText),
+                      inviteMethod === "sms" && themed($roleOptionTextSelected),
+                    ]}
+                  >
                     {t("teamScreen.inviteForm.methodSMS")}
                   </Text>
                 </Pressable>
@@ -405,18 +443,20 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
             </View>
 
             <TextField
-              label={inviteMethod === "email"
-                ? t("teamScreen.inviteForm.emailLabel")
-                : t("teamScreen.inviteForm.phoneLabel")
+              label={
+                inviteMethod === "email"
+                  ? t("teamScreen.inviteForm.emailLabel")
+                  : t("teamScreen.inviteForm.phoneLabel")
               }
               value={inviteContact}
               onChangeText={(text) => {
                 setInviteContact(text)
                 setInviteError("")
               }}
-              placeholder={inviteMethod === "email"
-                ? t("teamScreen.inviteForm.emailPlaceholder")
-                : t("teamScreen.inviteForm.phonePlaceholder")
+              placeholder={
+                inviteMethod === "email"
+                  ? t("teamScreen.inviteForm.emailPlaceholder")
+                  : t("teamScreen.inviteForm.phonePlaceholder")
               }
               keyboardType={inviteMethod === "email" ? "email-address" : "phone-pad"}
               autoCapitalize="none"
@@ -432,17 +472,33 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
               <View style={themed($roleOptions)}>
                 <Pressable
                   onPress={() => setInviteRole("worker")}
-                  style={[themed($roleOption), inviteRole === "worker" && themed($roleOptionSelected)]}
+                  style={[
+                    themed($roleOption),
+                    inviteRole === "worker" && themed($roleOptionSelected),
+                  ]}
                 >
-                  <Text style={[themed($roleOptionText), inviteRole === "worker" && themed($roleOptionTextSelected)]}>
+                  <Text
+                    style={[
+                      themed($roleOptionText),
+                      inviteRole === "worker" && themed($roleOptionTextSelected),
+                    ]}
+                  >
                     {t("teamScreen.inviteForm.roleWorker")}
                   </Text>
                 </Pressable>
                 <Pressable
                   onPress={() => setInviteRole("admin")}
-                  style={[themed($roleOption), inviteRole === "admin" && themed($roleOptionSelected)]}
+                  style={[
+                    themed($roleOption),
+                    inviteRole === "admin" && themed($roleOptionSelected),
+                  ]}
                 >
-                  <Text style={[themed($roleOptionText), inviteRole === "admin" && themed($roleOptionTextSelected)]}>
+                  <Text
+                    style={[
+                      themed($roleOptionText),
+                      inviteRole === "admin" && themed($roleOptionTextSelected),
+                    ]}
+                  >
                     {t("teamScreen.inviteForm.roleAdmin")}
                   </Text>
                 </Pressable>
@@ -461,7 +517,11 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
                 style={themed($formActionButton)}
               />
               <Button
-                text={isInviting ? t("teamScreen.inviteForm.sending") : t("teamScreen.inviteForm.sendButton")}
+                text={
+                  isInviting
+                    ? t("teamScreen.inviteForm.sending")
+                    : t("teamScreen.inviteForm.sendButton")
+                }
                 preset="filled"
                 onPress={handleInvite}
                 disabled={isInviting}
@@ -512,7 +572,7 @@ export function TeamScreen({ navigation }: TeamScreenProps) {
 
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flex: 1,
-  paddingHorizontal: spacing.lg,
+  paddingHorizontal: spacing.md,
 })
 
 const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -520,6 +580,7 @@ const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   alignItems: "center",
   marginTop: spacing.md,
   marginBottom: spacing.sm,
+  gap: 10,
 })
 
 const $backButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -530,6 +591,7 @@ const $backButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $headerTitle: ThemedStyle<TextStyle> = ({ spacing }) => ({
   flex: 1,
   marginLeft: spacing.xs,
+  flexShrink: 1,
 })
 
 const $content: ThemedStyle<ViewStyle> = () => ({
@@ -580,7 +642,7 @@ const $roleOption: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flex: 1,
   paddingVertical: spacing.sm,
   paddingHorizontal: spacing.md,
-  borderRadius: 8,
+  borderRadius: bentoRadii.button,
   borderWidth: 2,
   borderColor: colors.palette.neutral300,
   backgroundColor: colors.background,
@@ -698,7 +760,7 @@ const $memberActions: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   gap: spacing.xs,
 })
 
-const $actionButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+const $actionButton: ThemedStyle<ViewStyle> = ({ colors }) => ({
   width: 32,
   height: 32,
   borderRadius: 16,
@@ -757,7 +819,7 @@ const $inviteExpires: ThemedStyle<TextStyle> = ({ colors }) => ({
 const $cancelButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   paddingHorizontal: spacing.sm,
   paddingVertical: spacing.xs,
-  borderRadius: 6,
+  borderRadius: bentoRadii.button,
   backgroundColor: colors.palette.angry100,
 })
 
@@ -803,4 +865,3 @@ const $syncNoticeText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
 const $syncNoticeButton: ThemedStyle<ViewStyle> = () => ({
   minWidth: 200,
 })
-

@@ -5,6 +5,7 @@ import { Screen, Button, Text } from "@/components"
 import { CheckBadge } from "@/components/icons"
 import { useSubscription, ANIMAL_LIMITS, FREE_ANIMAL_LIMIT } from "@/context/SubscriptionContext"
 import { AppStackScreenProps } from "@/navigators/navigationTypes"
+import { bentoColors, bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { findSubscriptionPackage, formatSubscriptionPeriod } from "@/utils/subscriptionProducts"
@@ -297,7 +298,7 @@ export function PaywallScreen(props: PaywallScreenProps) {
 
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flex: 1,
-  paddingHorizontal: spacing.lg,
+  paddingHorizontal: spacing.md,
   justifyContent: "center",
 })
 
@@ -330,27 +331,33 @@ const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingHorizontal: spacing.lg,
   paddingTop: spacing.md,
   marginBottom: spacing.md,
+  gap: 10,
 })
 
 const $scrollView: ThemedStyle<ViewStyle> = () => ({
   flex: 1,
 })
 
-const $titleSection: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+const $titleSection: ThemedStyle<ViewStyle> = ({ spacing, isDark }) => ({
   paddingHorizontal: spacing.lg,
-  marginBottom: spacing.lg,
+  backgroundColor: bentoColors(isDark).forest,
+  borderRadius: bentoRadii.hero,
+  padding: 20,
+  marginHorizontal: 16,
+  marginBottom: 20,
 })
 
-const $title: ThemedStyle<TextStyle> = ({ spacing }) => ({
+const $title: ThemedStyle<TextStyle> = ({ spacing, isDark }) => ({
   marginBottom: spacing.xs,
   textAlign: "center",
+  color: bentoColors(isDark).onForest,
 })
 
-const $subtitle: ThemedStyle<TextStyle> = ({ colors }) => ({
-  color: colors.textDim,
+const $subtitle: ThemedStyle<TextStyle> = ({ isDark }) => ({
   textAlign: "center",
   fontSize: 15,
   lineHeight: 22,
+  color: bentoColors(isDark).lime,
 })
 
 const $pricingGrid: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -387,7 +394,7 @@ const $loadingText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
 
 const $pricingCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 16,
+  borderRadius: bentoRadii.card,
   padding: spacing.lg,
   borderWidth: 2,
   borderColor: colors.tint,

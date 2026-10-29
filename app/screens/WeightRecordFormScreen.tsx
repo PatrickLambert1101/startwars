@@ -1,27 +1,31 @@
-import { useSaveGuard } from "@/hooks/useSaveGuard"
-import { useUnsavedChanges } from "@/hooks/useUnsavedChanges"
-import { useAnimal } from "@/hooks/useAnimals"
-import Toast from "react-native-toast-message"
 import { FC, useCallback, useState } from "react"
 import { Alert, View, ViewStyle, TextStyle } from "react-native"
+import { useTranslation } from "react-i18next"
+import Toast from "react-native-toast-message"
 
 import { Screen, Text, TextField, Button } from "@/components"
 import { ConditionScoreInput } from "@/components/ConditionScoreInput"
 import { MeasurementInput } from "@/components/MeasurementInput"
 import { PhotoPicker } from "@/components/PhotoPicker"
-import { useAppTheme } from "@/theme/context"
-import type { ThemedStyle } from "@/theme/types"
-import type { AppStackScreenProps } from "@/navigators/navigationTypes"
-import { useWeightRecordActions } from "@/hooks/useRecords"
-import { useDatabase } from "@/context/DatabaseContext"
 import { useAuth } from "@/context/AuthContext"
+import { useDatabase } from "@/context/DatabaseContext"
+import { useAnimal } from "@/hooks/useAnimals"
+import { useWeightRecordActions } from "@/hooks/useRecords"
+import { useSaveGuard } from "@/hooks/useSaveGuard"
+import { useUnsavedChanges } from "@/hooks/useUnsavedChanges"
+import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { uploadPhoto } from "@/services/photoStorage"
 import { enqueuePhotoUploads } from "@/services/photoUploadQueue"
+import { bentoRadii } from "@/theme/bento"
+import { useAppTheme } from "@/theme/context"
+import type { ThemedStyle } from "@/theme/types"
 import type { PhotoWithMetadata } from "@/types/Photo"
 import { serializePhotos } from "@/types/Photo"
-import { useTranslation } from "react-i18next"
 
-export const WeightRecordFormScreen: FC<AppStackScreenProps<"WeightRecordForm">> = ({ route, navigation }) => {
+export const WeightRecordFormScreen: FC<AppStackScreenProps<"WeightRecordForm">> = ({
+  route,
+  navigation,
+}) => {
   const { themed } = useAppTheme()
   const { t } = useTranslation()
   const { animalId } = route.params
@@ -35,7 +39,10 @@ export const WeightRecordFormScreen: FC<AppStackScreenProps<"WeightRecordForm">>
   const [photos, setPhotos] = useState<PhotoWithMetadata[]>([])
   const { isSaving: isSubmitting, runSave } = useSaveGuard()
   const { animal } = useAnimal(animalId)
-  const markSaved = useUnsavedChanges(Boolean(weight || conditionScore || notes || photos.length), isSubmitting)
+  const markSaved = useUnsavedChanges(
+    Boolean(weight || conditionScore || notes || photos.length),
+    isSubmitting,
+  )
 
   const handleSave = useCallback(async () => {
     await runSave(async () => {
@@ -81,7 +88,11 @@ export const WeightRecordFormScreen: FC<AppStackScreenProps<"WeightRecordForm">>
         }
 
         markSaved()
-        Toast.show({ type: "success", text1: t("uxFixes.savedLocally"), text2: `${animal?.displayName ?? ""} · ${kg} kg` })
+        Toast.show({
+          type: "success",
+          text1: t("uxFixes.savedLocally"),
+          text2: `${animal?.displayName ?? ""} · ${kg} kg`,
+        })
         navigation.goBack()
       } catch (error) {
         console.error("Failed to save weight record:", error)
@@ -91,9 +102,25 @@ export const WeightRecordFormScreen: FC<AppStackScreenProps<"WeightRecordForm">>
         )
       }
     })
-  }, [runSave, markSaved, animal, animalId, weight, conditionScore, notes, photos, currentOrg, createWeightRecord, navigation, t])
+  }, [
+    runSave,
+    markSaved,
+    animal,
+    animalId,
+    weight,
+    conditionScore,
+    notes,
+    photos,
+    currentOrg,
+    createWeightRecord,
+    navigation,
+    t,
+  ])
 
-  const uploadPhotosInBackground = async (recordId: string, photosToUpload: PhotoWithMetadata[]) => {
+  const uploadPhotosInBackground = async (
+    recordId: string,
+    photosToUpload: PhotoWithMetadata[],
+  ) => {
     try {
       const failedUploads: PhotoWithMetadata[] = []
       const uploadedPhotos = await Promise.all(
@@ -157,7 +184,12 @@ export const WeightRecordFormScreen: FC<AppStackScreenProps<"WeightRecordForm">>
   return (
     <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
       <View style={themed($headerRow)}>
-        <Button text={t("weightRecordFormScreen.cancelButton")} preset="default" disabled={isSubmitting} onPress={() => navigation.goBack()} />
+        <Button
+          text={t("weightRecordFormScreen.cancelButton")}
+          preset="default"
+          disabled={isSubmitting}
+          onPress={() => navigation.goBack()}
+        />
         <Text preset="heading" text={t("weightRecordFormScreen.title")} />
         <View style={{ width: 60 }} />
       </View>
@@ -194,7 +226,11 @@ export const WeightRecordFormScreen: FC<AppStackScreenProps<"WeightRecordForm">>
         />
 
         <Button
-          text={isSubmitting ? t("weightRecordFormScreen.buttons.saving") : t("weightRecordFormScreen.buttons.save")}
+          text={
+            isSubmitting
+              ? t("weightRecordFormScreen.buttons.saving")
+              : t("weightRecordFormScreen.buttons.save")
+          }
           preset="reversed"
           style={themed($saveButton)}
           disabled={isSubmitting}
@@ -206,7 +242,7 @@ export const WeightRecordFormScreen: FC<AppStackScreenProps<"WeightRecordForm">>
 }
 
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  paddingHorizontal: spacing.lg,
+  paddingHorizontal: spacing.md,
   paddingBottom: spacing.xxl,
 })
 
@@ -216,10 +252,14 @@ const $headerRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   alignItems: "center",
   marginTop: spacing.md,
   marginBottom: spacing.lg,
+  gap: 10,
 })
 
-const $form: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+const $form: ThemedStyle<ViewStyle> = ({ spacing, colors }) => ({
   gap: spacing.sm,
+  backgroundColor: colors.palette.neutral100,
+  borderRadius: bentoRadii.card,
+  padding: 18,
 })
 
 const $saveButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({

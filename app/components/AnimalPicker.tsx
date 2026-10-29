@@ -17,6 +17,7 @@ import { useAnimals } from "@/hooks/useAnimals"
 import { useRfidReader } from "@/hooks/useRfidReader"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { registerScanCallback } from "@/screens/TagScannerScreen/TagScannerScreen"
+import { bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
@@ -330,7 +331,7 @@ const $rfidScanText: ThemedStyle<TextStyle> = ({ colors }) => ({
 const $cameraScanButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   alignItems: "center",
   backgroundColor: colors.palette.primary500,
-  borderRadius: 12,
+  borderRadius: bentoRadii.button,
   flexDirection: "row",
   gap: spacing.xs,
   justifyContent: "center",

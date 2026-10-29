@@ -3,6 +3,7 @@ import { Alert, FlatList, Pressable, ScrollView, TextStyle, View, ViewStyle } fr
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 
 import { Button, Icon, Screen, Text } from "@/components"
+import { BentoPageIntro } from "@/components/BentoPageChrome"
 import { PhotoGallery } from "@/components/PhotoGallery"
 import {
   PASTURE_ACTIVITY_LABELS,
@@ -128,7 +129,9 @@ export const PastureActivityListScreen: FC<PastureActivityListScreenProps> = ({
               style={themed($detailText)}
             />
           )}
-          {activity.tickCount != null && <Text text={`${activity.tickCount} ticks counted`} style={themed($detailText)} />}
+          {activity.tickCount != null && (
+            <Text text={`${activity.tickCount} ticks counted`} style={themed($detailText)} />
+          )}
           {!!activity.animalsInspected && (
             <Text
               text={`${activity.animalsInspected} animals inspected`}
@@ -174,6 +177,11 @@ export const PastureActivityListScreen: FC<PastureActivityListScreenProps> = ({
           <MaterialCommunityIcons name="plus" size={22} color={colors.palette.primary600} />
         </Pressable>
       </View>
+      <BentoPageIntro
+        title="Work on this pasture"
+        description="Review maintenance, observations and pasture work."
+        icon="grass"
+      />
 
       <ScrollView
         horizontal
@@ -248,7 +256,7 @@ export const PastureActivityListScreen: FC<PastureActivityListScreenProps> = ({
 
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flex: 1,
-  paddingHorizontal: spacing.lg,
+  paddingHorizontal: spacing.md,
 })
 
 const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -326,8 +334,6 @@ const $activityCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   borderRadius: bentoRadii.card,
   padding: spacing.md,
   marginBottom: spacing.sm,
-  borderWidth: 1,
-  borderColor: colors.palette.neutral200,
 })
 
 const $activityHeader: ThemedStyle<ViewStyle> = ({ spacing }) => ({

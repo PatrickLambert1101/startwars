@@ -3,6 +3,8 @@ import { Pressable, View, ViewStyle, TextStyle } from "react-native"
 import { useTranslation } from "react-i18next"
 
 import { AppHeader, Screen, Text } from "@/components"
+import { BentoPageIntro } from "@/components/BentoPageChrome"
+import { bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
@@ -26,6 +28,11 @@ export const ReportsScreen: FC = () => {
   return (
     <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
       <AppHeader title={t("reportsScreen.title")} showSettings={true} showBack={true} />
+      <BentoPageIntro
+        title="Your farm, in focus"
+        description="Explore herd trends, saved reports and exports."
+        icon="chart-box-outline"
+      />
 
       <View style={themed($segmentRow)}>
         {TABS.map((tab) => {
@@ -57,14 +64,14 @@ export const ReportsScreen: FC = () => {
 }
 
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  paddingHorizontal: spacing.sm,
+  paddingHorizontal: spacing.md,
   paddingBottom: spacing.lg,
 })
 
 const $segmentRow: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flexDirection: "row",
-  backgroundColor: colors.palette.neutral300,
-  borderRadius: 12,
+  backgroundColor: colors.palette.primary100,
+  borderRadius: 20,
   padding: 3,
   marginBottom: spacing.sm,
 })
@@ -72,13 +79,13 @@ const $segmentRow: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
 const $segment: ThemedStyle<ViewStyle> = () => ({
   flex: 1,
   minHeight: 44,
-  borderRadius: 10,
+  borderRadius: bentoRadii.button,
   alignItems: "center",
   justifyContent: "center",
 })
 
 const $segmentActive: ThemedStyle<ViewStyle> = ({ colors }) => ({
-  backgroundColor: colors.palette.neutral100,
+  backgroundColor: colors.tint,
 })
 
 const $segmentText: ThemedStyle<TextStyle> = ({ colors }) => ({
@@ -86,5 +93,5 @@ const $segmentText: ThemedStyle<TextStyle> = ({ colors }) => ({
 })
 
 const $segmentTextActive: ThemedStyle<TextStyle> = ({ colors }) => ({
-  color: colors.text,
+  color: colors.palette.neutral100,
 })

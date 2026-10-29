@@ -3,6 +3,7 @@ import { Alert, Pressable, View, ViewStyle, TextStyle } from "react-native"
 import { useTranslation } from "react-i18next"
 
 import { AppHeader, Button, Screen, Text, TextField, TagInput } from "@/components"
+import { BentoPageIntro } from "@/components/BentoPageChrome"
 import { useDatabase } from "@/context/DatabaseContext"
 import { BREEDS_BY_SPECIES, SEX_LABELS, type AnimalSpecies } from "@/db/models/Animal"
 import { usePastures } from "@/hooks/usePastures"
@@ -153,6 +154,11 @@ export const ReportBuilderScreen: FC<AppStackScreenProps<"ReportBuilder">> = ({
         title={templateId ? t("reportsScreen.builder.editTitle") : t("reportsScreen.builder.title")}
         showBack={true}
         showSettings={false}
+      />
+      <BentoPageIntro
+        title="Build a useful report"
+        description="Choose the fields, filters and layout you need."
+        icon="clipboard-text-outline"
       />
 
       <View style={themed($card)}>
@@ -397,7 +403,7 @@ export const ReportBuilderScreen: FC<AppStackScreenProps<"ReportBuilder">> = ({
 }
 
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  paddingHorizontal: spacing.sm,
+  paddingHorizontal: spacing.md,
   paddingBottom: spacing.xl,
 })
 
@@ -436,7 +442,7 @@ const $chip: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   paddingVertical: spacing.xxs,
   borderRadius: 16,
   backgroundColor: colors.palette.neutral200,
-  minHeight: 36,
+  minHeight: 44,
   justifyContent: "center",
 })
 

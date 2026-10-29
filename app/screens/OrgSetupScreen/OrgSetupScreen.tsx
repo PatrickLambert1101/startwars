@@ -1,13 +1,15 @@
 import React, { useState } from "react"
 import { View, ViewStyle, TextStyle, Pressable, ScrollView } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
+
 import { Screen, Text, TextField, Button } from "@/components"
+import { useAuth } from "@/context/AuthContext"
+import { useDatabase } from "@/context/DatabaseContext"
+import { LivestockType } from "@/db/models/Organization"
+import { AppStackScreenProps } from "@/navigators"
+import { bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-import { AppStackScreenProps } from "@/navigators"
-import { useDatabase } from "@/context/DatabaseContext"
-import { useAuth } from "@/context/AuthContext"
-import { LivestockType } from "@/db/models/Organization"
 
 const LIVESTOCK_OPTIONS: { type: LivestockType; label: string; icon: string }[] = [
   { type: "cattle", label: "Cattle", icon: "cow" },
@@ -34,7 +36,7 @@ export function OrgSetupScreen({ navigation }: OrgSetupScreenProps) {
 
   const toggleLivestockType = (type: LivestockType) => {
     setSelectedTypes((prev) =>
-      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type],
     )
     if (errors.types) {
       setErrors((prev) => ({ ...prev, types: undefined }))
@@ -66,7 +68,8 @@ export function OrgSetupScreen({ navigation }: OrgSetupScreenProps) {
         location: location.trim() || undefined,
         userIdForAdmin: user?.id,
         userEmailForAdmin: user?.email,
-        userDisplayName: user?.user_metadata?.display_name || user?.user_metadata?.full_name || null,
+        userDisplayName:
+          user?.user_metadata?.display_name || user?.user_metadata?.full_name || null,
       })
 
       // Navigate to main app
@@ -79,14 +82,21 @@ export function OrgSetupScreen({ navigation }: OrgSetupScreenProps) {
   }
 
   return (
-    <Screen preset="fixed" safeAreaEdges={["top", "bottom"]} contentContainerStyle={themed($container)}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={themed($scrollContent)}>
+    <Screen
+      preset="fixed"
+      safeAreaEdges={["top", "bottom"]}
+      contentContainerStyle={themed($container)}
+    >
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={themed($scrollContent)}
+      >
         <View style={themed($header)}>
           <MaterialCommunityIcons name="grass" size={48} color="#739134" />
-          <Text preset="heading" style={themed($title)}>Set up your farm</Text>
-          <Text style={themed($subtitle)}>
-            Let's get started with some basic information
+          <Text preset="heading" style={themed($title)}>
+            Set up your farm
           </Text>
+          <Text style={themed($subtitle)}>Let's get started with some basic information</Text>
         </View>
 
         <View style={themed($form)}>
@@ -126,8 +136,17 @@ export function OrgSetupScreen({ navigation }: OrgSetupScreenProps) {
                     style={[themed($livestockCard), isSelected && themed($livestockCardSelected)]}
                     onPress={() => toggleLivestockType(option.type)}
                   >
-                    <MaterialCommunityIcons name={option.icon as any} size={32} color={isSelected ? "#FFF" : "#739134"} />
-                    <Text style={[themed($livestockLabel), isSelected && themed($livestockLabelSelected)]}>
+                    <MaterialCommunityIcons
+                      name={option.icon as any}
+                      size={32}
+                      color={isSelected ? "#FFF" : "#739134"}
+                    />
+                    <Text
+                      style={[
+                        themed($livestockLabel),
+                        isSelected && themed($livestockLabelSelected),
+                      ]}
+                    >
                       {option.label}
                     </Text>
                     {isSelected && (
@@ -140,9 +159,7 @@ export function OrgSetupScreen({ navigation }: OrgSetupScreenProps) {
               })}
             </View>
 
-            {errors.types && (
-              <Text style={themed($errorText)}>{errors.types}</Text>
-            )}
+            {errors.types && <Text style={themed($errorText)}>{errors.types}</Text>}
           </View>
         </View>
 
@@ -164,7 +181,7 @@ export function OrgSetupScreen({ navigation }: OrgSetupScreenProps) {
 
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flex: 1,
-  paddingHorizontal: spacing.lg,
+  paddingHorizontal: spacing.md,
 })
 
 const $scrollContent: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -174,11 +191,7 @@ const $scrollContent: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   alignItems: "center",
   marginBottom: spacing.xl,
-})
-
-const $logo: ThemedStyle<TextStyle> = ({ spacing }) => ({
-  fontSize: 64,
-  marginBottom: spacing.sm,
+  gap: 10,
 })
 
 const $title: ThemedStyle<TextStyle> = ({ spacing }) => ({
@@ -232,9 +245,7 @@ const $livestockCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   width: "48%",
   aspectRatio: 1.5,
   backgroundColor: colors.background,
-  borderRadius: 12,
-  borderWidth: 2,
-  borderColor: colors.palette.neutral300,
+  borderRadius: bentoRadii.card,
   padding: spacing.sm,
   alignItems: "center",
   justifyContent: "center",
@@ -244,11 +255,6 @@ const $livestockCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
 const $livestockCardSelected: ThemedStyle<ViewStyle> = ({ colors }) => ({
   borderColor: colors.palette.primary500,
   backgroundColor: colors.palette.primary100,
-})
-
-const $livestockIcon: ThemedStyle<TextStyle> = ({ spacing }) => ({
-  fontSize: 32,
-  marginBottom: spacing.xxs,
 })
 
 const $livestockLabel: ThemedStyle<TextStyle> = ({ colors }) => ({
@@ -273,12 +279,6 @@ const $checkmark: ThemedStyle<ViewStyle> = ({ colors }) => ({
   backgroundColor: colors.palette.primary500,
   alignItems: "center",
   justifyContent: "center",
-})
-
-const $checkmarkText: ThemedStyle<TextStyle> = () => ({
-  color: "white",
-  fontSize: 12,
-  fontWeight: "bold",
 })
 
 const $errorText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({

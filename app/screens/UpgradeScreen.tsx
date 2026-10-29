@@ -3,10 +3,11 @@ import { Pressable, View, ViewStyle, TextStyle, ScrollView, Linking } from "reac
 
 import { Screen, Text, Button } from "@/components"
 import { CheckBadge } from "@/components/icons"
-import { useAppTheme } from "@/theme/context"
 import { useSubscription, ANIMAL_LIMITS } from "@/context/SubscriptionContext"
-import type { ThemedStyle } from "@/theme/types"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
+import { bentoColors, bentoRadii } from "@/theme/bento"
+import { useAppTheme } from "@/theme/context"
+import type { ThemedStyle } from "@/theme/types"
 
 // Every plan includes every feature — they differ only in the animal cap. Each
 // list leads with the herd size, then states that the rest is all included.
@@ -52,7 +53,10 @@ const PRICING_TIERS = [
 ]
 
 export const UpgradeScreen: FC<AppStackScreenProps<"Upgrade">> = ({ navigation }) => {
-  const { themed, theme: { colors } } = useAppTheme()
+  const {
+    themed,
+    theme: { colors },
+  } = useAppTheme()
   const { plan } = useSubscription()
 
   const handleUpgrade = (tierId: string) => {
@@ -63,7 +67,11 @@ export const UpgradeScreen: FC<AppStackScreenProps<"Upgrade">> = ({ navigation }
   }
 
   return (
-    <Screen preset="fixed" contentContainerStyle={themed($container)} safeAreaEdges={["top", "bottom"]}>
+    <Screen
+      preset="fixed"
+      contentContainerStyle={themed($container)}
+      safeAreaEdges={["top", "bottom"]}
+    >
       {/* Header */}
       <View style={themed($header)}>
         <Button text="Close" preset="default" onPress={() => navigation.goBack()} />
@@ -117,7 +125,10 @@ export const UpgradeScreen: FC<AppStackScreenProps<"Upgrade">> = ({ navigation }
                 <View style={themed($featuresContainer)}>
                   {tier.features.map((feature, index) => (
                     <View key={index} style={themed($featureRow)}>
-                      <CheckBadge size={18} color={tier.isFeatured ? colors.tint : colors.palette.neutral600} />
+                      <CheckBadge
+                        size={18}
+                        color={tier.isFeatured ? colors.tint : colors.palette.neutral600}
+                      />
                       <Text text={feature} style={themed($featureText)} />
                     </View>
                   ))}
@@ -167,28 +178,34 @@ export const UpgradeScreen: FC<AppStackScreenProps<"Upgrade">> = ({ navigation }
 
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flex: 1,
-  paddingHorizontal: spacing.lg,
+  paddingHorizontal: spacing.md,
 })
 
 const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingTop: spacing.md,
   marginBottom: spacing.md,
+  gap: 10,
 })
 
-const $titleSection: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  marginBottom: spacing.lg,
+const $titleSection: ThemedStyle<ViewStyle> = ({ isDark }) => ({
+  backgroundColor: bentoColors(isDark).forest,
+  borderRadius: bentoRadii.hero,
+  padding: 20,
+  marginHorizontal: 16,
+  marginBottom: 20,
 })
 
-const $title: ThemedStyle<TextStyle> = ({ spacing }) => ({
+const $title: ThemedStyle<TextStyle> = ({ spacing, isDark }) => ({
   marginBottom: spacing.xs,
   textAlign: "center",
+  color: bentoColors(isDark).onForest,
 })
 
-const $subtitle: ThemedStyle<TextStyle> = ({ colors }) => ({
-  color: colors.textDim,
+const $subtitle: ThemedStyle<TextStyle> = ({ isDark }) => ({
   textAlign: "center",
   fontSize: 15,
   lineHeight: 22,
+  color: bentoColors(isDark).lime,
 })
 
 const $scrollView: ThemedStyle<ViewStyle> = () => ({
@@ -202,7 +219,7 @@ const $pricingGrid: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 
 const $pricingCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 16,
+  borderRadius: bentoRadii.card,
   padding: spacing.lg,
   borderWidth: 2,
   borderColor: colors.palette.neutral200,

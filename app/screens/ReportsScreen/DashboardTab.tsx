@@ -320,7 +320,7 @@ const $chip: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   paddingVertical: spacing.xxs,
   borderRadius: 16,
   backgroundColor: colors.palette.neutral200,
-  minHeight: 32,
+  minHeight: 44,
   justifyContent: "center",
 })
 

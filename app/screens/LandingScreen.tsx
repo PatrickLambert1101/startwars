@@ -1,5 +1,14 @@
 import { FC, useState } from "react"
-import { Alert, Pressable, View, ViewStyle, TextStyle, useWindowDimensions, Image, ImageStyle } from "react-native"
+import {
+  Alert,
+  Pressable,
+  View,
+  ViewStyle,
+  TextStyle,
+  useWindowDimensions,
+  Image,
+  ImageStyle,
+} from "react-native"
 
 import { Screen, Text, TextField, Button } from "@/components"
 import {
@@ -19,11 +28,12 @@ import {
   CheckBadge,
   LockBadge,
 } from "@/components/icons"
+import type { AppStackScreenProps } from "@/navigators/navigationTypes"
+import { bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
+import type { ThemedStyle } from "@/theme/types"
 
 const herdLogo = require("../../assets/images/herdtrackr-logo-mark.png")
-import type { ThemedStyle } from "@/theme/types"
-import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 
 // ─── Data ────────────────────────────────────────────────────────────
 
@@ -126,18 +136,20 @@ export const LandingScreen: FC<AppStackScreenProps<"Landing">> = ({ navigation }
       Alert.alert("Missing info", "Please enter your email address.")
       return
     }
-    Alert.alert(
-      "Message sent!",
-      "Thanks for reaching out. We'll get back to you shortly.",
-      [{ text: "OK" }],
-    )
+    Alert.alert("Message sent!", "Thanks for reaching out. We'll get back to you shortly.", [
+      { text: "OK" },
+    ])
     setContactName("")
     setContactEmail("")
     setContactMessage("")
   }
 
   return (
-    <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top", "bottom"]}>
+    <Screen
+      preset="scroll"
+      contentContainerStyle={themed($container)}
+      safeAreaEdges={["top", "bottom"]}
+    >
       {/* ─── HERO ──────────────────────────────────────────────── */}
       <View style={themed($heroSection)}>
         <RanchLandscape
@@ -206,7 +218,11 @@ export const LandingScreen: FC<AppStackScreenProps<"Landing">> = ({ navigation }
             <Text text="iPhone & Android" size="xs" style={themed($deviceSub)} />
             <View style={themed($deviceFeatures)}>
               <Text text="• Full herd management" size="xs" style={themed($deviceFeatureText)} />
-              <Text text="• Camera-based tag reading" size="xs" style={themed($deviceFeatureText)} />
+              <Text
+                text="• Camera-based tag reading"
+                size="xs"
+                style={themed($deviceFeatureText)}
+              />
               <Text text="• Reports & analytics" size="xs" style={themed($deviceFeatureText)} />
               <Text text="• Works offline" size="xs" style={themed($deviceFeatureText)} />
             </View>
@@ -264,7 +280,12 @@ export const LandingScreen: FC<AppStackScreenProps<"Landing">> = ({ navigation }
         <Text text="Everything You Need" preset="subheading" style={themed($sectionTitle)} />
         {RANCH_FEATURES.map((f, i) => (
           <View key={i} style={themed($featureCard)}>
-            <View style={[themed($featureIconWrap), !f.free && { backgroundColor: colors.palette.accent100 }]}>
+            <View
+              style={[
+                themed($featureIconWrap),
+                !f.free && { backgroundColor: colors.palette.accent100 },
+              ]}
+            >
               <f.Icon size={26} color={f.free ? colors.tint : colors.palette.accent500} />
             </View>
             <View style={themed($featureBody)}>
@@ -299,101 +320,117 @@ export const LandingScreen: FC<AppStackScreenProps<"Landing">> = ({ navigation }
 
       {/* ─── PRICING ───────────────────────────────────────────── */}
       {/* TEMP: Pricing hidden while billing is disabled */}
-      {false && <View style={themed($section)}>
-        <Text text="Simple, Transparent Pricing" preset="subheading" style={themed($sectionTitle)} />
-
-        {/* Billing toggle */}
-        <View style={themed($billingToggle)}>
-          <Pressable
-            onPress={() => setBillingCycle("monthly")}
-            style={[themed($billingOption), billingCycle === "monthly" && themed($billingOptionActive)]}
-          >
-            <Text
-              text="Monthly"
-              size="sm"
-              style={billingCycle === "monthly" ? themed($billingTextActive) : themed($billingText)}
-            />
-          </Pressable>
-          <Pressable
-            onPress={() => setBillingCycle("annual")}
-            style={[themed($billingOption), billingCycle === "annual" && themed($billingOptionActive)]}
-          >
-            <Text
-              text="Annual"
-              size="sm"
-              style={billingCycle === "annual" ? themed($billingTextActive) : themed($billingText)}
-            />
-            <View style={themed($saveBadge)}>
-              <Text text="-20%" size="xxs" style={themed($saveBadgeText)} />
-            </View>
-          </Pressable>
-        </View>
-
-        <View style={themed($pricingRow)}>
-          {/* Free tier */}
-          <View style={themed($pricingCard)}>
-            <Text text="Starter" preset="bold" style={themed($pricingTierName)} />
-            <Text text="$0" preset="heading" style={themed($pricingAmount)} />
-            <Text text="forever" size="xs" style={themed($pricingPeriod)} />
-            <View style={themed($pricingDivider)} />
-            {FREE_FEATURES.map((f, i) => (
-              <View key={i} style={themed($pricingFeatureRow)}>
-                <CheckBadge size={16} color={colors.tint} variant="filled" />
-                <Text text={f} size="xs" style={themed($pricingFeatureText)} />
-              </View>
-            ))}
-            <Button
-              text="Get Started"
-              preset="default"
-              style={themed($pricingBtn)}
-              onPress={() => navigation.navigate("Login")}
-            />
-          </View>
-
-          {/* Pro tier */}
-          <View style={themed($pricingCardPro)}>
-            <View style={themed($popularBadge)}>
-              <Text text="MOST POPULAR" size="xxs" style={themed($popularBadgeText)} />
-            </View>
-            <Text text="Pro" preset="bold" style={themed($pricingTierNamePro)} />
-            <Text text={proPrice} preset="heading" style={themed($pricingAmountPro)} />
-            <Text text={proPeriod} size="xs" style={themed($pricingPeriodPro)} />
-            {proSavings ? (
-              <Text text={proSavings} size="xxs" style={themed($pricingSavings)} />
-            ) : null}
-            <View style={themed($pricingDividerPro)} />
-            {PRO_FEATURES.map((f, i) => (
-              <View key={i} style={themed($pricingFeatureRow)}>
-                <CheckBadge size={16} color="white" variant="filled" />
-                <Text text={f} size="xs" style={themed($pricingFeatureTextPro)} />
-              </View>
-            ))}
-            <Button
-              text="Start Pro Trial"
-              preset="reversed"
-              style={themed($pricingBtnPro)}
-              textStyle={{ color: colors.tint }}
-              onPress={() => navigation.navigate("Login")}
-            />
-          </View>
-        </View>
-
-        {/* Ranch / Enterprise */}
-        <View style={themed($enterpriseCard)}>
-          <Text text="Ranch Enterprise" preset="bold" />
+      {false && (
+        <View style={themed($section)}>
           <Text
-            text="Multi-ranch, team accounts, API access & custom integrations. Contact us for pricing."
-            size="sm"
-            style={themed($enterpriseDesc)}
+            text="Simple, Transparent Pricing"
+            preset="subheading"
+            style={themed($sectionTitle)}
           />
-          <Button
-            text="Contact Sales"
-            preset="default"
-            style={themed($enterpriseBtn)}
-            onPress={() => Alert.alert("Contact Sales", "Email us at sales@herdtrackr.com")}
-          />
+
+          {/* Billing toggle */}
+          <View style={themed($billingToggle)}>
+            <Pressable
+              onPress={() => setBillingCycle("monthly")}
+              style={[
+                themed($billingOption),
+                billingCycle === "monthly" && themed($billingOptionActive),
+              ]}
+            >
+              <Text
+                text="Monthly"
+                size="sm"
+                style={
+                  billingCycle === "monthly" ? themed($billingTextActive) : themed($billingText)
+                }
+              />
+            </Pressable>
+            <Pressable
+              onPress={() => setBillingCycle("annual")}
+              style={[
+                themed($billingOption),
+                billingCycle === "annual" && themed($billingOptionActive),
+              ]}
+            >
+              <Text
+                text="Annual"
+                size="sm"
+                style={
+                  billingCycle === "annual" ? themed($billingTextActive) : themed($billingText)
+                }
+              />
+              <View style={themed($saveBadge)}>
+                <Text text="-20%" size="xxs" style={themed($saveBadgeText)} />
+              </View>
+            </Pressable>
+          </View>
+
+          <View style={themed($pricingRow)}>
+            {/* Free tier */}
+            <View style={themed($pricingCard)}>
+              <Text text="Starter" preset="bold" style={themed($pricingTierName)} />
+              <Text text="$0" preset="heading" style={themed($pricingAmount)} />
+              <Text text="forever" size="xs" style={themed($pricingPeriod)} />
+              <View style={themed($pricingDivider)} />
+              {FREE_FEATURES.map((f, i) => (
+                <View key={i} style={themed($pricingFeatureRow)}>
+                  <CheckBadge size={16} color={colors.tint} variant="filled" />
+                  <Text text={f} size="xs" style={themed($pricingFeatureText)} />
+                </View>
+              ))}
+              <Button
+                text="Get Started"
+                preset="default"
+                style={themed($pricingBtn)}
+                onPress={() => navigation.navigate("Login")}
+              />
+            </View>
+
+            {/* Pro tier */}
+            <View style={themed($pricingCardPro)}>
+              <View style={themed($popularBadge)}>
+                <Text text="MOST POPULAR" size="xxs" style={themed($popularBadgeText)} />
+              </View>
+              <Text text="Pro" preset="bold" style={themed($pricingTierNamePro)} />
+              <Text text={proPrice} preset="heading" style={themed($pricingAmountPro)} />
+              <Text text={proPeriod} size="xs" style={themed($pricingPeriodPro)} />
+              {proSavings ? (
+                <Text text={proSavings} size="xxs" style={themed($pricingSavings)} />
+              ) : null}
+              <View style={themed($pricingDividerPro)} />
+              {PRO_FEATURES.map((f, i) => (
+                <View key={i} style={themed($pricingFeatureRow)}>
+                  <CheckBadge size={16} color="white" variant="filled" />
+                  <Text text={f} size="xs" style={themed($pricingFeatureTextPro)} />
+                </View>
+              ))}
+              <Button
+                text="Start Pro Trial"
+                preset="reversed"
+                style={themed($pricingBtnPro)}
+                textStyle={{ color: colors.tint }}
+                onPress={() => navigation.navigate("Login")}
+              />
+            </View>
+          </View>
+
+          {/* Ranch / Enterprise */}
+          <View style={themed($enterpriseCard)}>
+            <Text text="Ranch Enterprise" preset="bold" />
+            <Text
+              text="Multi-ranch, team accounts, API access & custom integrations. Contact us for pricing."
+              size="sm"
+              style={themed($enterpriseDesc)}
+            />
+            <Button
+              text="Contact Sales"
+              preset="default"
+              style={themed($enterpriseBtn)}
+              onPress={() => Alert.alert("Contact Sales", "Email us at sales@herdtrackr.com")}
+            />
+          </View>
         </View>
-      </View>}
+      )}
 
       {/* ─── CONTACT FORM ──────────────────────────────────────── */}
       <View style={themed($section)}>
@@ -569,7 +606,7 @@ const $deviceRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $deviceCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flex: 1,
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 16,
+  borderRadius: bentoRadii.card,
   padding: spacing.md,
   alignItems: "center",
 })
@@ -661,7 +698,7 @@ const $stepDesc: ThemedStyle<TextStyle> = ({ colors }) => ({
 const $featureCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flexDirection: "row",
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 14,
+  borderRadius: bentoRadii.card,
   padding: spacing.md,
   marginBottom: spacing.sm,
   gap: spacing.sm,
@@ -733,7 +770,7 @@ const $billingOption: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   alignItems: "center",
   paddingVertical: spacing.xs,
   paddingHorizontal: spacing.md,
-  borderRadius: 8,
+  borderRadius: bentoRadii.button,
   gap: 4,
 })
 
@@ -775,7 +812,7 @@ const $pricingRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $pricingCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flex: 1,
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 20,
+  borderRadius: bentoRadii.card,
   padding: spacing.md,
   alignItems: "center",
 })
@@ -884,11 +921,10 @@ const $pricingBtnPro: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 // Enterprise
 const $enterpriseCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 16,
+  borderRadius: bentoRadii.card,
   padding: spacing.lg,
   marginTop: spacing.md,
   alignItems: "center",
-  borderWidth: 1,
   borderColor: colors.separator,
   borderStyle: "dashed",
 })

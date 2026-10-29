@@ -1,11 +1,12 @@
 import React from "react"
 import { View, ViewStyle, Alert } from "react-native"
-import { AppStackScreenProps } from "@/navigators"
+import RevenueCatUI from "react-native-purchases-ui"
+
 import { Screen, Text, Button } from "@/components"
+import { useSubscription } from "@/context/SubscriptionContext"
+import { AppStackScreenProps } from "@/navigators"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-import { useSubscription } from "@/context/SubscriptionContext"
-import RevenueCatUI from "react-native-purchases-ui"
 
 interface CustomerCenterScreenProps extends AppStackScreenProps<"CustomerCenter"> {}
 
@@ -17,13 +18,18 @@ export function CustomerCenterScreen(props: CustomerCenterScreenProps) {
   // If not subscribed, redirect to paywall
   if (!isPremium) {
     return (
-      <Screen preset="fixed" safeAreaEdges={["top", "bottom"]} contentContainerStyle={themed($container)}>
+      <Screen
+        preset="fixed"
+        safeAreaEdges={["top", "bottom"]}
+        contentContainerStyle={themed($container)}
+      >
         <View style={themed($messageContainer)}>
           <Text preset="heading" style={themed($messageTitle)}>
             No Active Subscription
           </Text>
           <Text style={themed($messageText)}>
-            You don't have an active subscription. Upgrade to access premium features and manage your subscription.
+            You don't have an active subscription. Upgrade to access premium features and manage
+            your subscription.
           </Text>
           <Button
             text="View Plans"
@@ -44,7 +50,11 @@ export function CustomerCenterScreen(props: CustomerCenterScreenProps) {
 
   // Show RevenueCat Customer Center UI for Pro users
   return (
-    <Screen preset="fixed" safeAreaEdges={["top", "bottom"]} contentContainerStyle={themed($fullscreen)}>
+    <Screen
+      preset="fixed"
+      safeAreaEdges={["top", "bottom"]}
+      contentContainerStyle={themed($fullscreen)}
+    >
       <RevenueCatUI.CustomerCenterView
         onDismiss={() => {
           console.log("[CustomerCenter] Dismissed")
@@ -52,10 +62,7 @@ export function CustomerCenterScreen(props: CustomerCenterScreenProps) {
         }}
         onRestoreCompleted={({ customerInfo }) => {
           console.log("[CustomerCenter] Restore completed:", customerInfo)
-          Alert.alert(
-            "Purchases Restored",
-            "Your purchases have been restored successfully.",
-          )
+          Alert.alert("Purchases Restored", "Your purchases have been restored successfully.")
         }}
         onRestoreFailed={({ error }) => {
           console.error("[CustomerCenter] Restore error:", error)
@@ -71,7 +78,7 @@ export function CustomerCenterScreen(props: CustomerCenterScreenProps) {
 
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flex: 1,
-  paddingHorizontal: spacing.lg,
+  paddingHorizontal: spacing.md,
   justifyContent: "center",
 })
 
@@ -79,7 +86,7 @@ const $fullscreen: ThemedStyle<ViewStyle> = () => ({
   flex: 1,
 })
 
-const $messageContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+const $messageContainer: ThemedStyle<ViewStyle> = () => ({
   alignItems: "center",
   justifyContent: "center",
 })

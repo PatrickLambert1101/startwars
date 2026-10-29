@@ -1680,42 +1680,6 @@ const $saveNextButton: ThemedStyle<ViewStyle> = () => ({
   flex: 1,
 })
 
-// Treatment type toggle
-const $typeToggle: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flexDirection: "row",
-  gap: spacing.xs,
-  marginBottom: spacing.xs,
-})
-
-const $typeBtn: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  flex: 1,
-  backgroundColor: colors.palette.neutral200,
-  borderRadius: 8,
-  paddingVertical: spacing.xs,
-  alignItems: "center",
-})
-
-// Health history
-const $historyCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  backgroundColor: colors.palette.neutral100,
-  borderRadius: bentoRadii.card,
-  padding: spacing.md,
-})
-
-const $historyRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flexDirection: "row",
-  alignItems: "center",
-  gap: spacing.xs,
-  paddingVertical: spacing.xxs,
-})
-
-const $historyDot: ThemedStyle<ViewStyle> = ({ colors }) => ({
-  width: 6,
-  height: 6,
-  borderRadius: 3,
-  backgroundColor: colors.tint,
-})
-
 // Session log
 const $sessionInfo: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   borderTopWidth: 1,
@@ -1747,7 +1711,7 @@ const $dimText: ThemedStyle<TextStyle> = ({ colors }) => ({
 
 const $protocolOption: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 8,
+  borderRadius: bentoRadii.button,
   padding: spacing.md,
   borderWidth: 2,
   borderColor: colors.palette.neutral300,

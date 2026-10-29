@@ -4,6 +4,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { format } from "date-fns"
 
 import { FriendlyEmpty, Screen, Text } from "@/components"
+import { BentoPageIntro } from "@/components/BentoPageChrome"
 import { usePendingVaccinations } from "@/hooks/useVaccinationSchedules"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { bentoRadii } from "@/theme/bento"
@@ -125,6 +126,11 @@ export function PendingVaccinationsScreen({
         <Text preset="heading" text="Pending Vaccinations" style={themed($headerTitle)} />
         <View style={$headerSpacer} />
       </View>
+      <BentoPageIntro
+        title="Upcoming vaccinations"
+        description="Review due doses before recording treatments."
+        icon="needle"
+      />
 
       {isLoading ? (
         <View style={themed($loading)}>
@@ -192,7 +198,7 @@ export function PendingVaccinationsScreen({
 
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flex: 1,
-  paddingHorizontal: spacing.lg,
+  paddingHorizontal: spacing.md,
 })
 
 const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -201,6 +207,7 @@ const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   alignItems: "center",
   marginTop: spacing.md,
   marginBottom: spacing.md,
+  gap: 10,
 })
 
 const $backButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -211,6 +218,7 @@ const $backButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $headerTitle: ThemedStyle<TextStyle> = () => ({
   flex: 1,
   textAlign: "center",
+  flexShrink: 1,
 })
 
 const $headerSpacer: ViewStyle = {

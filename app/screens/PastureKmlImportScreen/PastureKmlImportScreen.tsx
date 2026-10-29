@@ -372,7 +372,6 @@ const $heroCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   padding: spacing.xl,
   borderRadius: bentoRadii.card,
   backgroundColor: colors.palette.neutral100,
-  borderWidth: 1,
   borderColor: colors.separator,
 })
 
@@ -394,7 +393,6 @@ const $infoCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   padding: spacing.md,
   borderRadius: bentoRadii.card,
   backgroundColor: colors.palette.neutral100,
-  borderWidth: 1,
   borderColor: colors.separator,
 })
 
@@ -411,7 +409,6 @@ const $fileCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   padding: spacing.md,
   borderRadius: bentoRadii.card,
   backgroundColor: colors.palette.neutral100,
-  borderWidth: 1,
   borderColor: colors.separator,
 })
 
@@ -426,7 +423,6 @@ const $summaryCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   padding: spacing.md,
   borderRadius: bentoRadii.card,
   backgroundColor: colors.palette.neutral100,
-  borderWidth: 1,
   borderColor: colors.separator,
 })
 

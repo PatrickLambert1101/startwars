@@ -10,12 +10,12 @@ const palette = {
   neutral900: "#000000",
 
   // Forest green for primary actions; sage for supporting surfaces
-  primary100: "#EDF2E4",
+  primary100: "#E6EED8",
   primary200: "#D5E4B7",
   primary300: "#B6C695",
   primary400: "#95AB65",
-  primary500: "#3D643B",
-  primary600: "#274A2B",
+  primary500: "#254B37",
+  primary600: "#1B3D2C",
 
   // Warm brown — secondary (leather/earth)
   secondary100: "#EDE5DA",

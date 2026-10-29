@@ -1,30 +1,47 @@
-import { useSaveGuard } from "@/hooks/useSaveGuard"
-import { useUnsavedChanges } from "@/hooks/useUnsavedChanges"
-import { getVaccinationHistory, type VaccinationHistory } from "@/utils/vaccinationHistory"
-import { VaccinationHistoryInput } from "@/components/VaccinationHistoryInput"
-import Toast from "react-native-toast-message"
 import { FC, useCallback, useEffect, useRef, useState } from "react"
-import { Alert, Pressable, View, ViewStyle, TextStyle, ActivityIndicator, Modal, FlatList, Platform } from "react-native"
+import {
+  Alert,
+  Pressable,
+  View,
+  ViewStyle,
+  TextStyle,
+  ActivityIndicator,
+  Modal,
+  FlatList,
+  Platform,
+} from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
+import Toast from "react-native-toast-message"
 
 import { Screen, Text, TextField, Button, ScanTagButton } from "@/components"
 import { AgeDatePicker } from "@/components/AgeDatePicker"
 import { PhotoPicker } from "@/components/PhotoPicker"
 import { mergeTagsWithDraft, TagInput } from "@/components/TagInput"
-import { useAppTheme } from "@/theme/context"
-import type { ThemedStyle } from "@/theme/types"
-import type { AppStackScreenProps } from "@/navigators/navigationTypes"
-import { useAnimal, useAnimalActions, AnimalFormData, DuplicateTagError, AnimalLimitError } from "@/hooks/useAnimals"
-import { useAnimals } from "@/hooks/useAnimals"
-import { AnimalSex, AnimalStatus, Animal, BREEDS_BY_SPECIES } from "@/db/models/Animal"
-import { useRfidReader } from "@/hooks/useRfidReader"
-import { useDatabase } from "@/context/DatabaseContext"
+import { VaccinationHistoryInput } from "@/components/VaccinationHistoryInput"
 import { useAuth } from "@/context/AuthContext"
+import { useDatabase } from "@/context/DatabaseContext"
+import { AnimalSex, AnimalStatus, Animal, BREEDS_BY_SPECIES } from "@/db/models/Animal"
+import {
+  useAnimal,
+  useAnimalActions,
+  AnimalFormData,
+  DuplicateTagError,
+  AnimalLimitError,
+} from "@/hooks/useAnimals"
+import { useAnimals } from "@/hooks/useAnimals"
+import { useRfidReader } from "@/hooks/useRfidReader"
+import { useSaveGuard } from "@/hooks/useSaveGuard"
+import { useUnsavedChanges } from "@/hooks/useUnsavedChanges"
+import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { uploadPhoto } from "@/services/photoStorage"
 import { enqueuePhotoUploads } from "@/services/photoUploadQueue"
+import { bentoRadii } from "@/theme/bento"
+import { useAppTheme } from "@/theme/context"
+import type { ThemedStyle } from "@/theme/types"
 import type { PhotoWithMetadata } from "@/types/Photo"
 import { serializePhotos } from "@/types/Photo"
+import { getVaccinationHistory, type VaccinationHistory } from "@/utils/vaccinationHistory"
 
 const SEX_OPTIONS: AnimalSex[] = ["male", "female", "castrated", "unknown"]
 const STATUS_OPTIONS: AnimalStatus[] = ["active", "sold", "deceased", "transferred"]
@@ -41,7 +58,10 @@ const COMMON_BREEDS = BREEDS_BY_SPECIES.cattle
 
 export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route, navigation }) => {
   const { t } = useTranslation()
-  const { themed, theme: { colors } } = useAppTheme()
+  const {
+    themed,
+    theme: { colors },
+  } = useAppTheme()
   const isEditing = route.params?.mode === "edit"
   const animalId = route.params?.animalId
   const linkAsParentOf = route.params?.linkAsParentOf
@@ -50,13 +70,21 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
   const { animal } = useAnimal(animalId ?? "")
   const { createAnimal, updateAnimal } = useAnimalActions()
   const { animals } = useAnimals()
-  const { isScanning, scannedTag, startScanning, stopScanning, initialize, isInitialized, hasRfidHardware } = useRfidReader()
+  const {
+    isScanning,
+    scannedTag,
+    startScanning,
+    stopScanning,
+    initialize,
+    isInitialized,
+    hasRfidHardware,
+  } = useRfidReader()
   const { currentOrg } = useDatabase()
   const { user } = useAuth()
 
-  const [rfidTag, setRfidTag] = useState(isEditing ? "" : route.params?.initialRfidTag ?? "")
+  const [rfidTag, setRfidTag] = useState(isEditing ? "" : (route.params?.initialRfidTag ?? ""))
   const [visualTag, setVisualTag] = useState(
-    isEditing ? "" : route.params?.initialVisualTag ?? "",
+    isEditing ? "" : (route.params?.initialVisualTag ?? ""),
   )
   const [name, setName] = useState("")
   const [breed, setBreed] = useState("")
@@ -128,19 +156,15 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
       setExternalDamReference(animal.externalDamReference || "")
       setExternalDamBreed(animal.externalDamBreed || "")
       setSourceName(animal.sourceName || "")
-      setSireSource(
-        animal.externalSireReference || animal.externalSireBreed ? "external" : "herd",
-      )
-      setDamSource(
-        animal.externalDamReference || animal.externalDamBreed ? "external" : "herd",
-      )
+      setSireSource(animal.externalSireReference || animal.externalSireBreed ? "external" : "herd")
+      setDamSource(animal.externalDamReference || animal.externalDamBreed ? "external" : "herd")
       setNotes(animal.notes || "")
       // Load existing photos if editing
       if (animal.photos) {
         try {
           const parsed = JSON.parse(animal.photos)
           if (Array.isArray(parsed)) {
-            setPhotos(parsed.map(p => ({ ...p, uploadStatus: "uploaded" as const })))
+            setPhotos(parsed.map((p) => ({ ...p, uploadStatus: "uploaded" as const })))
           }
         } catch (e) {
           console.error("Failed to parse animal photos:", e)
@@ -167,7 +191,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
   // Pre-fill breed from organization defaults when creating new animal
   useEffect(() => {
     if (!isEditing && currentOrg && currentOrg.defaultBreeds) {
-      const defaultBreed = currentOrg.defaultBreeds['cattle']
+      const defaultBreed = currentOrg.defaultBreeds["cattle"]
       if (defaultBreed && !breed) {
         setBreed(defaultBreed)
       }
@@ -182,23 +206,25 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
     }
   }, [isEditing, parentRole])
 
-  const maleAnimals = animals.filter(a => a.sex === "male")
-  const femaleAnimals = animals.filter(a => a.sex === "female")
+  const maleAnimals = animals.filter((a) => a.sex === "male")
+  const femaleAnimals = animals.filter((a) => a.sex === "female")
   const filteredSires = parentSearch
-    ? maleAnimals.filter(a =>
-        a.displayName.toLowerCase().includes(parentSearch.toLowerCase()) ||
-        a.rfidTag.toLowerCase().includes(parentSearch.toLowerCase())
+    ? maleAnimals.filter(
+        (a) =>
+          a.displayName.toLowerCase().includes(parentSearch.toLowerCase()) ||
+          a.rfidTag.toLowerCase().includes(parentSearch.toLowerCase()),
       )
     : maleAnimals
   const filteredDames = parentSearch
-    ? femaleAnimals.filter(a =>
-        a.displayName.toLowerCase().includes(parentSearch.toLowerCase()) ||
-        a.rfidTag.toLowerCase().includes(parentSearch.toLowerCase())
+    ? femaleAnimals.filter(
+        (a) =>
+          a.displayName.toLowerCase().includes(parentSearch.toLowerCase()) ||
+          a.rfidTag.toLowerCase().includes(parentSearch.toLowerCase()),
       )
     : femaleAnimals
 
-  const selectedSire = sireId ? animals.find(a => a.id === sireId) : null
-  const selectedDame = dameId ? animals.find(a => a.id === dameId) : null
+  const selectedSire = sireId ? animals.find((a) => a.id === sireId) : null
+  const selectedDame = dameId ? animals.find((a) => a.id === dameId) : null
   const breedOptions = [
     ...new Set(
       [
@@ -276,7 +302,32 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
     setBreedPickerTarget(null)
   }
 
-  const fingerprint = animalFormFingerprint({ rfidTag, visualTag, name, breed, sex, status, vaccinationHistory, historyReviewed, dateOfBirth, registrationNumber, herdTag, notes, sireId, dameId, sireSource, damSource, externalSireReference, externalSireBreed, externalDamReference, externalDamBreed, sourceName, photos, tags, tagDraft })
+  const fingerprint = animalFormFingerprint({
+    rfidTag,
+    visualTag,
+    name,
+    breed,
+    sex,
+    status,
+    vaccinationHistory,
+    historyReviewed,
+    dateOfBirth,
+    registrationNumber,
+    herdTag,
+    notes,
+    sireId,
+    dameId,
+    sireSource,
+    damSource,
+    externalSireReference,
+    externalSireBreed,
+    externalDamReference,
+    externalDamBreed,
+    sourceName,
+    photos,
+    tags,
+    tagDraft,
+  })
   const initialFingerprint = useRef<string | null>(null)
   if (initialFingerprint.current === null && currentOrg && (!isEditing || animal)) {
     initialFingerprint.current = animalFormFingerprint({
@@ -306,7 +357,10 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
       tagDraft: "",
     })
   }
-  const markSaved = useUnsavedChanges(initialFingerprint.current !== null && fingerprint !== initialFingerprint.current, isSubmitting)
+  const markSaved = useUnsavedChanges(
+    initialFingerprint.current !== null && fingerprint !== initialFingerprint.current,
+    isSubmitting,
+  )
 
   const handleSave = useCallback(async () => {
     await runSave(async () => {
@@ -317,7 +371,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
         if (!rfidTag.trim() && !visualTag.trim()) {
           Alert.alert(
             t("animalFormScreen.alerts.validation.tagRequired.title"),
-            t("animalFormScreen.alerts.validation.tagRequired.message")
+            t("animalFormScreen.alerts.validation.tagRequired.message"),
           )
           return
         }
@@ -325,7 +379,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
         if (!visualTag.trim()) {
           Alert.alert(
             t("animalFormScreen.alerts.validation.tagRequired.title"),
-            "Please enter a visual tag number."
+            "Please enter a visual tag number.",
           )
           return
         }
@@ -333,14 +387,14 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
       if (!breed.trim()) {
         Alert.alert(
           t("animalFormScreen.alerts.validation.breedRequired.title"),
-          t("animalFormScreen.alerts.validation.breedRequired.message")
+          t("animalFormScreen.alerts.validation.breedRequired.message"),
         )
         return
       }
       if (!currentOrg) {
         Alert.alert(
           t("animalFormScreen.alerts.validation.noOrganization.title"),
-          t("animalFormScreen.alerts.validation.noOrganization.message")
+          t("animalFormScreen.alerts.validation.noOrganization.message"),
         )
         return
       }
@@ -364,15 +418,16 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
           damId: damSource === "herd" ? dameId : null,
           externalSireReference:
             sireSource === "external" ? externalSireReference.trim() || null : null,
-          externalSireBreed:
-            sireSource === "external" ? externalSireBreed.trim() || null : null,
+          externalSireBreed: sireSource === "external" ? externalSireBreed.trim() || null : null,
           externalDamReference:
             damSource === "external" ? externalDamReference.trim() || null : null,
-          externalDamBreed:
-            damSource === "external" ? externalDamBreed.trim() || null : null,
+          externalDamBreed: damSource === "external" ? externalDamBreed.trim() || null : null,
           sourceName: sourceName.trim() || null,
           status,
-          vaccinationHistory: !isEditing || historyReviewed ? vaccinationHistory : (animal?.vaccinationHistory as VaccinationHistory | null) ?? undefined,
+          vaccinationHistory:
+            !isEditing || historyReviewed
+              ? vaccinationHistory
+              : ((animal?.vaccinationHistory as VaccinationHistory | null) ?? undefined),
           registrationNumber: registrationNumber.trim() || undefined,
           herdTag: herdTag.trim() || undefined,
           notes: notes.trim() || undefined,
@@ -407,13 +462,17 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
         }
 
         // Upload new photos in background
-        const newPhotos = photos.filter(p => p.uploadStatus === "pending")
+        const newPhotos = photos.filter((p) => p.uploadStatus === "pending")
         if (newPhotos.length > 0) {
           uploadPhotosInBackground(savedAnimalId, newPhotos)
         }
 
         markSaved()
-        Toast.show({ type: "success", text1: t("uxFixes.savedLocally"), text2: visualTag || rfidTag })
+        Toast.show({
+          type: "success",
+          text1: t("uxFixes.savedLocally"),
+          text2: visualTag || rfidTag,
+        })
         navigation.goBack()
       } catch (e) {
         if (e instanceof DuplicateTagError) {
@@ -444,13 +503,55 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
         console.error("Failed to save animal:", e)
         Alert.alert(
           t("animalFormScreen.alerts.saveError.title"),
-          t("animalFormScreen.alerts.saveError.message")
+          t("animalFormScreen.alerts.saveError.message"),
         )
       }
     })
-  }, [runSave, markSaved, animal, rfidTag, visualTag, name, breed, sex, dateOfBirth, sireId, dameId, sireSource, damSource, externalSireReference, externalSireBreed, externalDamReference, externalDamBreed, sourceName, status, vaccinationHistory, historyReviewed, registrationNumber, herdTag, notes, photos, tags, tagDraft, currentOrg, isEditing, animalId, linkAsParentOf, parentRole, createAnimal, updateAnimal, navigation, t, hasRfidHardware, animals])
+  }, [
+    runSave,
+    markSaved,
+    animal,
+    rfidTag,
+    visualTag,
+    name,
+    breed,
+    sex,
+    dateOfBirth,
+    sireId,
+    dameId,
+    sireSource,
+    damSource,
+    externalSireReference,
+    externalSireBreed,
+    externalDamReference,
+    externalDamBreed,
+    sourceName,
+    status,
+    vaccinationHistory,
+    historyReviewed,
+    registrationNumber,
+    herdTag,
+    notes,
+    photos,
+    tags,
+    tagDraft,
+    currentOrg,
+    isEditing,
+    animalId,
+    linkAsParentOf,
+    parentRole,
+    createAnimal,
+    updateAnimal,
+    navigation,
+    t,
+    hasRfidHardware,
+    animals,
+  ])
 
-  const uploadPhotosInBackground = async (savedAnimalId: string, photosToUpload: PhotoWithMetadata[]) => {
+  const uploadPhotosInBackground = async (
+    savedAnimalId: string,
+    photosToUpload: PhotoWithMetadata[],
+  ) => {
     try {
       const failedUploads: PhotoWithMetadata[] = []
       const uploadedPhotos = await Promise.all(
@@ -492,7 +593,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
       const successfulPhotos = uploadedPhotos.filter((p) => p !== null)
 
       // Merge with existing photos
-      const existingPhotos = photos.filter(p => p.uploadStatus === "uploaded")
+      const existingPhotos = photos.filter((p) => p.uploadStatus === "uploaded")
       const allPhotos = [...existingPhotos, ...successfulPhotos]
 
       if (allPhotos.length > 0) {
@@ -512,7 +613,12 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
   return (
     <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
       <View style={themed($headerRow)}>
-        <Button text={t("animalFormScreen.buttons.cancel")} preset="default" disabled={isSubmitting} onPress={() => navigation.goBack()} />
+        <Button
+          text={t("animalFormScreen.buttons.cancel")}
+          preset="default"
+          disabled={isSubmitting}
+          onPress={() => navigation.goBack()}
+        />
         <Text
           preset="heading"
           text={
@@ -556,26 +662,51 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
         {hasRfidHardware && (
           <View>
             <View style={themed($labelWithHint)}>
-              <Text preset="formLabel" text={t("animalFormScreen.fields.rfidTag.label")} style={themed($pickerLabel)} />
+              <Text
+                preset="formLabel"
+                text={t("animalFormScreen.fields.rfidTag.label")}
+                style={themed($pickerLabel)}
+              />
               <Pressable onPress={() => setShowRfidHelp(!showRfidHelp)} style={themed($hint)}>
-                <MaterialCommunityIcons name="information-outline" size={14} color={colors.textDim} />
+                <MaterialCommunityIcons
+                  name="information-outline"
+                  size={14}
+                  color={colors.textDim}
+                />
               </Pressable>
             </View>
             {showRfidHelp && (
               <View style={themed($helpBox)}>
-                <MaterialCommunityIcons name="lightbulb-on-outline" size={14} color={colors.tint} style={{ marginRight: 6 }} />
-                <Text text={t("animalFormScreen.fields.rfidTag.helpText")} size="xxs" style={themed($helpText)} />
+                <MaterialCommunityIcons
+                  name="lightbulb-on-outline"
+                  size={14}
+                  color={colors.tint}
+                  style={{ marginRight: 6 }}
+                />
+                <Text
+                  text={t("animalFormScreen.fields.rfidTag.helpText")}
+                  size="xxs"
+                  style={themed($helpText)}
+                />
               </View>
             )}
             {isScanning ? (
               <View style={themed($rfidScanningBox)}>
                 <ActivityIndicator size="small" color={colors.tint} />
-                <Text text="Scanning..." size="md" style={{ color: colors.tint, fontWeight: "600" }} />
+                <Text
+                  text="Scanning..."
+                  size="md"
+                  style={{ color: colors.tint, fontWeight: "600" }}
+                />
               </View>
             ) : rfidTag ? (
               <View style={themed($rfidDisplayBox)}>
                 <MaterialCommunityIcons name="check-circle" size={20} color={colors.tint} />
-                <Text text={rfidTag} size="md" style={{ color: colors.text, fontWeight: "600", flex: 1 }} />
+                <Text
+                  text={rfidTag}
+                  size="md"
+                  style={{ color: colors.text, fontWeight: "600", flex: 1 }}
+                />
                 <Pressable onPress={() => setRfidTag("")} style={{ padding: 4 }}>
                   <MaterialCommunityIcons name="close-circle" size={20} color={colors.textDim} />
                 </Pressable>
@@ -583,7 +714,11 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
             ) : (
               <View style={themed($rfidPromptBox)}>
                 <MaterialCommunityIcons name="radio-tower" size={24} color={colors.textDim} />
-                <Text text="Pull trigger to scan RFID tag" size="sm" style={{ color: colors.textDim }} />
+                <Text
+                  text="Pull trigger to scan RFID tag"
+                  size="sm"
+                  style={{ color: colors.textDim }}
+                />
               </View>
             )}
           </View>
@@ -591,20 +726,36 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
 
         <View>
           <View style={themed($labelWithHint)}>
-            <Text preset="formLabel" text={t("animalFormScreen.fields.visualTag.label")} style={themed($pickerLabel)} />
-            <Pressable onPress={() => setShowVisualTagHelp(!showVisualTagHelp)} style={themed($hint)}>
+            <Text
+              preset="formLabel"
+              text={t("animalFormScreen.fields.visualTag.label")}
+              style={themed($pickerLabel)}
+            />
+            <Pressable
+              onPress={() => setShowVisualTagHelp(!showVisualTagHelp)}
+              style={themed($hint)}
+            >
               <MaterialCommunityIcons name="camera-outline" size={14} color={colors.textDim} />
             </Pressable>
           </View>
           {showVisualTagHelp && (
             <View style={themed($helpBox)}>
-              <MaterialCommunityIcons name="camera-outline" size={14} color={colors.tint} style={{ marginRight: 6 }} />
-              <Text text={t("animalFormScreen.fields.visualTag.helpText")} size="xxs" style={themed($helpText)} />
+              <MaterialCommunityIcons
+                name="camera-outline"
+                size={14}
+                color={colors.tint}
+                style={{ marginRight: 6 }}
+              />
+              <Text
+                text={t("animalFormScreen.fields.visualTag.helpText")}
+                size="xxs"
+                style={themed($helpText)}
+              />
             </View>
           )}
           <View style={themed($tagInputRow)}>
             <TextField
-          editable={!isSubmitting}
+              editable={!isSubmitting}
               value={visualTag}
               accessibilityLabel={t("animalFormScreen.fields.visualTag.label")}
               onChangeText={setVisualTag}
@@ -612,10 +763,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
               autoCorrect={false}
               containerStyle={themed($tagInput)}
             />
-            <ScanTagButton
-              compact
-              onTagScanned={setVisualTag}
-            />
+            <ScanTagButton compact onTagScanned={setVisualTag} />
           </View>
         </View>
 
@@ -636,16 +784,27 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
 
         {/* Breed Picker */}
         <View>
-          <Text preset="formLabel" text={t("animalFormScreen.fields.breed.label")} style={themed($pickerLabel)} />
+          <Text
+            preset="formLabel"
+            text={t("animalFormScreen.fields.breed.label")}
+            style={themed($pickerLabel)}
+          />
           <Pressable onPress={() => openBreedPicker("animal")} style={themed($pickerButton)}>
-            <Text text={breed || t("animalFormScreen.fields.breed.placeholder")} style={!breed && themed($placeholderText)} />
+            <Text
+              text={breed || t("animalFormScreen.fields.breed.placeholder")}
+              style={!breed && themed($placeholderText)}
+            />
           </Pressable>
         </View>
 
         {/* Sex Picker */}
         <View style={themed($row)}>
           <View style={themed($halfField)}>
-            <Text preset="formLabel" text={t("animalFormScreen.fields.sex.label")} style={themed($pickerLabel)} />
+            <Text
+              preset="formLabel"
+              text={t("animalFormScreen.fields.sex.label")}
+              style={themed($pickerLabel)}
+            />
             <Pressable onPress={() => setShowSexPicker(true)} style={themed($pickerButton)}>
               <Text text={t(`animalFormScreen.fields.sex.options.${sex}`)} />
             </Pressable>
@@ -660,10 +819,15 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
           </View>
         </View>
 
-        <VaccinationHistoryInput value={vaccinationHistory} legacy={isEditing && !historyReviewed && !animal?.vaccinationHistory} disabled={isSubmitting} onChange={(history) => {
-          setVaccinationHistory(history)
-          setHistoryReviewed(true)
-        }} />
+        <VaccinationHistoryInput
+          value={vaccinationHistory}
+          legacy={isEditing && !historyReviewed && !animal?.vaccinationHistory}
+          disabled={isSubmitting}
+          onChange={(history) => {
+            setVaccinationHistory(history)
+            setHistoryReviewed(true)
+          }}
+        />
 
         {/* Lineage Section */}
         <View style={themed($lineageSection)}>
@@ -674,12 +838,25 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
             </View>
           </View>
           <View style={themed($helpBox)}>
-            <MaterialCommunityIcons name="dna" size={14} color={colors.tint} style={{ marginRight: 6 }} />
-            <Text text={t("animalFormScreen.lineage.helpText")} size="xxs" style={themed($helpText)} />
+            <MaterialCommunityIcons
+              name="dna"
+              size={14}
+              color={colors.tint}
+              style={{ marginRight: 6 }}
+            />
+            <Text
+              text={t("animalFormScreen.lineage.helpText")}
+              size="xxs"
+              style={themed($helpText)}
+            />
           </View>
 
           <View>
-            <Text text={t("animalFormScreen.lineage.sire.label")} size="xs" style={themed($lineageLabel)} />
+            <Text
+              text={t("animalFormScreen.lineage.sire.label")}
+              size="xs"
+              style={themed($lineageLabel)}
+            />
             <View style={themed($sourceChoiceRow)}>
               {(["herd", "external"] as ParentSource[]).map((source) => (
                 <Pressable
@@ -702,21 +879,34 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
               <>
                 <Pressable onPress={() => setShowSirePicker(true)} style={themed($pickerButton)}>
                   <Text
-                    text={selectedSire ? selectedSire.displayName : t("animalFormScreen.lineage.sire.placeholder")}
+                    text={
+                      selectedSire
+                        ? selectedSire.displayName
+                        : t("animalFormScreen.lineage.sire.placeholder")
+                    }
                     style={!selectedSire && themed($placeholderText)}
                   />
                 </Pressable>
                 {!selectedSire && maleAnimals.length === 0 && (
                   <View style={themed($inlineHint)}>
-                    <MaterialCommunityIcons name="information-outline" size={12} color={colors.textDim} style={{ marginRight: 4 }} />
-                    <Text text="No bulls are in this herd. Choose External to record an outside sire." size="xxs" style={themed($hintTextSmall)} />
+                    <MaterialCommunityIcons
+                      name="information-outline"
+                      size={12}
+                      color={colors.textDim}
+                      style={{ marginRight: 4 }}
+                    />
+                    <Text
+                      text="No bulls are in this herd. Choose External to record an outside sire."
+                      size="xxs"
+                      style={themed($hintTextSmall)}
+                    />
                   </View>
                 )}
               </>
             ) : (
               <View style={themed($externalParentFields)}>
                 <TextField
-          editable={!isSubmitting}
+                  editable={!isSubmitting}
                   label="Sire ID or registration"
                   value={externalSireReference}
                   onChangeText={setExternalSireReference}
@@ -765,21 +955,34 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
               <>
                 <Pressable onPress={() => setShowDamePicker(true)} style={themed($pickerButton)}>
                   <Text
-                    text={selectedDame ? selectedDame.displayName : t("animalFormScreen.lineage.dame.placeholder")}
+                    text={
+                      selectedDame
+                        ? selectedDame.displayName
+                        : t("animalFormScreen.lineage.dame.placeholder")
+                    }
                     style={!selectedDame && themed($placeholderText)}
                   />
                 </Pressable>
                 {!selectedDame && femaleAnimals.length === 0 && (
                   <View style={themed($inlineHint)}>
-                    <MaterialCommunityIcons name="information-outline" size={12} color={colors.textDim} style={{ marginRight: 4 }} />
-                    <Text text="No cows are in this herd. Choose External to record an outside dam." size="xxs" style={themed($hintTextSmall)} />
+                    <MaterialCommunityIcons
+                      name="information-outline"
+                      size={12}
+                      color={colors.textDim}
+                      style={{ marginRight: 4 }}
+                    />
+                    <Text
+                      text="No cows are in this herd. Choose External to record an outside dam."
+                      size="xxs"
+                      style={themed($hintTextSmall)}
+                    />
                   </View>
                 )}
               </>
             ) : (
               <View style={themed($externalParentFields)}>
                 <TextField
-          editable={!isSubmitting}
+                  editable={!isSubmitting}
                   label="Dam ID or registration"
                   value={externalDamReference}
                   onChangeText={setExternalDamReference}
@@ -833,7 +1036,11 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
         />
 
         <View>
-          <Text text="Tags" size="sm" style={{ marginBottom: 8, fontWeight: "600", color: colors.text }} />
+          <Text
+            text="Tags"
+            size="sm"
+            style={{ marginBottom: 8, fontWeight: "600", color: colors.text }}
+          />
           <TagInput
             tags={tags}
             onTagsChange={setTags}
@@ -850,10 +1057,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
                     <Pressable
                       key={purposeTag}
                       onPress={() => togglePurposeTag(purposeTag)}
-                      style={[
-                        themed($purposeChip),
-                        selected && themed($purposeChipSelected),
-                      ]}
+                      style={[themed($purposeChip), selected && themed($purposeChipSelected)]}
                     >
                       <Text
                         text={purposeTag}
@@ -874,7 +1078,13 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
         </View>
 
         <Button
-          text={isSubmitting ? t("animalFormScreen.buttons.saving") : isEditing ? t("animalFormScreen.buttons.save") : t("animalFormScreen.buttons.add")}
+          text={
+            isSubmitting
+              ? t("animalFormScreen.buttons.saving")
+              : isEditing
+                ? t("animalFormScreen.buttons.save")
+                : t("animalFormScreen.buttons.add")
+          }
           preset="reversed"
           style={themed($saveButton)}
           disabled={isSubmitting}
@@ -894,7 +1104,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
             <Text preset="heading" text={breedPickerTitle} size="md" />
             <View style={themed($customBreedBox)}>
               <TextField
-          editable={!isSubmitting}
+                editable={!isSubmitting}
                 label={
                   breedPickerTarget === "sire"
                     ? "Custom sire breed or cross"
@@ -918,10 +1128,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
               data={breedOptions}
               keyExtractor={(item) => item}
               renderItem={({ item }) => (
-                <Pressable
-                  style={themed($modalItem)}
-                  onPress={() => selectBreed(item)}
-                >
+                <Pressable style={themed($modalItem)} onPress={() => selectBreed(item)}>
                   <Text text={item} />
                 </Pressable>
               )}
@@ -951,7 +1158,10 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
                 <Text text={t(`animalFormScreen.fields.sex.options.${s}`)} />
               </Pressable>
             ))}
-            <Button text={t("animalFormScreen.modals.sex.cancel")} onPress={() => setShowSexPicker(false)} />
+            <Button
+              text={t("animalFormScreen.modals.sex.cancel")}
+              onPress={() => setShowSexPicker(false)}
+            />
           </View>
         </View>
       </Modal>
@@ -962,7 +1172,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
           <View style={themed($modalContent)}>
             <Text preset="heading" text={t("animalFormScreen.modals.sire.title")} size="md" />
             <TextField
-          editable={!isSubmitting}
+              editable={!isSubmitting}
               value={parentSearch}
               onChangeText={setParentSearch}
               placeholder={t("animalFormScreen.modals.sire.searchPlaceholder")}
@@ -983,12 +1193,24 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
                   }}
                 >
                   <Text text={item.displayName} preset="bold" />
-                  <Text text={t("animalFormScreen.modals.sire.rfidLabel", { tag: item.rfidTag })} size="xs" style={themed($dimText)} />
+                  <Text
+                    text={t("animalFormScreen.modals.sire.rfidLabel", { tag: item.rfidTag })}
+                    size="xs"
+                    style={themed($dimText)}
+                  />
                 </Pressable>
               )}
-              ListEmptyComponent={<Text text={t("animalFormScreen.modals.sire.empty")} style={themed($emptyText)} />}
+              ListEmptyComponent={
+                <Text text={t("animalFormScreen.modals.sire.empty")} style={themed($emptyText)} />
+              }
             />
-            <Button text={t("animalFormScreen.modals.sire.cancel")} onPress={() => { setShowSirePicker(false); setParentSearch("") }} />
+            <Button
+              text={t("animalFormScreen.modals.sire.cancel")}
+              onPress={() => {
+                setShowSirePicker(false)
+                setParentSearch("")
+              }}
+            />
           </View>
         </View>
       </Modal>
@@ -999,7 +1221,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
           <View style={themed($modalContent)}>
             <Text preset="heading" text={t("animalFormScreen.modals.dame.title")} size="md" />
             <TextField
-          editable={!isSubmitting}
+              editable={!isSubmitting}
               value={parentSearch}
               onChangeText={setParentSearch}
               placeholder={t("animalFormScreen.modals.dame.searchPlaceholder")}
@@ -1020,12 +1242,24 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
                   }}
                 >
                   <Text text={item.displayName} preset="bold" />
-                  <Text text={t("animalFormScreen.modals.dame.rfidLabel", { tag: item.rfidTag })} size="xs" style={themed($dimText)} />
+                  <Text
+                    text={t("animalFormScreen.modals.dame.rfidLabel", { tag: item.rfidTag })}
+                    size="xs"
+                    style={themed($dimText)}
+                  />
                 </Pressable>
               )}
-              ListEmptyComponent={<Text text={t("animalFormScreen.modals.dame.empty")} style={themed($emptyText)} />}
+              ListEmptyComponent={
+                <Text text={t("animalFormScreen.modals.dame.empty")} style={themed($emptyText)} />
+              }
             />
-            <Button text={t("animalFormScreen.modals.dame.cancel")} onPress={() => { setShowDamePicker(false); setParentSearch("") }} />
+            <Button
+              text={t("animalFormScreen.modals.dame.cancel")}
+              onPress={() => {
+                setShowDamePicker(false)
+                setParentSearch("")
+              }}
+            />
           </View>
         </View>
       </Modal>
@@ -1034,7 +1268,7 @@ export const AnimalFormScreen: FC<AppStackScreenProps<"AnimalForm">> = ({ route,
 }
 
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  paddingHorizontal: spacing.lg,
+  paddingHorizontal: spacing.md,
   paddingBottom: spacing.xxl,
 })
 
@@ -1044,33 +1278,19 @@ const $headerRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   alignItems: "center",
   marginTop: spacing.md,
   marginBottom: spacing.lg,
+  gap: 10,
 })
 
-const $form: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+const $form: ThemedStyle<ViewStyle> = ({ spacing, colors }) => ({
   gap: spacing.sm,
+  backgroundColor: colors.palette.neutral100,
+  borderRadius: bentoRadii.card,
+  padding: 18,
 })
 
 const $row: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   gap: spacing.sm,
-})
-
-const $vaccStatusRow: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  flexDirection: "row",
-  alignItems: "center",
-  gap: spacing.md,
-  backgroundColor: colors.palette.neutral100,
-  borderRadius: 12,
-  padding: spacing.md,
-})
-
-const $vaccStatusText: ThemedStyle<ViewStyle> = () => ({
-  flex: 1,
-})
-
-const $vaccStatusHelp: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
-  color: colors.textDim,
-  marginTop: spacing.xxs,
 })
 
 const $halfField: ThemedStyle<ViewStyle> = () => ({
@@ -1085,24 +1305,13 @@ const $pickerButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
   borderWidth: 1,
   borderColor: colors.border,
-  borderRadius: 8,
+  borderRadius: bentoRadii.button,
   padding: spacing.sm,
   alignItems: "center",
 })
 
 const $saveButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   marginTop: spacing.lg,
-})
-
-const $scanningBox: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  backgroundColor: colors.tint + "10",
-  borderWidth: 1,
-  borderColor: colors.tint,
-  borderRadius: 8,
-  padding: spacing.md,
-  flexDirection: "row",
-  alignItems: "center",
-  gap: spacing.sm,
 })
 
 const $rfidScanningBox: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
@@ -1150,7 +1359,7 @@ const $placeholderText: ThemedStyle<TextStyle> = ({ colors }) => ({
 
 const $lineageSection: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 12,
+  borderRadius: bentoRadii.card,
   padding: spacing.md,
   gap: spacing.sm,
 })
@@ -1194,7 +1403,7 @@ const $purposeSection: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   marginTop: spacing.sm,
   padding: spacing.sm,
   gap: spacing.xs,
-  borderRadius: 10,
+  borderRadius: bentoRadii.card,
   backgroundColor: colors.palette.neutral100,
 })
 
@@ -1307,7 +1516,7 @@ const $labelWithHint: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   marginBottom: spacing.xs,
 })
 
-const $hint: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+const $hint: ThemedStyle<ViewStyle> = ({ colors }) => ({
   backgroundColor: colors.palette.neutral200,
   borderRadius: 10,
   width: 20,
@@ -1353,10 +1562,22 @@ const $farmLabel: ThemedStyle<TextStyle> = ({ colors }) => ({
 })
 
 function parseFormArray(value?: string | null): any[] {
-  try { const parsed = JSON.parse(value || "[]"); return Array.isArray(parsed) ? parsed : [] } catch { return [] }
+  try {
+    const parsed = JSON.parse(value || "[]")
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
 }
 function animalFormFingerprint(values: Record<string, any>): string {
-  return JSON.stringify({ ...values, dateOfBirth: values.dateOfBirth?.getTime() ?? null,
-    photos: values.photos.map((photo: any) => ({ id: photo.id ?? null, uri: photo.uri ?? null, localUri: photo.localUri ?? null, caption: photo.caption ?? "" })),
+  return JSON.stringify({
+    ...values,
+    dateOfBirth: values.dateOfBirth?.getTime() ?? null,
+    photos: values.photos.map((photo: any) => ({
+      id: photo.id ?? null,
+      uri: photo.uri ?? null,
+      localUri: photo.localUri ?? null,
+      caption: photo.caption ?? "",
+    })),
   })
 }

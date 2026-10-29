@@ -10,6 +10,7 @@ import { Button, FriendlyEmpty, Text } from "@/components"
 import type { ReportTemplate } from "@/db/models"
 import { useReportTemplates, useReportTemplateActions } from "@/hooks/useReportTemplates"
 import type { AppStackParamList } from "@/navigators/navigationTypes"
+import { bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
@@ -124,16 +125,16 @@ const $row: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 14,
+  borderRadius: bentoRadii.card,
   padding: spacing.sm,
   marginBottom: spacing.xs,
-  minHeight: 64,
+  minHeight: 84,
 })
 
 const $rowIcon: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   width: 44,
   height: 44,
-  borderRadius: 10,
+  borderRadius: bentoRadii.input,
   backgroundColor: colors.palette.primary100,
   alignItems: "center",
   justifyContent: "center",
@@ -150,8 +151,8 @@ const $rowActions: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 })
 
 const $actionButton: ThemedStyle<ViewStyle> = () => ({
-  width: 40,
-  height: 40,
+  width: 44,
+  height: 44,
   alignItems: "center",
   justifyContent: "center",
 })

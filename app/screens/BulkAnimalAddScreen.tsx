@@ -1,17 +1,26 @@
-import { useSaveGuard } from "@/hooks/useSaveGuard"
-import { VaccinationHistoryInput } from "@/components/VaccinationHistoryInput"
-import type { VaccinationHistory } from "@/utils/vaccinationHistory"
 import { FC, useCallback, useEffect, useRef, useState } from "react"
-import { Alert, FlatList, Pressable, TextInput, View, ViewStyle, TextStyle, Modal, ScrollView, } from "react-native"
+import {
+  Alert,
+  FlatList,
+  Pressable,
+  TextInput,
+  View,
+  ViewStyle,
+  TextStyle,
+  Modal,
+  ScrollView,
+} from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
 
 import { Screen, Text, TextField, Button, ScanTagButton, TagInput } from "@/components"
 import { AgeDatePicker } from "@/components/AgeDatePicker"
 import { PhotoPicker } from "@/components/PhotoPicker"
-import { useAppTheme } from "@/theme/context"
-import type { ThemedStyle } from "@/theme/types"
-import type { AppStackScreenProps } from "@/navigators/navigationTypes"
+import { VaccinationHistoryInput } from "@/components/VaccinationHistoryInput"
+import { useAuth } from "@/context/AuthContext"
+import { useDatabase } from "@/context/DatabaseContext"
+import { Pasture } from "@/db/models"
+import { AnimalSex, AnimalStatus, BREEDS_BY_SPECIES } from "@/db/models/Animal"
 import {
   useAnimalActions,
   useAnimals,
@@ -19,14 +28,16 @@ import {
   DuplicateTagError,
   AnimalLimitError,
 } from "@/hooks/useAnimals"
-import { AnimalSex, AnimalStatus, BREEDS_BY_SPECIES } from "@/db/models/Animal"
-import { useRfidReader } from "@/hooks/useRfidReader"
-import { useDatabase } from "@/context/DatabaseContext"
-import { useAuth } from "@/context/AuthContext"
 import { usePastures } from "@/hooks/usePastures"
-import { Pasture } from "@/db/models"
+import { useRfidReader } from "@/hooks/useRfidReader"
+import { useSaveGuard } from "@/hooks/useSaveGuard"
+import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { uploadPhoto } from "@/services/photoStorage"
+import { bentoRadii } from "@/theme/bento"
+import { useAppTheme } from "@/theme/context"
+import type { ThemedStyle } from "@/theme/types"
 import type { PhotoWithMetadata } from "@/types/Photo"
+import type { VaccinationHistory } from "@/utils/vaccinationHistory"
 
 const SEX_OPTIONS: AnimalSex[] = ["male", "female", "castrated", "unknown"]
 
@@ -41,9 +52,15 @@ type AddedAnimal = {
 
 type BulkAddPhase = "setup" | "entry"
 
-export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ route, navigation }) => {
+export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({
+  route,
+  navigation,
+}) => {
   const { t } = useTranslation()
-  const { themed, theme: { colors } } = useAppTheme()
+  const {
+    themed,
+    theme: { colors },
+  } = useAppTheme()
   const { createAnimal } = useAnimalActions()
   const { animals } = useAnimals()
   const { currentOrg } = useDatabase()
@@ -90,7 +107,7 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
   // Pre-fill breed from organization defaults
   useEffect(() => {
     if (currentOrg && currentOrg.defaultBreeds && !breed) {
-      const defaultBreed = currentOrg.defaultBreeds['cattle']
+      const defaultBreed = currentOrg.defaultBreeds["cattle"]
       if (defaultBreed) {
         setBreed(defaultBreed)
       }
@@ -113,7 +130,9 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
     }
   }, [phase])
 
-  const selectedPasture = selectedPastureId ? pastures.find(p => p.id === selectedPastureId) : null
+  const selectedPasture = selectedPastureId
+    ? pastures.find((p) => p.id === selectedPastureId)
+    : null
   const breedOptions = [
     ...new Set([...COMMON_BREEDS, ...animals.map((existingAnimal) => existingAnimal.breed)]),
   ]
@@ -122,7 +141,7 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
     if (!breed.trim()) {
       Alert.alert(
         t("bulkAnimalAddScreen.alerts.breedRequired.title"),
-        t("bulkAnimalAddScreen.alerts.breedRequired.message")
+        t("bulkAnimalAddScreen.alerts.breedRequired.message"),
       )
       return
     }
@@ -159,16 +178,13 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
       if (!visualTag && !rfidTag) {
         Alert.alert(
           t("bulkAnimalAddScreen.alerts.tagRequired.title"),
-          t("bulkAnimalAddScreen.alerts.tagRequired.message")
+          t("bulkAnimalAddScreen.alerts.tagRequired.message"),
         )
         return
       }
 
       if (!currentOrg) {
-        Alert.alert(
-          t("common.error"),
-          t("bulkAnimalAddScreen.alerts.noOrganization.message")
-        )
+        Alert.alert(t("common.error"), t("bulkAnimalAddScreen.alerts.noOrganization.message"))
         return
       }
 
@@ -197,7 +213,7 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
           rfidTag: rfidTag || "",
           timestamp: new Date(),
         }
-        setAddedAnimals(prev => [newEntry, ...prev])
+        setAddedAnimals((prev) => [newEntry, ...prev])
 
         // Clear inputs for next entry
         setCurrentTag("")
@@ -205,7 +221,7 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
         setCurrentSex(null) // Reset sex override
         setCurrentWeight("")
         setCurrentPhotos([])
-        setPhotoPickerKey(prev => prev + 1) // Force PhotoPicker to reset
+        setPhotoPickerKey((prev) => prev + 1) // Force PhotoPicker to reset
 
         // Refocus input
         tagInputRef.current?.focus()
@@ -240,7 +256,21 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
         }
       }
     })
-  }, [runSave, currentTag, currentRfidTag, tagType, tags, breed, sex, dateOfBirth, vaccinationHistory, notesTemplate, currentOrg, createAnimal, t])
+  }, [
+    runSave,
+    currentTag,
+    currentRfidTag,
+    tagType,
+    tags,
+    breed,
+    sex,
+    dateOfBirth,
+    vaccinationHistory,
+    notesTemplate,
+    currentOrg,
+    createAnimal,
+    t,
+  ])
 
   const handleFinish = useCallback(() => {
     if (addedAnimals.length === 0) {
@@ -254,13 +284,13 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
       [
         {
           text: t("bulkAnimalAddScreen.alerts.finish.cancel"),
-          style: "cancel"
+          style: "cancel",
         },
         {
           text: t("bulkAnimalAddScreen.alerts.finish.confirm"),
-          onPress: () => navigation.goBack()
-        }
-      ]
+          onPress: () => navigation.goBack(),
+        },
+      ],
     )
   }, [addedAnimals.length, navigation, t])
 
@@ -291,22 +321,30 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
         </View>
 
         <View style={themed($form)}>
-          <Text
-            text={t("bulkAnimalAddScreen.setup.sectionTitle")}
-            preset="subheading"
-          />
+          <Text text={t("bulkAnimalAddScreen.setup.sectionTitle")} preset="subheading" />
 
           {/* Breed Picker */}
           <View>
-            <Text preset="formLabel" text={t("animalFormScreen.fields.breed.label") + " *"} style={themed($pickerLabel)} />
+            <Text
+              preset="formLabel"
+              text={t("animalFormScreen.fields.breed.label") + " *"}
+              style={themed($pickerLabel)}
+            />
             <Pressable onPress={() => setShowBreedPicker(true)} style={themed($pickerButton)}>
-              <Text text={breed || t("animalFormScreen.fields.breed.placeholder")} style={!breed && themed($placeholderText)} />
+              <Text
+                text={breed || t("animalFormScreen.fields.breed.placeholder")}
+                style={!breed && themed($placeholderText)}
+              />
             </Pressable>
           </View>
 
           {/* Sex Picker */}
           <View>
-            <Text preset="formLabel" text={t("animalFormScreen.fields.sex.label")} style={themed($pickerLabel)} />
+            <Text
+              preset="formLabel"
+              text={t("animalFormScreen.fields.sex.label")}
+              style={themed($pickerLabel)}
+            />
             <Pressable onPress={() => setShowSexPicker(true)} style={themed($pickerButton)}>
               <Text text={t(`animalFormScreen.fields.sex.options.${sex}`)} />
             </Pressable>
@@ -323,7 +361,11 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
           {/* Tag Type Picker - Only show if RFID hardware available */}
           {hasRfidHardware && (
             <View>
-              <Text preset="formLabel" text={t("bulkAnimalAddScreen.setup.tagTypeLabel")} style={themed($pickerLabel)} />
+              <Text
+                preset="formLabel"
+                text={t("bulkAnimalAddScreen.setup.tagTypeLabel")}
+                style={themed($pickerLabel)}
+              />
               <Pressable onPress={() => setShowTagTypePicker(true)} style={themed($pickerButton)}>
                 <Text text={t(`bulkAnimalAddScreen.setup.tagType.${tagType}`)} />
               </Pressable>
@@ -332,7 +374,11 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
 
           {/* Tags */}
           <View>
-            <Text preset="formLabel" text={t("animalFormScreen.fields.tags.label")} style={themed($tagsLabel)} />
+            <Text
+              preset="formLabel"
+              text={t("animalFormScreen.fields.tags.label")}
+              style={themed($tagsLabel)}
+            />
             <TagInput
               tags={tags}
               onTagsChange={setTags}
@@ -343,10 +389,18 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
           {/* Pasture/Group Picker */}
           {pastures.length > 0 && (
             <View>
-              <Text preset="formLabel" text={t("bulkAnimalAddScreen.setup.pastureLabel")} style={themed($pickerLabel)} />
+              <Text
+                preset="formLabel"
+                text={t("bulkAnimalAddScreen.setup.pastureLabel")}
+                style={themed($pickerLabel)}
+              />
               <Pressable onPress={() => setShowPasturePicker(true)} style={themed($pickerButton)}>
                 <Text
-                  text={selectedPasture ? selectedPasture.name : t("bulkAnimalAddScreen.setup.pasturePlaceholder")}
+                  text={
+                    selectedPasture
+                      ? selectedPasture.name
+                      : t("bulkAnimalAddScreen.setup.pasturePlaceholder")
+                  }
                   style={!selectedPasture && themed($placeholderText)}
                 />
               </Pressable>
@@ -362,7 +416,11 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
             multiline
           />
 
-          <VaccinationHistoryInput value={vaccinationHistory} onChange={setVaccinationHistory} disabled={isSubmitting} />
+          <VaccinationHistoryInput
+            value={vaccinationHistory}
+            onChange={setVaccinationHistory}
+            disabled={isSubmitting}
+          />
 
           <Button
             text={t("bulkAnimalAddScreen.setup.startButton")}
@@ -444,7 +502,11 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
         <Modal visible={showTagTypePicker} transparent animationType="slide">
           <View style={themed($modalOverlay)}>
             <View style={themed($modalContent)}>
-              <Text preset="heading" text={t("bulkAnimalAddScreen.setup.tagTypeModalTitle")} size="md" />
+              <Text
+                preset="heading"
+                text={t("bulkAnimalAddScreen.setup.tagTypeModalTitle")}
+                size="md"
+              />
               <Pressable
                 style={themed($modalItem)}
                 onPress={() => {
@@ -452,8 +514,15 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
                   setShowTagTypePicker(false)
                 }}
               >
-                <Text text={t("bulkAnimalAddScreen.setup.tagType.visual")} preset={tagType === "visual" ? "bold" : "default"} />
-                <Text text={t("bulkAnimalAddScreen.setup.tagTypeDescription.visual")} size="xs" style={themed($dimText)} />
+                <Text
+                  text={t("bulkAnimalAddScreen.setup.tagType.visual")}
+                  preset={tagType === "visual" ? "bold" : "default"}
+                />
+                <Text
+                  text={t("bulkAnimalAddScreen.setup.tagTypeDescription.visual")}
+                  size="xs"
+                  style={themed($dimText)}
+                />
               </Pressable>
               <Pressable
                 style={themed($modalItem)}
@@ -462,8 +531,15 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
                   setShowTagTypePicker(false)
                 }}
               >
-                <Text text={t("bulkAnimalAddScreen.setup.tagType.rfid")} preset={tagType === "rfid" ? "bold" : "default"} />
-                <Text text={t("bulkAnimalAddScreen.setup.tagTypeDescription.rfid")} size="xs" style={themed($dimText)} />
+                <Text
+                  text={t("bulkAnimalAddScreen.setup.tagType.rfid")}
+                  preset={tagType === "rfid" ? "bold" : "default"}
+                />
+                <Text
+                  text={t("bulkAnimalAddScreen.setup.tagTypeDescription.rfid")}
+                  size="xs"
+                  style={themed($dimText)}
+                />
               </Pressable>
               <Button text={t("common.cancel")} onPress={() => setShowTagTypePicker(false)} />
             </View>
@@ -474,7 +550,11 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
         <Modal visible={showPasturePicker} transparent animationType="slide">
           <View style={themed($modalOverlay)}>
             <View style={themed($modalContent)}>
-              <Text preset="heading" text={t("bulkAnimalAddScreen.setup.pastureModalTitle")} size="md" />
+              <Text
+                preset="heading"
+                text={t("bulkAnimalAddScreen.setup.pastureModalTitle")}
+                size="md"
+              />
               <FlatList
                 data={pastures}
                 keyExtractor={(item) => item.id}
@@ -491,13 +571,13 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
                   </Pressable>
                 )}
                 ListEmptyComponent={
-                  <Text text={t("bulkAnimalAddScreen.setup.noPastures")} style={themed($emptyText)} />
+                  <Text
+                    text={t("bulkAnimalAddScreen.setup.noPastures")}
+                    style={themed($emptyText)}
+                  />
                 }
               />
-              <Button
-                text={t("common.cancel")}
-                onPress={() => setShowPasturePicker(false)}
-              />
+              <Button text={t("common.cancel")} onPress={() => setShowPasturePicker(false)} />
             </View>
           </View>
         </Modal>
@@ -509,17 +589,9 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
   return (
     <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
       <View style={themed($headerRow)}>
-        <Button
-          text={t("common.back")}
-          preset="default"
-          onPress={() => setPhase("setup")}
-        />
+        <Button text={t("common.back")} preset="default" onPress={() => setPhase("setup")} />
         <Text preset="heading" text={t("bulkAnimalAddScreen.title.entry")} />
-        <Button
-          text={t("common.done")}
-          preset="default"
-          onPress={handleFinish}
-        />
+        <Button text={t("common.done")} preset="default" onPress={handleFinish} />
       </View>
 
       {/* Summary Badge */}
@@ -576,24 +648,23 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
               returnKeyType="done"
               onSubmitEditing={handleQuickAdd}
             />
-            <ScanTagButton
-              compact
-              onTagScanned={setCurrentTag}
-            />
+            <ScanTagButton compact onTagScanned={setCurrentTag} />
           </View>
         </View>
 
         {/* Optional Sex Override */}
         <View>
-          <Text preset="formLabel" text={t("animalFormScreen.fields.sex.label")} style={themed($pickerLabel)} />
+          <Text
+            preset="formLabel"
+            text={t("animalFormScreen.fields.sex.label")}
+            style={themed($pickerLabel)}
+          />
           <Pressable onPress={() => setShowCurrentSexPicker(true)} style={themed($pickerButton)}>
             <Text
               text={t(`animalFormScreen.fields.sex.options.${currentSex || sex}`)}
               style={!currentSex && themed($dimText)}
             />
-            {currentSex && (
-              <Text text=" (override)" size="xs" style={themed($dimText)} />
-            )}
+            {currentSex && <Text text=" (override)" size="xs" style={themed($dimText)} />}
           </Pressable>
           {currentSex && (
             <Pressable onPress={() => setCurrentSex(null)} style={themed($clearOverrideButton)}>
@@ -623,7 +694,11 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
         </View>
 
         <Button
-          text={isSubmitting ? t("bulkAnimalAddScreen.entry.adding") : t("bulkAnimalAddScreen.entry.addButton")}
+          text={
+            isSubmitting
+              ? t("bulkAnimalAddScreen.entry.adding")
+              : t("bulkAnimalAddScreen.entry.addButton")
+          }
           preset="reversed"
           style={themed($addButton)}
           onPress={handleQuickAdd}
@@ -638,7 +713,11 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
               <View key={animal.tempId} style={themed($recentItem)}>
                 <MaterialCommunityIcons name="check" size={16} color={colors.palette.primary500} />
                 <Text text={animal.visualTag} preset="bold" />
-                <Text text={animal.timestamp.toLocaleTimeString()} size="xs" style={themed($dimText)} />
+                <Text
+                  text={animal.timestamp.toLocaleTimeString()}
+                  size="xs"
+                  style={themed($dimText)}
+                />
               </View>
             ))}
           </View>
@@ -672,7 +751,7 @@ export const BulkAnimalAddScreen: FC<AppStackScreenProps<"BulkAnimalAdd">> = ({ 
 
 // Styles
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  paddingHorizontal: spacing.lg,
+  paddingHorizontal: spacing.md,
   paddingBottom: spacing.xxl,
 })
 
@@ -682,6 +761,7 @@ const $headerRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   alignItems: "center",
   marginTop: spacing.md,
   marginBottom: spacing.lg,
+  gap: 10,
 })
 
 const $farmBadge: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
@@ -729,31 +809,13 @@ const $pickerButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
   borderWidth: 1,
   borderColor: colors.border,
-  borderRadius: 8,
+  borderRadius: bentoRadii.button,
   padding: spacing.sm,
   alignItems: "center",
 })
 
 const $placeholderText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.textDim,
-})
-
-const $vaccStatusRow: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  flexDirection: "row",
-  alignItems: "center",
-  gap: spacing.md,
-  backgroundColor: colors.palette.neutral100,
-  borderRadius: 12,
-  padding: spacing.md,
-})
-
-const $vaccStatusText: ThemedStyle<ViewStyle> = () => ({
-  flex: 1,
-})
-
-const $vaccStatusHelp: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
-  color: colors.textDim,
-  marginTop: spacing.xxs,
 })
 
 const $startButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({

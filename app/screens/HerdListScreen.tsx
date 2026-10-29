@@ -36,6 +36,7 @@ import { Animal } from "@/db/models/Animal"
 import { useAnimalCount, useAnimalsQuery, useComputedAnimalFilters } from "@/hooks/useAnimals"
 import { useRfidReader } from "@/hooks/useRfidReader"
 import type { MainTabScreenProps } from "@/navigators/navigationTypes"
+import { bentoRadii } from "@/theme/bento"
 import { STATUS_COLORS } from "@/theme/colors"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -843,7 +844,7 @@ export const HerdListScreen: FC<MainTabScreenProps<"HerdList">> = ({ navigation,
 
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flex: 1,
-  paddingHorizontal: spacing.sm,
+  paddingHorizontal: spacing.md,
 })
 
 const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -853,6 +854,7 @@ const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   marginTop: spacing.xs,
   marginBottom: spacing.xs,
   paddingHorizontal: spacing.sm,
+  gap: 10,
 })
 
 const $headerButtons: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -865,7 +867,7 @@ const $filterButton: ThemedStyle<ViewStyle> = ({ colors }) => ({
   backgroundColor: colors.palette.neutral100,
   borderWidth: 1,
   borderColor: colors.tint,
-  borderRadius: 8,
+  borderRadius: bentoRadii.button,
   width: 44,
   height: 44,
   justifyContent: "center",
@@ -896,7 +898,7 @@ const $bulkAddButton: ThemedStyle<ViewStyle> = ({ colors }) => ({
   backgroundColor: colors.palette.neutral100,
   borderWidth: 1,
   borderColor: colors.tint,
-  borderRadius: 8,
+  borderRadius: bentoRadii.button,
   width: 44,
   height: 44,
   justifyContent: "center",
@@ -933,8 +935,7 @@ const $scanNotFoundCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   alignItems: "center",
   backgroundColor: colors.palette.neutral100,
   borderColor: colors.palette.primary200,
-  borderRadius: 22,
-  borderWidth: 1,
+  borderRadius: bentoRadii.card,
   marginTop: spacing.sm,
   paddingHorizontal: spacing.lg,
   paddingVertical: spacing.xl,
@@ -992,7 +993,7 @@ const $scanNotFoundButton: ThemedStyle<ViewStyle> = () => ({
 
 const $animalCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 22,
+  borderRadius: bentoRadii.card,
   padding: spacing.sm,
   marginBottom: spacing.xs,
   shadowColor: "#000",
@@ -1068,7 +1069,7 @@ const $onboardingCards: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 
 const $onboardingCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 22,
+  borderRadius: bentoRadii.card,
   padding: spacing.sm,
   flexDirection: "row",
   alignItems: "flex-start",

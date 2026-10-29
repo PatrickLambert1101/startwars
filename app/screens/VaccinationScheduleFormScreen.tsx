@@ -1,5 +1,14 @@
 import { useState, useEffect, useMemo, useCallback } from "react"
-import { View, ViewStyle, TextStyle, ScrollView, Pressable, Alert, Modal, FlatList } from "react-native"
+import {
+  View,
+  ViewStyle,
+  TextStyle,
+  ScrollView,
+  Pressable,
+  Alert,
+  Modal,
+  FlatList,
+} from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useFocusEffect } from "@react-navigation/native"
 import { useTranslation } from "react-i18next"
@@ -9,7 +18,11 @@ import { DateField } from "@/components/DateField"
 import { ScheduleType } from "@/db/models"
 import { usePastures } from "@/hooks/usePastures"
 import { useProtocols } from "@/hooks/useProtocols"
-import { useVaccinationSchedule, useVaccinationScheduleActions, VaccinationScheduleFormData } from "@/hooks/useVaccinationSchedules"
+import {
+  useVaccinationSchedule,
+  useVaccinationScheduleActions,
+  VaccinationScheduleFormData,
+} from "@/hooks/useVaccinationSchedules"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { recalculateSchedule } from "@/services/vaccinationScheduler"
 import { bentoRadii } from "@/theme/bento"
@@ -36,10 +49,16 @@ const SEX_LABELS_BY_SPECIES: Record<string, { male: string; female: string; cast
   game: { male: "Males", female: "Females", castrated: "Castrated" },
 }
 
-export function VaccinationScheduleFormScreen({ route, navigation }: AppStackScreenProps<"VaccinationScheduleForm">) {
+export function VaccinationScheduleFormScreen({
+  route,
+  navigation,
+}: AppStackScreenProps<"VaccinationScheduleForm">) {
   const { mode, scheduleId } = route.params
   const { t } = useTranslation()
-  const { themed, theme: { colors } } = useAppTheme()
+  const {
+    themed,
+    theme: { colors },
+  } = useAppTheme()
   const { schedule, isLoading } = useVaccinationSchedule(scheduleId || "")
   const { createSchedule, updateSchedule } = useVaccinationScheduleActions()
   const { protocols } = useProtocols()
@@ -81,7 +100,7 @@ export function VaccinationScheduleFormScreen({ route, navigation }: AppStackScr
   const [awaitingNewProtocol, setAwaitingNewProtocol] = useState<string[] | null>(null)
 
   const vaccinationProtocols = useMemo(() => {
-    return protocols.filter(p => p.protocolType === "vaccination" && p.isActive)
+    return protocols.filter((p) => p.protocolType === "vaccination" && p.isActive)
   }, [protocols])
 
   const sexOptions = useMemo(() => {
@@ -97,9 +116,8 @@ export function VaccinationScheduleFormScreen({ route, navigation }: AppStackScr
   const filteredProtocols = useMemo(() => {
     if (!protocolSearch.trim()) return vaccinationProtocols
     const search = protocolSearch.toLowerCase()
-    return vaccinationProtocols.filter(p =>
-      p.name.toLowerCase().includes(search) ||
-      p.productName.toLowerCase().includes(search)
+    return vaccinationProtocols.filter(
+      (p) => p.name.toLowerCase().includes(search) || p.productName.toLowerCase().includes(search),
     )
   }, [vaccinationProtocols, protocolSearch])
 
@@ -194,7 +212,8 @@ export function VaccinationScheduleFormScreen({ route, navigation }: AppStackScr
         minAgeMonths: minAgeMonths ? parseInt(minAgeMonths) : undefined,
         maxAgeMonths: maxAgeMonths ? parseInt(maxAgeMonths) : undefined,
         requiresBooster,
-        boosterIntervalDays: requiresBooster && boosterIntervalDays ? parseInt(boosterIntervalDays) : undefined,
+        boosterIntervalDays:
+          requiresBooster && boosterIntervalDays ? parseInt(boosterIntervalDays) : undefined,
         boosterCount: parseInt(boosterCount),
       }
 
@@ -215,19 +234,36 @@ export function VaccinationScheduleFormScreen({ route, navigation }: AppStackScr
     }
     setIsSubmitting(false)
   }, [
-    name, selectedProtocolId, scheduleType, targetAgeMonths, ageWindowDays,
-    scheduledDate, repeatAnnually, selectedPastureId, intervalMonths,
-    targetSpecies, targetSex, minAgeMonths, maxAgeMonths,
-    requiresBooster, boosterIntervalDays, boosterCount,
-    mode, scheduleId, createSchedule, updateSchedule, navigation, t,
+    name,
+    selectedProtocolId,
+    scheduleType,
+    targetAgeMonths,
+    ageWindowDays,
+    scheduledDate,
+    repeatAnnually,
+    selectedPastureId,
+    intervalMonths,
+    targetSpecies,
+    targetSex,
+    minAgeMonths,
+    maxAgeMonths,
+    requiresBooster,
+    boosterIntervalDays,
+    boosterCount,
+    mode,
+    scheduleId,
+    createSchedule,
+    updateSchedule,
+    navigation,
+    t,
   ])
 
   const selectedProtocol = useMemo(() => {
-    return protocols.find(p => p.id === selectedProtocolId)
+    return protocols.find((p) => p.id === selectedProtocolId)
   }, [protocols, selectedProtocolId])
 
   const selectedPasture = useMemo(() => {
-    return pastures.find(p => p.id === selectedPastureId)
+    return pastures.find((p) => p.id === selectedPastureId)
   }, [pastures, selectedPastureId])
 
   return (
@@ -262,18 +298,20 @@ export function VaccinationScheduleFormScreen({ route, navigation }: AppStackScr
           <View>
             <Text preset="formLabel" text="Vaccination Protocol *" style={themed($fieldLabel)} />
             {selectedProtocol ? (
-              <Pressable onPress={() => setSelectedProtocolId("")} style={themed($selectedProtocol)}>
+              <Pressable
+                onPress={() => setSelectedProtocolId("")}
+                style={themed($selectedProtocol)}
+              >
                 <View>
                   <Text preset="bold">{selectedProtocol.name}</Text>
-                  <Text size="xs" style={themed($dimText)}>{selectedProtocol.productName}</Text>
+                  <Text size="xs" style={themed($dimText)}>
+                    {selectedProtocol.productName}
+                  </Text>
                 </View>
                 <MaterialCommunityIcons name="close" size={20} color={colors.text} />
               </Pressable>
             ) : (
-              <Pressable
-                onPress={() => setShowProtocolModal(true)}
-                style={themed($protocolButton)}
-              >
+              <Pressable onPress={() => setShowProtocolModal(true)} style={themed($protocolButton)}>
                 <Text style={themed($protocolButtonText)}>+ Select Vaccination Protocol</Text>
                 <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textDim} />
               </Pressable>
@@ -285,7 +323,7 @@ export function VaccinationScheduleFormScreen({ route, navigation }: AppStackScr
         <View style={themed($section)}>
           <Text preset="subheading" text="Schedule Type *" style={themed($sectionTitle)} />
           <View style={themed($typeRow)}>
-            {SCHEDULE_TYPE_META.map(type => {
+            {SCHEDULE_TYPE_META.map((type) => {
               const isActive = scheduleType === type.value
               return (
                 <Pressable
@@ -342,7 +380,10 @@ export function VaccinationScheduleFormScreen({ route, navigation }: AppStackScr
                 onChange={setScheduledDate}
                 placeholder="Select date"
               />
-              <Pressable onPress={() => setRepeatAnnually(!repeatAnnually)} style={themed($checkboxRow)}>
+              <Pressable
+                onPress={() => setRepeatAnnually(!repeatAnnually)}
+                style={themed($checkboxRow)}
+              >
                 <MaterialCommunityIcons
                   name={repeatAnnually ? "checkbox-marked" : "checkbox-blank-outline"}
                   size={24}
@@ -357,10 +398,15 @@ export function VaccinationScheduleFormScreen({ route, navigation }: AppStackScr
             <>
               <Text preset="subheading" text="Group-Based Settings" style={themed($sectionTitle)} />
               {selectedPasture ? (
-                <Pressable onPress={() => setSelectedPastureId("")} style={themed($selectedProtocol)}>
+                <Pressable
+                  onPress={() => setSelectedPastureId("")}
+                  style={themed($selectedProtocol)}
+                >
                   <View>
                     <Text preset="bold">{selectedPasture.name}</Text>
-                    <Text size="xs" style={themed($dimText)}>{selectedPasture.code}</Text>
+                    <Text size="xs" style={themed($dimText)}>
+                      {selectedPasture.code}
+                    </Text>
                   </View>
                   <MaterialCommunityIcons name="close" size={20} color={colors.text} />
                 </Pressable>
@@ -371,8 +417,12 @@ export function VaccinationScheduleFormScreen({ route, navigation }: AppStackScr
                     text="Limit to pasture (optional)"
                     style={themed($fieldLabel)}
                   />
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={themed($protocolList)}>
-                    {pastures.map(pasture => (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={themed($protocolList)}
+                  >
+                    {pastures.map((pasture) => (
                       <Pressable
                         key={pasture.id}
                         onPress={() => setSelectedPastureId(pasture.id)}
@@ -405,7 +455,7 @@ export function VaccinationScheduleFormScreen({ route, navigation }: AppStackScr
           <View>
             <Text preset="formLabel" text="Sex" style={themed($fieldLabel)} />
             <View style={themed($sexRow)}>
-              {sexOptions.map(option => {
+              {sexOptions.map((option) => {
                 const isActive = targetSex === option.value
                 return (
                   <Pressable
@@ -446,7 +496,10 @@ export function VaccinationScheduleFormScreen({ route, navigation }: AppStackScr
         <View style={themed($section)}>
           <Text preset="subheading" text="Booster Doses" style={themed($sectionTitle)} />
 
-          <Pressable onPress={() => setRequiresBooster(!requiresBooster)} style={themed($checkboxRow)}>
+          <Pressable
+            onPress={() => setRequiresBooster(!requiresBooster)}
+            style={themed($checkboxRow)}
+          >
             <MaterialCommunityIcons
               name={requiresBooster ? "checkbox-marked" : "checkbox-blank-outline"}
               size={24}
@@ -478,7 +531,13 @@ export function VaccinationScheduleFormScreen({ route, navigation }: AppStackScr
         </View>
 
         <Button
-          text={isSubmitting ? t("common.loading") : mode === "create" ? "Create Schedule" : "Save Changes"}
+          text={
+            isSubmitting
+              ? t("common.loading")
+              : mode === "create"
+                ? "Create Schedule"
+                : "Save Changes"
+          }
           preset="reversed"
           style={themed($saveButton)}
           onPress={handleSave}
@@ -559,10 +618,13 @@ export function VaccinationScheduleFormScreen({ route, navigation }: AppStackScr
               style={themed($createProtocolButton)}
             />
 
-            <Button text={t("common.cancel")} onPress={() => {
-              setShowProtocolModal(false)
-              setProtocolSearch("")
-            }} />
+            <Button
+              text={t("common.cancel")}
+              onPress={() => {
+                setShowProtocolModal(false)
+                setProtocolSearch("")
+              }}
+            />
           </View>
         </View>
       </Modal>
@@ -572,7 +634,7 @@ export function VaccinationScheduleFormScreen({ route, navigation }: AppStackScr
 
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flex: 1,
-  paddingHorizontal: spacing.lg,
+  paddingHorizontal: spacing.md,
 })
 
 const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -581,10 +643,14 @@ const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   alignItems: "center",
   marginTop: spacing.md,
   marginBottom: spacing.lg,
+  gap: 10,
 })
 
-const $form: ThemedStyle<ViewStyle> = () => ({
+const $form: ThemedStyle<ViewStyle> = ({ colors }) => ({
   flex: 1,
+  backgroundColor: colors.palette.neutral100,
+  borderRadius: bentoRadii.card,
+  padding: 18,
 })
 
 const $section: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -610,7 +676,7 @@ const $selectedProtocol: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
 
 const $protocolButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 8,
+  borderRadius: bentoRadii.button,
   padding: spacing.md,
   flexDirection: "row",
   justifyContent: "space-between",

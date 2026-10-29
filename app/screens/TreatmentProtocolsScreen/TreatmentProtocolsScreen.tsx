@@ -1,9 +1,9 @@
-import React, { useState, useMemo, useEffect } from "react"
+import React, { useState, useMemo } from "react"
 import { View, ViewStyle, TextStyle, FlatList, Pressable, Alert, ScrollView } from "react-native"
 import { useTranslation } from "react-i18next"
 
 import { Screen, Text, Button, Icon } from "@/components"
-import { useDatabase } from "@/context/DatabaseContext"
+import { BentoPageIntro } from "@/components/BentoPageChrome"
 import { TreatmentProtocol, ProtocolType } from "@/db/models"
 import { useProtocols, useProtocolActions } from "@/hooks/useProtocols"
 import { AppStackScreenProps } from "@/navigators"
@@ -19,7 +19,6 @@ type FilterOption = "all" | ProtocolType
 export function TreatmentProtocolsScreen({ navigation }: TreatmentProtocolsScreenProps) {
   const { protocols, isLoading } = useProtocols()
   const { toggleProtocolActive, deleteProtocol, seedDefaultProtocols } = useProtocolActions()
-  const { currentOrg } = useDatabase()
   const { themed } = useAppTheme()
   const { t } = useTranslation()
   const [activeFilter, setActiveFilter] = useState<FilterOption>("all")
@@ -32,15 +31,6 @@ export function TreatmentProtocolsScreen({ navigation }: TreatmentProtocolsScree
     { value: "deworming", label: t("treatmentProtocolsScreen.filters.deworming") },
     { value: "other", label: t("treatmentProtocolsScreen.filters.other") },
   ]
-
-  useEffect(() => {
-    // Only auto-seed once a farm is selected — otherwise seedDefaultProtocols
-    // throws "No organization selected" (e.g. for a freshly signed-in invitee
-    // with no farm yet).
-    if (!isLoading && currentOrg && protocols.length === 0 && !seeding) {
-      handleSeedDefaults()
-    }
-  }, [isLoading, currentOrg])
 
   const filteredProtocols = useMemo(() => {
     if (activeFilter === "all") return protocols
@@ -173,7 +163,11 @@ export function TreatmentProtocolsScreen({ navigation }: TreatmentProtocolsScree
             }}
             style={[themed($toggleButton), item.isActive && themed($toggleButtonActive)]}
           >
-            <Icon icon={item.isActive ? "check" : "x"} size={18} color={item.isActive ? "#739134" : "#999"} />
+            <Icon
+              icon={item.isActive ? "check" : "x"}
+              size={18}
+              color={item.isActive ? "#739134" : "#999"}
+            />
           </Pressable>
           <Pressable onPress={() => handleEditProtocol(item.id)} style={themed($editButton)}>
             <Icon icon="settings" size={20} />
@@ -247,9 +241,22 @@ export function TreatmentProtocolsScreen({ navigation }: TreatmentProtocolsScree
         <Pressable onPress={() => navigation.goBack()} style={themed($backButton)}>
           <Icon icon="back" size={24} />
         </Pressable>
-        <Text preset="heading" text={t("treatmentProtocolsScreen.title")} style={themed($headerTitle)} />
-        <Button text={t("treatmentProtocolsScreen.createButton")} onPress={handleCreateProtocol} style={themed($createButton)} />
+        <Text
+          preset="heading"
+          text={t("treatmentProtocolsScreen.title")}
+          style={themed($headerTitle)}
+        />
+        <Button
+          text={t("treatmentProtocolsScreen.createButton")}
+          onPress={handleCreateProtocol}
+          style={themed($createButton)}
+        />
       </View>
+      <BentoPageIntro
+        title="Care protocols"
+        description="Products, doses and withdrawal periods in one place."
+        icon="medical-bag"
+      />
 
       {protocols.length > 0 && renderFilterChips()}
 
@@ -284,7 +291,7 @@ export function TreatmentProtocolsScreen({ navigation }: TreatmentProtocolsScree
 
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flex: 1,
-  paddingHorizontal: spacing.lg,
+  paddingHorizontal: spacing.md,
 })
 
 const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -293,6 +300,7 @@ const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   alignItems: "center",
   marginTop: spacing.md,
   marginBottom: spacing.sm,
+  gap: 10,
 })
 
 const $backButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -303,16 +311,18 @@ const $backButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $headerTitle: ThemedStyle<TextStyle> = () => ({
   flex: 1,
   marginLeft: 0,
+  flexShrink: 1,
 })
 
 const $createButton: ThemedStyle<ViewStyle> = () => ({
-  minHeight: 36,
+  minHeight: 44,
   paddingVertical: 6,
   paddingHorizontal: 16,
 })
 
 const $filterScroll: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexGrow: 0,
+  flexShrink: 0,
   marginBottom: spacing.sm,
   height: 48,
 })
@@ -329,7 +339,7 @@ const $filterChip: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   gap: spacing.xs,
   paddingHorizontal: spacing.md,
   paddingVertical: spacing.xs,
-  minHeight: 36,
+  minHeight: 44,
   borderRadius: 20,
   borderWidth: 1.5,
   borderColor: colors.palette.neutral300,
@@ -481,7 +491,7 @@ const $typeBadgeText: ThemedStyle<TextStyle> = () => ({
 
 const $editButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   padding: spacing.xs,
-  borderRadius: 8,
+  borderRadius: bentoRadii.button,
   backgroundColor: colors.palette.neutral200,
 })
 

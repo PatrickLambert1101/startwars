@@ -1008,7 +1008,6 @@ const $guideCard: ThemedStyle<ViewStyle> = ({ colors }) => ({
   borderRadius: bentoRadii.card,
   overflow: "hidden",
   backgroundColor: colors.palette.neutral100,
-  borderWidth: 1,
   borderColor: colors.separator,
 })
 
@@ -1045,7 +1044,7 @@ const $settingButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   alignItems: "center",
   gap: spacing.sm,
   padding: spacing.md,
-  borderRadius: 10,
+  borderRadius: bentoRadii.button,
   borderWidth: 1,
   borderColor: colors.separator,
   backgroundColor: colors.background,
@@ -1067,7 +1066,7 @@ const $tagAddButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   minHeight: 44,
   justifyContent: "center",
   paddingHorizontal: spacing.md,
-  borderRadius: 10,
+  borderRadius: bentoRadii.button,
   backgroundColor: colors.tint,
 })
 
@@ -1133,9 +1132,7 @@ const $pickerCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   gap: spacing.md,
   padding: spacing.xl,
   borderRadius: bentoRadii.card,
-  borderWidth: 1,
   borderStyle: "dashed",
-  borderColor: colors.border,
   backgroundColor: colors.palette.neutral100,
 })
 
@@ -1166,7 +1163,6 @@ const $fileCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   padding: spacing.md,
   borderRadius: bentoRadii.card,
   backgroundColor: colors.palette.neutral100,
-  borderWidth: 1,
   borderColor: colors.separator,
 })
 
@@ -1212,7 +1208,6 @@ const $mappingCard: ThemedStyle<ViewStyle> = ({ colors }) => ({
   borderRadius: bentoRadii.card,
   overflow: "hidden",
   backgroundColor: colors.palette.neutral100,
-  borderWidth: 1,
   borderColor: colors.separator,
 })
 
@@ -1249,7 +1244,6 @@ const $summaryCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   padding: spacing.md,
   borderRadius: bentoRadii.card,
   backgroundColor: colors.palette.neutral100,
-  borderWidth: 1,
   borderColor: colors.separator,
 })
 
@@ -1294,7 +1288,6 @@ const $completeCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   padding: spacing.xl,
   borderRadius: bentoRadii.card,
   backgroundColor: colors.palette.neutral100,
-  borderWidth: 1,
   borderColor: colors.separator,
 })
 

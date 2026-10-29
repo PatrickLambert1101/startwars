@@ -3,6 +3,7 @@ import { Pressable, View, ViewStyle, TextStyle } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 
 import { Text } from "@/components"
+import { bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
@@ -52,7 +53,7 @@ export const ChartCard: FC<ChartCardProps> = ({ title, subtitle, onPress, childr
 
 const $card: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 14,
+  borderRadius: bentoRadii.card,
   padding: spacing.md,
   marginBottom: spacing.sm,
 })
@@ -66,6 +67,7 @@ const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   alignItems: "center",
   justifyContent: "space-between",
   marginBottom: spacing.sm,
+  gap: 10,
 })
 
 const $headerText: ThemedStyle<ViewStyle> = () => ({

@@ -4,6 +4,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useFocusEffect } from "@react-navigation/native"
 
 import { AppHeader, Screen, Text } from "@/components"
+import { BentoPageIntro } from "@/components/BentoPageChrome"
 import { useDatabase } from "@/context/DatabaseContext"
 import type { DataImportBatch } from "@/db/models"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
@@ -78,6 +79,11 @@ export function DataImportsScreen({ navigation }: DataImportsScreenProps) {
   return (
     <Screen preset="scroll" safeAreaEdges={["bottom"]} contentContainerStyle={themed($container)}>
       <AppHeader title="Data imports" showBack showSettings={false} />
+      <BentoPageIntro
+        title="Bring your records together"
+        description="Import records and review your import history."
+        icon="tray-arrow-down"
+      />
 
       <View style={themed($content)}>
         <Text style={themed($intro)}>
@@ -238,7 +244,6 @@ const $importCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   padding: spacing.md,
   backgroundColor: colors.palette.neutral100,
   borderRadius: bentoRadii.card,
-  borderWidth: 1,
   borderColor: colors.separator,
 })
 
@@ -271,7 +276,6 @@ const $emptyCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   padding: spacing.xl,
   borderRadius: bentoRadii.card,
   backgroundColor: colors.palette.neutral100,
-  borderWidth: 1,
   borderColor: colors.separator,
 })
 
@@ -280,7 +284,6 @@ const $historyCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   padding: spacing.md,
   borderRadius: bentoRadii.card,
   backgroundColor: colors.palette.neutral100,
-  borderWidth: 1,
   borderColor: colors.separator,
 })
 

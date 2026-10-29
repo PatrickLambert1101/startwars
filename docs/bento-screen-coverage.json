@@ -1,0 +1,255 @@
+{
+  "reviewedOn": "2026-10-29",
+  "scope": "Every registered stack/tab screen and all report subtabs. Source branches and app-owned UI reviewed; native system sheets retain platform styling.",
+  "routes": [
+    {
+      "route": "Main",
+      "file": "app/navigators/MainTabNavigator.tsx",
+      "family": "Navigation container"
+    },
+    {
+      "route": "OrgSetup",
+      "file": "app/screens/OrgSetupScreen.tsx",
+      "family": "Grouped form and picker surfaces"
+    },
+    {
+      "route": "Team",
+      "file": "app/screens/TeamScreen/TeamScreen.tsx",
+      "family": "Management and planning hub"
+    },
+    {
+      "route": "Settings",
+      "file": "app/screens/SettingsScreen.tsx",
+      "family": "Management and planning hub"
+    },
+    {
+      "route": "DataImports",
+      "file": "app/screens/DataImportsScreen/DataImportsScreen.tsx",
+      "family": "Import guide, mapping, progress and results"
+    },
+    {
+      "route": "DataImport",
+      "file": "app/screens/DataImportScreen/DataImportScreen.tsx",
+      "family": "Import guide, mapping, progress and results"
+    },
+    {
+      "route": "AnimalDetail",
+      "file": "app/screens/AnimalDetailScreen/AnimalDetailScreen.tsx",
+      "family": "Detail and supporting records"
+    },
+    {
+      "route": "AnimalForm",
+      "file": "app/screens/AnimalFormScreen.tsx",
+      "family": "Grouped form and picker surfaces"
+    },
+    {
+      "route": "BulkAnimalAdd",
+      "file": "app/screens/BulkAnimalAddScreen.tsx",
+      "family": "Grouped form and picker surfaces"
+    },
+    {
+      "route": "HealthRecordForm",
+      "file": "app/screens/HealthRecordFormScreen.tsx",
+      "family": "Grouped form and picker surfaces"
+    },
+    {
+      "route": "WeightRecordForm",
+      "file": "app/screens/WeightRecordFormScreen.tsx",
+      "family": "Grouped form and picker surfaces"
+    },
+    {
+      "route": "BreedingRecordForm",
+      "file": "app/screens/BreedingRecordFormScreen.tsx",
+      "family": "Grouped form and picker surfaces"
+    },
+    {
+      "route": "TreatmentProtocols",
+      "file": "app/screens/TreatmentProtocolsScreen/TreatmentProtocolsScreen.tsx",
+      "family": "Management and planning hub"
+    },
+    {
+      "route": "ProtocolForm",
+      "file": "app/screens/ProtocolFormScreen/ProtocolFormScreen.tsx",
+      "family": "Grouped form and picker surfaces"
+    },
+    {
+      "route": "ProtocolDetail",
+      "file": "app/screens/ProtocolDetailScreen/ProtocolDetailScreen.tsx",
+      "family": "Detail and supporting records"
+    },
+    {
+      "route": "VaccinationSchedules",
+      "file": "app/screens/VaccinationScheduleScreen.tsx",
+      "family": "Management and planning hub"
+    },
+    {
+      "route": "VaccinationScheduleForm",
+      "file": "app/screens/VaccinationScheduleFormScreen.tsx",
+      "family": "Grouped form and picker surfaces"
+    },
+    {
+      "route": "PendingVaccinations",
+      "file": "app/screens/PendingVaccinationsScreen.tsx",
+      "family": "Management and planning hub"
+    },
+    {
+      "route": "Reports",
+      "file": "app/screens/ReportsScreen/index.tsx",
+      "family": "Management and planning hub"
+    },
+    {
+      "route": "ReportBuilder",
+      "file": "app/screens/ReportBuilderScreen/index.tsx",
+      "family": "Detail and supporting records"
+    },
+    {
+      "route": "ReportViewer",
+      "file": "app/screens/ReportViewerScreen/index.tsx",
+      "family": "Detail and supporting records"
+    },
+    {
+      "route": "PastureDetail",
+      "file": "app/screens/PastureDetailScreen/PastureDetailScreen.tsx",
+      "family": "Detail and supporting records"
+    },
+    {
+      "route": "PastureForm",
+      "file": "app/screens/PastureFormScreen/PastureFormScreen.tsx",
+      "family": "Grouped form and picker surfaces"
+    },
+    {
+      "route": "PastureActivityForm",
+      "file": "app/screens/PastureActivityFormScreen/PastureActivityFormScreen.tsx",
+      "family": "Grouped form and picker surfaces"
+    },
+    {
+      "route": "PastureActivityList",
+      "file": "app/screens/PastureActivityListScreen/PastureActivityListScreen.tsx",
+      "family": "Detail and supporting records"
+    },
+    {
+      "route": "PastureBoundary",
+      "file": "app/screens/PastureBoundaryScreen/PastureBoundaryScreen.tsx",
+      "family": "Map with branded app overlays"
+    },
+    {
+      "route": "PastureKmlImport",
+      "file": "app/screens/PastureKmlImportScreen/PastureKmlImportScreen.tsx",
+      "family": "Import guide, mapping, progress and results"
+    },
+    {
+      "route": "PasturesMap",
+      "file": "app/screens/PasturesMapScreen/PasturesMapScreen.tsx",
+      "family": "Map with branded app overlays"
+    },
+    {
+      "route": "PastureWizard",
+      "file": "app/screens/PastureWizardScreen/PastureWizardScreen.tsx",
+      "family": "Grouped form and picker surfaces"
+    },
+    {
+      "route": "MovementForm",
+      "file": "app/screens/MovementFormScreen/MovementFormScreen.tsx",
+      "family": "Grouped form and picker surfaces"
+    },
+    {
+      "route": "TagScanner",
+      "file": "app/screens/TagScannerScreen/TagScannerScreen.tsx",
+      "family": "Camera with branded manual-entry and permission states"
+    },
+    {
+      "route": "Upgrade",
+      "file": "app/screens/UpgradeScreen.tsx",
+      "family": "Billing and subscription"
+    },
+    {
+      "route": "Paywall",
+      "file": "app/screens/PaywallScreen.tsx",
+      "family": "Billing and subscription"
+    },
+    {
+      "route": "CustomerCenter",
+      "file": "app/screens/CustomerCenterScreen.tsx",
+      "family": "Billing and subscription"
+    },
+    {
+      "route": "Auth",
+      "file": "app/screens/AuthScreen/AuthScreen.tsx",
+      "family": "Welcome and authentication"
+    },
+    {
+      "route": "Landing",
+      "file": "app/screens/LandingScreen.tsx",
+      "family": "Welcome and authentication"
+    },
+    {
+      "route": "Login",
+      "file": "app/screens/LoginScreen.tsx",
+      "family": "Welcome and authentication"
+    },
+    {
+      "route": "IconGallery",
+      "file": "app/screens/IconGalleryScreen.tsx",
+      "family": "Development icon gallery"
+    },
+    {
+      "route": "Dashboard",
+      "file": "app/screens/DashboardScreen.tsx",
+      "family": "Primary bento destination"
+    },
+    {
+      "route": "HerdList",
+      "file": "app/screens/HerdListScreen.tsx",
+      "family": "Primary bento destination"
+    },
+    {
+      "route": "Chute",
+      "file": "app/screens/ChuteScreen.tsx",
+      "family": "Primary bento destination"
+    },
+    {
+      "route": "Pastures",
+      "file": "app/screens/PasturesScreen/PasturesScreen.tsx",
+      "family": "Primary bento destination"
+    },
+    {
+      "route": "Calendar",
+      "file": "app/screens/CalendarScreen.tsx",
+      "family": "Primary bento destination"
+    },
+    {
+      "route": "Breeding",
+      "file": "app/screens/BreedingScreen.tsx",
+      "family": "Primary bento destination"
+    }
+  ],
+  "reportTabs": [
+    {
+      "route": "Reports/DashboardTab",
+      "file": "app/screens/ReportsScreen/DashboardTab.tsx",
+      "family": "Report subtab"
+    },
+    {
+      "route": "Reports/MyReportsTab",
+      "file": "app/screens/ReportsScreen/MyReportsTab.tsx",
+      "family": "Report subtab"
+    },
+    {
+      "route": "Reports/ExportTab",
+      "file": "app/screens/ReportsScreen/ExportTab.tsx",
+      "family": "Report subtab"
+    }
+  ],
+  "additionalReviewed": [
+    "app/screens/OrgSetupScreen/OrgSetupScreen.tsx",
+    "app/screens/ErrorScreen/ErrorDetails.tsx",
+    "app/screens/ErrorScreen/ErrorBoundary.tsx",
+    "app/screens/TagScannerScreen/ScanOverlay.tsx"
+  ],
+  "platformOwned": [
+    "RevenueCat Customer Center content",
+    "Map tiles and geographic markers",
+    "Live camera feed and detection guides",
+    "System authentication, photo/document pickers and OS permission prompts"
+  ]
+}

@@ -4,14 +4,15 @@ import { ActivityIndicator, TextInput, TextStyle, View, ViewStyle } from "react-
 
 import { Button } from "@/components/Button"
 import { PressableIcon } from "@/components/Icon"
+import { HerdTrackrLogo, CattleSilhouette } from "@/components/icons"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { TextField, type TextFieldAccessoryProps } from "@/components/TextField"
 import { useAuth } from "@/context/AuthContext"
-import { HerdTrackrLogo, CattleSilhouette } from "@/components/icons"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
-import type { ThemedStyle } from "@/theme/types"
+import { bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
+import type { ThemedStyle } from "@/theme/types"
 
 interface LoginScreenProps extends AppStackScreenProps<"Login"> {}
 
@@ -39,7 +40,8 @@ export const LoginScreen: FC<LoginScreenProps> = ({ navigation }) => {
     return ""
   })()
 
-  const passwordError = isSubmitted && password.length < 6 ? "Password must be at least 6 characters" : ""
+  const passwordError =
+    isSubmitted && password.length < 6 ? "Password must be at least 6 characters" : ""
 
   async function handleSubmit() {
     setIsSubmitted(true)
@@ -49,7 +51,7 @@ export const LoginScreen: FC<LoginScreenProps> = ({ navigation }) => {
       email,
       emailValid: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),
       passwordLength: password.length,
-      isSignUp
+      isSignUp,
     })
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 6) {
@@ -58,9 +60,7 @@ export const LoginScreen: FC<LoginScreenProps> = ({ navigation }) => {
     }
 
     setIsSubmitting(true)
-    const { error } = isSignUp
-      ? await signUp(email, password)
-      : await signIn(email, password)
+    const { error } = isSignUp ? await signUp(email, password) : await signIn(email, password)
 
     setIsSubmitting(false)
 
@@ -103,56 +103,52 @@ export const LoginScreen: FC<LoginScreenProps> = ({ navigation }) => {
         preset="subheading"
         style={themed($subtitle)}
       />
-      <Text
-        text="Cattle management, offline-first."
-        preset="default"
-        style={themed($tagline)}
-      />
+      <Text text="Cattle management, offline-first." preset="default" style={themed($tagline)} />
 
-      {serverError ? (
-        <Text text={serverError} size="sm" style={themed($serverError)} />
-      ) : null}
+      {serverError ? <Text text={serverError} size="sm" style={themed($serverError)} /> : null}
 
-      <TextField
-        value={email}
-        onChangeText={setEmail}
-        containerStyle={themed($textField)}
-        autoCapitalize="none"
-        autoComplete="email"
-        textContentType="username"
-        autoCorrect={false}
-        keyboardType="email-address"
-        label="Email"
-        placeholder="Enter your email address"
-        helper={emailError}
-        status={emailError ? "error" : undefined}
-        onSubmitEditing={() => authPasswordInput.current?.focus()}
-      />
+      <View style={themed($credentialsCard)}>
+        <TextField
+          value={email}
+          onChangeText={setEmail}
+          containerStyle={themed($textField)}
+          autoCapitalize="none"
+          autoComplete="email"
+          textContentType="username"
+          autoCorrect={false}
+          keyboardType="email-address"
+          label="Email"
+          placeholder="Enter your email address"
+          helper={emailError}
+          status={emailError ? "error" : undefined}
+          onSubmitEditing={() => authPasswordInput.current?.focus()}
+        />
 
-      <TextField
-        ref={authPasswordInput}
-        value={password}
-        onChangeText={setPassword}
-        containerStyle={themed($textField)}
-        autoCapitalize="none"
-        autoComplete="password"
-        autoCorrect={false}
-        secureTextEntry={isPasswordHidden}
-        label="Password"
-        placeholder={isSignUp ? "Create a password (min 6 chars)" : "Enter your password"}
-        helper={passwordError}
-        status={passwordError ? "error" : undefined}
-        onSubmitEditing={handleSubmit}
-        RightAccessory={PasswordRightAccessory}
-      />
+        <TextField
+          ref={authPasswordInput}
+          value={password}
+          onChangeText={setPassword}
+          containerStyle={themed($textField)}
+          autoCapitalize="none"
+          autoComplete="password"
+          autoCorrect={false}
+          secureTextEntry={isPasswordHidden}
+          label="Password"
+          placeholder={isSignUp ? "Create a password (min 6 chars)" : "Enter your password"}
+          helper={passwordError}
+          status={passwordError ? "error" : undefined}
+          onSubmitEditing={handleSubmit}
+          RightAccessory={PasswordRightAccessory}
+        />
 
-      <Button
-        testID="login-button"
-        text={isSubmitting ? "..." : isSignUp ? "Create Account" : "Sign In"}
-        style={themed($submitButton)}
-        preset="reversed"
-        onPress={handleSubmit}
-      />
+        <Button
+          testID="login-button"
+          text={isSubmitting ? "..." : isSignUp ? "Create Account" : "Sign In"}
+          style={themed($submitButton)}
+          preset="reversed"
+          onPress={handleSubmit}
+        />
+      </View>
 
       {isSubmitting && <ActivityIndicator style={themed($loader)} color={colors.tint} />}
 
@@ -192,7 +188,7 @@ export const LoginScreen: FC<LoginScreenProps> = ({ navigation }) => {
 
 const $screenContentContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingVertical: spacing.xxl,
-  paddingHorizontal: spacing.lg,
+  paddingHorizontal: spacing.md,
 })
 
 const $logoContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -241,7 +237,7 @@ const $toggleRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 })
 
 const $toggleButton: ThemedStyle<ViewStyle> = () => ({
-  minHeight: 32,
+  minHeight: 44,
   paddingVertical: 4,
   paddingHorizontal: 8,
 })
@@ -259,4 +255,10 @@ const $silhouetteContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   alignItems: "center",
   marginTop: spacing.xl,
   opacity: 0.6,
+})
+
+const $credentialsCard: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  backgroundColor: colors.palette.neutral100,
+  borderRadius: bentoRadii.card,
+  padding: 20,
 })

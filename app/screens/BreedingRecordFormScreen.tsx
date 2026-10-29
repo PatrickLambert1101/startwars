@@ -23,7 +23,10 @@ import { expectedCalvingFromBreedingDate } from "@/utils/breedingDashboard"
 const METHODS: BreedingMethod[] = ["natural", "ai", "embryo_transfer"]
 const OUTCOMES: BreedingOutcome[] = ["pending", "live_calf", "stillborn", "aborted", "open"]
 
-export const BreedingRecordFormScreen: FC<AppStackScreenProps<"BreedingRecordForm">> = ({ route, navigation }) => {
+export const BreedingRecordFormScreen: FC<AppStackScreenProps<"BreedingRecordForm">> = ({
+  route,
+  navigation,
+}) => {
   const { themed, theme } = useAppTheme()
   const { t } = useTranslation()
   const { animalId } = route.params
@@ -92,9 +95,25 @@ export const BreedingRecordFormScreen: FC<AppStackScreenProps<"BreedingRecordFor
       )
     }
     setIsSubmitting(false)
-  }, [animalId, bullId, breedingDate, expectedCalvingDate, method, outcome, notes, photos, currentOrg, createBreedingRecord, navigation, t])
+  }, [
+    animalId,
+    bullId,
+    breedingDate,
+    expectedCalvingDate,
+    method,
+    outcome,
+    notes,
+    photos,
+    currentOrg,
+    createBreedingRecord,
+    navigation,
+    t,
+  ])
 
-  const uploadPhotosInBackground = async (recordId: string, photosToUpload: PhotoWithMetadata[]) => {
+  const uploadPhotosInBackground = async (
+    recordId: string,
+    photosToUpload: PhotoWithMetadata[],
+  ) => {
     try {
       const failedUploads: PhotoWithMetadata[] = []
       const uploadedPhotos = await Promise.all(
@@ -150,7 +169,11 @@ export const BreedingRecordFormScreen: FC<AppStackScreenProps<"BreedingRecordFor
   return (
     <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
       <View style={themed($headerRow)}>
-        <Button text={t("breedingRecordFormScreen.cancelButton")} preset="default" onPress={() => navigation.goBack()} />
+        <Button
+          text={t("breedingRecordFormScreen.cancelButton")}
+          preset="default"
+          onPress={() => navigation.goBack()}
+        />
         <Text preset="heading" text={t("breedingRecordFormScreen.title")} />
         <View style={{ width: 60 }} />
       </View>
@@ -225,7 +248,11 @@ export const BreedingRecordFormScreen: FC<AppStackScreenProps<"BreedingRecordFor
           ))}
         </View>
 
-        <Text preset="formLabel" text={t("breedingRecordFormScreen.outcomeLabel")} style={themed($outcomeLabel)} />
+        <Text
+          preset="formLabel"
+          text={t("breedingRecordFormScreen.outcomeLabel")}
+          style={themed($outcomeLabel)}
+        />
         <View style={themed($chipRow)}>
           {OUTCOMES.map((o) => (
             <Pressable
@@ -258,7 +285,11 @@ export const BreedingRecordFormScreen: FC<AppStackScreenProps<"BreedingRecordFor
         />
 
         <Button
-          text={isSubmitting ? t("breedingRecordFormScreen.buttons.saving") : t("breedingRecordFormScreen.buttons.save")}
+          text={
+            isSubmitting
+              ? t("breedingRecordFormScreen.buttons.saving")
+              : t("breedingRecordFormScreen.buttons.save")
+          }
           preset="reversed"
           style={themed($saveButton)}
           onPress={handleSave}
@@ -279,7 +310,7 @@ export const BreedingRecordFormScreen: FC<AppStackScreenProps<"BreedingRecordFor
 }
 
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  paddingHorizontal: spacing.lg,
+  paddingHorizontal: spacing.md,
   paddingBottom: spacing.xxl,
 })
 
@@ -289,10 +320,14 @@ const $headerRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   alignItems: "center",
   marginTop: spacing.md,
   marginBottom: spacing.lg,
+  gap: 10,
 })
 
-const $form: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+const $form: ThemedStyle<ViewStyle> = ({ spacing, colors }) => ({
   gap: spacing.sm,
+  backgroundColor: colors.palette.neutral100,
+  borderRadius: bentoRadii.card,
+  padding: 18,
 })
 
 const $animalCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
@@ -341,7 +376,7 @@ const $pickerButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   paddingVertical: spacing.sm,
   borderWidth: 1,
   borderColor: colors.border,
-  borderRadius: 8,
+  borderRadius: bentoRadii.button,
   backgroundColor: colors.background,
 })
 

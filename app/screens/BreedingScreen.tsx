@@ -10,6 +10,7 @@ import type { BreedingMethod, BreedingOutcome, BreedingRecord } from "@/db/model
 import { useAnimals } from "@/hooks/useAnimals"
 import { useAllBreedingRecords } from "@/hooks/useRecords"
 import type { MainTabScreenProps } from "@/navigators/navigationTypes"
+import { bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import {
@@ -414,7 +415,7 @@ const $heroCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   padding: spacing.md,
   marginTop: spacing.xs,
   marginBottom: spacing.sm,
-  borderRadius: 22,
+  borderRadius: bentoRadii.card,
   backgroundColor: colors.palette.primary100,
 })
 
@@ -454,9 +455,7 @@ const $statCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flex: 1,
   alignItems: "center",
   paddingVertical: spacing.sm,
-  borderWidth: 1,
-  borderColor: colors.border,
-  borderRadius: 22,
+  borderRadius: bentoRadii.card,
   backgroundColor: colors.palette.neutral100,
 })
 
@@ -506,10 +505,8 @@ const $listHeading: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $recordCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   padding: spacing.md,
   marginBottom: spacing.sm,
-  borderRadius: 22,
-  borderWidth: 1,
+  borderRadius: bentoRadii.card,
   borderLeftWidth: 4,
-  borderColor: colors.border,
   backgroundColor: colors.background,
   shadowColor: "#000000",
   shadowOpacity: 0.04,

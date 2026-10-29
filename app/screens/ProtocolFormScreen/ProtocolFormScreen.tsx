@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react"
 import { View, ViewStyle, TextStyle, ScrollView, Pressable } from "react-native"
+
 import { Screen, Text, TextField, Button, Icon } from "@/components"
+import { ProtocolType } from "@/db/models"
+import { useProtocol, useProtocolActions, ProtocolFormData } from "@/hooks/useProtocols"
+import { AppStackScreenProps } from "@/navigators"
+import { bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-import { AppStackScreenProps } from "@/navigators"
-import { useProtocol, useProtocolActions, ProtocolFormData } from "@/hooks/useProtocols"
-import { ProtocolType } from "@/db/models"
 
 interface ProtocolFormScreenProps extends AppStackScreenProps<"ProtocolForm"> {}
 
@@ -141,7 +143,11 @@ export function ProtocolFormScreen({ navigation, route }: ProtocolFormScreenProp
         <Pressable onPress={() => navigation.goBack()} style={themed($backButton)}>
           <Icon icon="back" size={24} />
         </Pressable>
-        <Text preset="heading" text={isEdit ? "Edit Protocol" : "New Protocol"} style={themed($headerTitle)} />
+        <Text
+          preset="heading"
+          text={isEdit ? "Edit Protocol" : "New Protocol"}
+          style={themed($headerTitle)}
+        />
       </View>
 
       <ScrollView style={themed($form)} showsVerticalScrollIndicator={false}>
@@ -302,7 +308,7 @@ export function ProtocolFormScreen({ navigation, route }: ProtocolFormScreenProp
 
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flex: 1,
-  paddingHorizontal: spacing.lg,
+  paddingHorizontal: spacing.md,
 })
 
 const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -311,6 +317,7 @@ const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   alignItems: "center",
   marginTop: spacing.md,
   marginBottom: spacing.sm,
+  gap: 10,
 })
 
 const $backButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -321,10 +328,14 @@ const $backButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $headerTitle: ThemedStyle<TextStyle> = () => ({
   flex: 1,
   marginLeft: 0,
+  flexShrink: 1,
 })
 
-const $form: ThemedStyle<ViewStyle> = () => ({
+const $form: ThemedStyle<ViewStyle> = ({ colors }) => ({
   flex: 1,
+  backgroundColor: colors.palette.neutral100,
+  borderRadius: bentoRadii.card,
+  padding: 18,
 })
 
 const $field: ThemedStyle<ViewStyle> = ({ spacing }) => ({

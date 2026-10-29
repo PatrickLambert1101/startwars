@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next"
 
 import { Screen, Text, TextField, Button, LoadingScreen, RfidLoadingAnimation } from "@/components"
 import { useAuth } from "@/context/AuthContext"
+import { bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { saveString } from "@/utils/storage"
@@ -268,8 +269,8 @@ export function AuthScreen() {
 
 const $container: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flex: 1,
-  backgroundColor: colors.palette.neutral100,
-  paddingHorizontal: spacing.lg,
+  backgroundColor: colors.background,
+  paddingHorizontal: spacing.md,
 })
 
 const $content: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -301,10 +302,8 @@ const $subtitle: ThemedStyle<TextStyle> = ({ colors }) => ({
 
 const $form: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 16,
+  borderRadius: bentoRadii.card,
   padding: spacing.lg,
-  borderWidth: 1,
-  borderColor: colors.palette.neutral200,
 })
 
 const $formTitle: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({

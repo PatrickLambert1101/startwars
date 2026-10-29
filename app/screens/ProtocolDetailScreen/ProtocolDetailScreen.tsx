@@ -2,6 +2,7 @@ import React from "react"
 import { View, ViewStyle, TextStyle, ScrollView, Pressable } from "react-native"
 
 import { Screen, Text, Button, Icon } from "@/components"
+import { BentoPageIntro } from "@/components/BentoPageChrome"
 import { useProtocol, useProtocolStats, useProtocolActions } from "@/hooks/useProtocols"
 import { AppStackScreenProps } from "@/navigators"
 import { bentoRadii } from "@/theme/bento"
@@ -64,7 +65,7 @@ export function ProtocolDetailScreen({ navigation, route }: ProtocolDetailScreen
           <Icon icon="back" size={24} />
         </Pressable>
         <View style={themed($titleRow)}>
-          <Text preset="heading" text={protocol.name} style={themed($title)} />
+          <Text preset="heading" text="Care protocol" style={themed($title)} />
           {!protocol.isActive && (
             <View style={themed($inactiveBadge)}>
               <Text style={themed($inactiveBadgeText)}>Inactive</Text>
@@ -77,6 +78,11 @@ export function ProtocolDetailScreen({ navigation, route }: ProtocolDetailScreen
       </View>
 
       <ScrollView style={themed($content)} showsVerticalScrollIndicator={false}>
+        <BentoPageIntro
+          title={protocol.name}
+          description={`${protocol.productName} · ${protocol.dosage}`}
+          icon="medical-bag"
+        />
         {/* Stats Cards */}
         <View style={themed($statsRow)}>
           <View style={themed($statCard)}>
@@ -180,7 +186,7 @@ export function ProtocolDetailScreen({ navigation, route }: ProtocolDetailScreen
 
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flex: 1,
-  paddingHorizontal: spacing.lg,
+  paddingHorizontal: spacing.md,
 })
 
 const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -189,6 +195,7 @@ const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   alignItems: "center",
   marginTop: spacing.md,
   marginBottom: spacing.sm,
+  gap: 10,
 })
 
 const $backButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -222,7 +229,7 @@ const $inactiveBadgeText: ThemedStyle<TextStyle> = ({ colors }) => ({
 
 const $editButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   padding: spacing.xs,
-  borderRadius: 8,
+  borderRadius: bentoRadii.button,
   backgroundColor: colors.palette.neutral200,
 })
 
@@ -242,8 +249,6 @@ const $statCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   borderRadius: bentoRadii.card,
   padding: spacing.md,
   alignItems: "center",
-  borderWidth: 1,
-  borderColor: colors.palette.neutral200,
 })
 
 const $statValue: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({

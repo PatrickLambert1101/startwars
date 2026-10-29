@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next"
 
 import { Text, Button, TextField } from "@/components"
 import { Animal, BREEDS_BY_SPECIES, type AnimalSpecies } from "@/db/models/Animal"
+import { bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { DEFAULT_HERD_STATUSES, isDefaultStatusFilter } from "@/utils/herdListFilters"
@@ -103,9 +104,7 @@ export const FilterModal: FC<FilterModalProps> = ({
   const toggleSex = useCallback((sex: string) => {
     setFilters((prev) => ({
       ...prev,
-      sexes: prev.sexes.includes(sex)
-        ? prev.sexes.filter((s) => s !== sex)
-        : [...prev.sexes, sex],
+      sexes: prev.sexes.includes(sex) ? prev.sexes.filter((s) => s !== sex) : [...prev.sexes, sex],
     }))
   }, [])
 
@@ -159,10 +158,7 @@ export const FilterModal: FC<FilterModalProps> = ({
                   <Pressable
                     key={option.value}
                     onPress={() => setFilters((prev) => ({ ...prev, sortBy: option.value }))}
-                    style={[
-                      themed($chip),
-                      filters.sortBy === option.value && themed($chipActive),
-                    ]}
+                    style={[themed($chip), filters.sortBy === option.value && themed($chipActive)]}
                   >
                     <MaterialCommunityIcons
                       name={option.icon as any}
@@ -208,10 +204,7 @@ export const FilterModal: FC<FilterModalProps> = ({
                   <Pressable
                     key={breed}
                     onPress={() => toggleBreed(breed)}
-                    style={[
-                      themed($chip),
-                      filters.breeds.includes(breed) && themed($chipActive),
-                    ]}
+                    style={[themed($chip), filters.breeds.includes(breed) && themed($chipActive)]}
                   >
                     <Text
                       text={breed}
@@ -234,10 +227,7 @@ export const FilterModal: FC<FilterModalProps> = ({
                   <Pressable
                     key={sex}
                     onPress={() => toggleSex(sex)}
-                    style={[
-                      themed($chip),
-                      filters.sexes.includes(sex) && themed($chipActive),
-                    ]}
+                    style={[themed($chip), filters.sexes.includes(sex) && themed($chipActive)]}
                   >
                     <Text
                       text={sex.charAt(0).toUpperCase() + sex.slice(1)}
@@ -280,7 +270,12 @@ export const FilterModal: FC<FilterModalProps> = ({
 
             {/* Age Range Filter */}
             <View style={themed($section)}>
-              <Text preset="bold" text="Age Range (months)" size="sm" style={themed($sectionTitle)} />
+              <Text
+                preset="bold"
+                text="Age Range (months)"
+                size="sm"
+                style={themed($sectionTitle)}
+              />
               <View style={themed($ageRangeContainer)}>
                 <TextField
                   value={filters.ageFrom?.toString() || ""}
@@ -315,9 +310,7 @@ export const FilterModal: FC<FilterModalProps> = ({
               <Text preset="bold" text="Search Tags" size="sm" style={themed($sectionTitle)} />
               <TextField
                 value={filters.tagSearch}
-                onChangeText={(text) =>
-                  setFilters((prev) => ({ ...prev, tagSearch: text }))
-                }
+                onChangeText={(text) => setFilters((prev) => ({ ...prev, tagSearch: text }))}
                 placeholder="Search in tags..."
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -453,7 +446,7 @@ const $sortDirectionButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   alignItems: "center",
   gap: spacing.xs,
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 8,
+  borderRadius: bentoRadii.button,
   paddingHorizontal: spacing.sm,
   paddingVertical: spacing.xs,
   alignSelf: "flex-start",
@@ -476,11 +469,6 @@ const $ageField: ThemedStyle<ViewStyle> = () => ({
 
 const $ageRangeSeparator: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.textDim,
-})
-
-const $helpText: ThemedStyle<TextStyle> = ({ colors }) => ({
-  color: colors.textDim,
-  fontStyle: "italic",
 })
 
 const $modalFooter: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({

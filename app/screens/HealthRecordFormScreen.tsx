@@ -5,24 +5,34 @@ import { useTranslation } from "react-i18next"
 
 import { Screen, Text, TextField, Button, Icon, DateField } from "@/components"
 import { PhotoPicker } from "@/components/PhotoPicker"
-import { useAppTheme } from "@/theme/context"
-import type { ThemedStyle } from "@/theme/types"
-import type { AppStackScreenProps } from "@/navigators/navigationTypes"
-import { useHealthRecordActions, useWeightRecords } from "@/hooks/useRecords"
-import { useAnimal } from "@/hooks/useAnimals"
-import { HealthRecordType } from "@/db/models/HealthRecord"
-import { useSubscription } from "@/context/SubscriptionContext"
-import { useDatabase } from "@/context/DatabaseContext"
 import { useAuth } from "@/context/AuthContext"
+import { useDatabase } from "@/context/DatabaseContext"
+import { useSubscription } from "@/context/SubscriptionContext"
+import { HealthRecordType } from "@/db/models/HealthRecord"
+import { useAnimal } from "@/hooks/useAnimals"
+import { useProtocols } from "@/hooks/useProtocols"
+import { useHealthRecordActions, useWeightRecords } from "@/hooks/useRecords"
+import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { uploadPhoto } from "@/services/photoStorage"
 import { enqueuePhotoUploads } from "@/services/photoUploadQueue"
+import { bentoRadii } from "@/theme/bento"
+import { useAppTheme } from "@/theme/context"
+import type { ThemedStyle } from "@/theme/types"
 import type { PhotoWithMetadata } from "@/types/Photo"
 import { serializePhotos } from "@/types/Photo"
-import { useProtocols } from "@/hooks/useProtocols"
 
-const RECORD_TYPES: HealthRecordType[] = ["vaccination", "treatment", "vet_visit", "condition_score", "other"]
+const RECORD_TYPES: HealthRecordType[] = [
+  "vaccination",
+  "treatment",
+  "vet_visit",
+  "condition_score",
+  "other",
+]
 
-export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">> = ({ route, navigation }) => {
+export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">> = ({
+  route,
+  navigation,
+}) => {
   const { t } = useTranslation()
   const { themed } = useAppTheme()
   const { animalId, protocolId, vaccinationId } = route.params
@@ -37,11 +47,15 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
   // Get latest weight
   const latestWeight = useMemo(() => {
     if (weightRecords.length === 0) return null
-    const sorted = [...weightRecords].sort((a, b) => b.recordDate.getTime() - a.recordDate.getTime())
+    const sorted = [...weightRecords].sort(
+      (a, b) => b.recordDate.getTime() - a.recordDate.getTime(),
+    )
     return sorted[0].weightKg
   }, [weightRecords])
 
-  const [recordType, setRecordType] = useState<HealthRecordType>(protocolId ? "vaccination" : "treatment")
+  const [recordType, setRecordType] = useState<HealthRecordType>(
+    protocolId ? "vaccination" : "treatment",
+  )
   const [recordDate, setRecordDate] = useState<Date | null>(new Date())
   const [selectedProtocolId, setSelectedProtocolId] = useState<string | null>(protocolId || null)
   const [showProtocolPicker, setShowProtocolPicker] = useState(false)
@@ -55,23 +69,26 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
 
   // Filter protocols based on record type
   const relevantProtocols = useMemo(() => {
-    return protocols.filter(p => {
+    return protocols.filter((p) => {
       if (!p.isActive) return false
       if (recordType === "vaccination") return p.protocolType === "vaccination"
-      if (recordType === "treatment") return p.protocolType === "treatment" || p.protocolType === "deworming"
+      if (recordType === "treatment")
+        return p.protocolType === "treatment" || p.protocolType === "deworming"
       return false
     })
   }, [protocols, recordType])
 
   const selectedProtocol = useMemo(() => {
     if (!selectedProtocolId) return null
-    return protocols.find(p => p.id === selectedProtocolId) || null
+    return protocols.find((p) => p.id === selectedProtocolId) || null
   }, [selectedProtocolId, protocols])
 
   // Calculate dosage based on weight and protocol dosage (e.g., "1ml/10kg")
   const calculatedDosage = useMemo(() => {
     if (!latestWeight || !selectedProtocol?.dosage) return null
-    const dosageMatch = selectedProtocol.dosage.match(/(\d+(?:\.\d+)?)\s*ml\s*\/\s*(\d+(?:\.\d+)?)\s*kg/i)
+    const dosageMatch = selectedProtocol.dosage.match(
+      /(\d+(?:\.\d+)?)\s*ml\s*\/\s*(\d+(?:\.\d+)?)\s*kg/i,
+    )
     if (!dosageMatch) return null
     const mlPerDose = parseFloat(dosageMatch[1])
     const kgPerDose = parseFloat(dosageMatch[2])
@@ -84,19 +101,22 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
   }, [latestWeight, selectedProtocol])
 
   // Auto-fill from protocol when selected
-  const handleSelectProtocol = useCallback((protocolId: string) => {
-    const protocol = protocols.find(p => p.id === protocolId)
-    if (!protocol) return
+  const handleSelectProtocol = useCallback(
+    (protocolId: string) => {
+      const protocol = protocols.find((p) => p.id === protocolId)
+      if (!protocol) return
 
-    setSelectedProtocolId(protocolId)
-    setDescription(protocol.name)
-    setProductName(protocol.productName)
-    setDosage(protocol.dosage)
-    if (protocol.description) {
-      setNotes(protocol.description)
-    }
-    setShowProtocolPicker(false)
-  }, [protocols])
+      setSelectedProtocolId(protocolId)
+      setDescription(protocol.name)
+      setProductName(protocol.productName)
+      setDosage(protocol.dosage)
+      if (protocol.description) {
+        setNotes(protocol.description)
+      }
+      setShowProtocolPicker(false)
+    },
+    [protocols],
+  )
 
   const handleClearProtocol = useCallback(() => {
     setSelectedProtocolId(null)
@@ -109,7 +129,7 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
   // Auto-fill protocol data when coming from scheduled vaccination
   useEffect(() => {
     if (protocolId && protocols.length > 0) {
-      const protocol = protocols.find(p => p.id === protocolId)
+      const protocol = protocols.find((p) => p.id === protocolId)
       if (protocol) {
         setDescription(protocol.name)
         setProductName(protocol.productName)
@@ -138,12 +158,18 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
     }
 
     if (!description.trim()) {
-      Alert.alert(t("healthRecordFormScreen.alerts.required.title"), t("healthRecordFormScreen.alerts.required.message"))
+      Alert.alert(
+        t("healthRecordFormScreen.alerts.required.title"),
+        t("healthRecordFormScreen.alerts.required.message"),
+      )
       return
     }
 
     if (!currentOrg) {
-      Alert.alert(t("healthRecordFormScreen.alerts.noOrganization.title"), t("healthRecordFormScreen.alerts.noOrganization.message"))
+      Alert.alert(
+        t("healthRecordFormScreen.alerts.noOrganization.title"),
+        t("healthRecordFormScreen.alerts.noOrganization.message"),
+      )
       return
     }
 
@@ -168,12 +194,32 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
       navigation.goBack()
     } catch (error) {
       console.error("Failed to save health record:", error)
-      Alert.alert(t("healthRecordFormScreen.alerts.saveError.title"), t("healthRecordFormScreen.alerts.saveError.message"))
+      Alert.alert(
+        t("healthRecordFormScreen.alerts.saveError.title"),
+        t("healthRecordFormScreen.alerts.saveError.message"),
+      )
     }
     setIsSubmitting(false)
-  }, [animalId, recordDate, recordType, description, productName, dosage, administeredBy, notes, photos, currentOrg, createHealthRecord, navigation, t])
+  }, [
+    animalId,
+    recordDate,
+    recordType,
+    description,
+    productName,
+    dosage,
+    administeredBy,
+    notes,
+    photos,
+    currentOrg,
+    createHealthRecord,
+    navigation,
+    t,
+  ])
 
-  const uploadPhotosInBackground = async (recordId: string, photosToUpload: PhotoWithMetadata[]) => {
+  const uploadPhotosInBackground = async (
+    recordId: string,
+    photosToUpload: PhotoWithMetadata[],
+  ) => {
     try {
       const failedUploads: PhotoWithMetadata[] = []
       const uploadedPhotos = await Promise.all(
@@ -229,7 +275,11 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
   return (
     <Screen preset="scroll" contentContainerStyle={themed($container)} safeAreaEdges={["top"]}>
       <View style={themed($headerRow)}>
-        <Button text={t("healthRecordFormScreen.cancelButton")} preset="default" onPress={() => navigation.goBack()} />
+        <Button
+          text={t("healthRecordFormScreen.cancelButton")}
+          preset="default"
+          onPress={() => navigation.goBack()}
+        />
         <Text preset="heading" text={t("healthRecordFormScreen.title")} />
         <View style={{ width: 60 }} />
       </View>
@@ -257,10 +307,16 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
                   setRecordType(type)
                   setSelectedProtocolId(null) // Reset protocol when type changes
                 }}
-                style={themed(recordType === type ? $typeChipActive : locked ? $typeChipLocked : $typeChip)}
+                style={themed(
+                  recordType === type ? $typeChipActive : locked ? $typeChipLocked : $typeChip,
+                )}
               >
                 <Text
-                  text={locked ? t("healthRecordFormScreen.recordTypes.vaccinationPro") : t(`healthRecordFormScreen.recordTypes.${type}`)}
+                  text={
+                    locked
+                      ? t("healthRecordFormScreen.recordTypes.vaccinationPro")
+                      : t(`healthRecordFormScreen.recordTypes.${type}`)
+                  }
                   size="xs"
                   style={themed(recordType === type ? $typeChipTextActive : $typeChipText)}
                 />
@@ -278,7 +334,12 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
                   <Icon icon="check" size={20} color="#739134" />
                   <View style={themed($selectedProtocolText)}>
                     <Text style={themed($selectedProtocolName)}>{selectedProtocol.name}</Text>
-                    <Text style={themed($selectedProtocolDetail)}>{t("healthRecordFormScreen.protocol.selectedDetail", { productName: selectedProtocol.productName, dosage: selectedProtocol.dosage })}</Text>
+                    <Text style={themed($selectedProtocolDetail)}>
+                      {t("healthRecordFormScreen.protocol.selectedDetail", {
+                        productName: selectedProtocol.productName,
+                        dosage: selectedProtocol.dosage,
+                      })}
+                    </Text>
                   </View>
                 </View>
                 <Pressable onPress={handleClearProtocol} style={themed($clearButton)}>
@@ -292,7 +353,9 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
               >
                 <MaterialCommunityIcons name="medical-bag" size={20} color="#666" />
                 <Text style={themed($selectProtocolText)}>
-                  {t("healthRecordFormScreen.protocol.selectButton", { count: relevantProtocols.length })}
+                  {t("healthRecordFormScreen.protocol.selectButton", {
+                    count: relevantProtocols.length,
+                  })}
                 </Text>
                 <Icon icon="caretRight" size={16} color="#999" />
               </Pressable>
@@ -309,7 +372,12 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
                   >
                     <View style={themed($protocolItemContent)}>
                       <Text style={themed($protocolItemName)}>{protocol.name}</Text>
-                      <Text style={themed($protocolItemDetail)}>{t("healthRecordFormScreen.protocol.selectedDetail", { productName: protocol.productName, dosage: protocol.dosage })}</Text>
+                      <Text style={themed($protocolItemDetail)}>
+                        {t("healthRecordFormScreen.protocol.selectedDetail", {
+                          productName: protocol.productName,
+                          dosage: protocol.dosage,
+                        })}
+                      </Text>
                     </View>
                     <Icon icon="caretRight" size={16} color="#999" />
                   </Pressable>
@@ -324,24 +392,43 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
           <View style={themed($calculatedDosageBanner)}>
             <Icon icon="check" size={20} color="#856404" />
             <View style={{ flex: 1 }}>
-              <Text preset="bold" text="Calculated Dosage" size="sm" style={{ color: "#856404", marginBottom: 4 }} />
-              <Text text={`${calculatedDosage.mlPerDose}ml per ${calculatedDosage.kgPerDose}kg`} size="xs" style={{ color: "#856404" }} />
-              <Text text={`This cow weighs ${latestWeight}kg`} size="xs" style={{ color: "#856404", marginTop: 2 }} />
-              <Text preset="bold" text={`Give ${calculatedDosage.amount}ml`} size="lg" style={{ color: "#856404", marginTop: 4 }} />
+              <Text
+                preset="bold"
+                text="Calculated Dosage"
+                size="sm"
+                style={{ color: "#856404", marginBottom: 4 }}
+              />
+              <Text
+                text={`${calculatedDosage.mlPerDose}ml per ${calculatedDosage.kgPerDose}kg`}
+                size="xs"
+                style={{ color: "#856404" }}
+              />
+              <Text
+                text={`This cow weighs ${latestWeight}kg`}
+                size="xs"
+                style={{ color: "#856404", marginTop: 2 }}
+              />
+              <Text
+                preset="bold"
+                text={`Give ${calculatedDosage.amount}ml`}
+                size="lg"
+                style={{ color: "#856404", marginTop: 4 }}
+              />
             </View>
           </View>
         )}
 
-        {relevantProtocols.length === 0 && (recordType === "vaccination" || recordType === "treatment") && (
-          <Pressable
-            style={themed($noProtocolsButton)}
-            onPress={() => navigation.navigate("TreatmentProtocols")}
-          >
-            <Text style={themed($noProtocolsText)}>
-              {t("healthRecordFormScreen.protocol.noProtocols")}
-            </Text>
-          </Pressable>
-        )}
+        {relevantProtocols.length === 0 &&
+          (recordType === "vaccination" || recordType === "treatment") && (
+            <Pressable
+              style={themed($noProtocolsButton)}
+              onPress={() => navigation.navigate("TreatmentProtocols")}
+            >
+              <Text style={themed($noProtocolsText)}>
+                {t("healthRecordFormScreen.protocol.noProtocols")}
+              </Text>
+            </Pressable>
+          )}
 
         <TextField
           label={t("healthRecordFormScreen.fields.description.label")}
@@ -384,7 +471,11 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
         />
 
         <Button
-          text={isSubmitting ? t("healthRecordFormScreen.buttons.saving") : t("healthRecordFormScreen.buttons.save")}
+          text={
+            isSubmitting
+              ? t("healthRecordFormScreen.buttons.saving")
+              : t("healthRecordFormScreen.buttons.save")
+          }
           preset="reversed"
           style={themed($saveButton)}
           onPress={handleSave}
@@ -395,7 +486,7 @@ export const HealthRecordFormScreen: FC<AppStackScreenProps<"HealthRecordForm">>
 }
 
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  paddingHorizontal: spacing.lg,
+  paddingHorizontal: spacing.md,
   paddingBottom: spacing.xxl,
 })
 
@@ -405,14 +496,18 @@ const $headerRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   alignItems: "center",
   marginTop: spacing.md,
   marginBottom: spacing.lg,
+  gap: 10,
 })
 
 const $dateField: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   marginBottom: spacing.md,
 })
 
-const $form: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+const $form: ThemedStyle<ViewStyle> = ({ spacing, colors }) => ({
   gap: spacing.sm,
+  backgroundColor: colors.palette.neutral100,
+  borderRadius: bentoRadii.card,
+  padding: 18,
 })
 
 const $typeRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -474,7 +569,7 @@ const $calculatedDosageBanner: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   gap: spacing.sm,
 })
 
-const $selectedProtocol: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+const $selectedProtocol: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
   justifyContent: "space-between",
@@ -517,7 +612,7 @@ const $selectProtocolButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => (
   alignItems: "center",
   gap: spacing.sm,
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 12,
+  borderRadius: bentoRadii.button,
   padding: spacing.md,
   borderWidth: 1,
   borderColor: colors.palette.neutral300,
@@ -566,7 +661,7 @@ const $protocolItemDetail: ThemedStyle<TextStyle> = ({ colors }) => ({
 
 const $noProtocolsButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.accent100,
-  borderRadius: 12,
+  borderRadius: bentoRadii.button,
   padding: spacing.md,
   borderWidth: 1,
   borderColor: colors.palette.accent300,

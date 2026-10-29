@@ -4,8 +4,12 @@ import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
 
 import { Screen, Text, Button } from "@/components"
+import { BentoPageIntro } from "@/components/BentoPageChrome"
 import { VaccinationSchedule, ScheduleType } from "@/db/models"
-import { useVaccinationSchedules, useVaccinationScheduleActions } from "@/hooks/useVaccinationSchedules"
+import {
+  useVaccinationSchedules,
+  useVaccinationScheduleActions,
+} from "@/hooks/useVaccinationSchedules"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
@@ -13,9 +17,14 @@ import type { ThemedStyle } from "@/theme/types"
 
 type FilterOption = "all" | ScheduleType
 
-export function VaccinationScheduleScreen({ navigation }: AppStackScreenProps<"VaccinationSchedules">) {
+export function VaccinationScheduleScreen({
+  navigation,
+}: AppStackScreenProps<"VaccinationSchedules">) {
   const { t } = useTranslation()
-  const { themed, theme: { colors } } = useAppTheme()
+  const {
+    themed,
+    theme: { colors },
+  } = useAppTheme()
   const { schedules, isLoading } = useVaccinationSchedules()
   const { toggleScheduleActive, deleteSchedule } = useVaccinationScheduleActions()
   const [activeFilter, setActiveFilter] = useState<FilterOption>("all")
@@ -247,13 +256,22 @@ export function VaccinationScheduleScreen({ navigation }: AppStackScreenProps<"V
         <Pressable onPress={() => navigation.goBack()} style={themed($backButton)}>
           <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
         </Pressable>
-        <Text preset="heading" text={t("vaccinationScheduleScreen.title")} style={themed($headerTitle)} />
+        <Text
+          preset="heading"
+          text={t("vaccinationScheduleScreen.title")}
+          style={themed($headerTitle)}
+        />
         <Button
           text={t("vaccinationScheduleScreen.createButton")}
           onPress={handleCreateSchedule}
           style={themed($createButton)}
         />
       </View>
+      <BentoPageIntro
+        title="Plan herd care"
+        description="Manage schedules and the animals they apply to."
+        icon="calendar-check-outline"
+      />
 
       {schedules.length > 0 && renderFilterChips()}
 
@@ -277,7 +295,7 @@ export function VaccinationScheduleScreen({ navigation }: AppStackScreenProps<"V
 
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flex: 1,
-  paddingHorizontal: spacing.lg,
+  paddingHorizontal: spacing.md,
 })
 
 const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -286,6 +304,7 @@ const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   alignItems: "center",
   marginTop: spacing.md,
   marginBottom: spacing.sm,
+  gap: 10,
 })
 
 const $backButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -296,10 +315,11 @@ const $backButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $headerTitle: ThemedStyle<TextStyle> = () => ({
   flex: 1,
   marginLeft: 0,
+  flexShrink: 1,
 })
 
 const $createButton: ThemedStyle<ViewStyle> = () => ({
-  minHeight: 36,
+  minHeight: 44,
   paddingVertical: 6,
   paddingHorizontal: 16,
 })
@@ -317,7 +337,7 @@ const $filterChip: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   gap: spacing.xs,
   paddingHorizontal: spacing.md,
   paddingVertical: spacing.xs,
-  minHeight: 36,
+  minHeight: 44,
   borderRadius: 20,
   borderWidth: 1.5,
   borderColor: colors.palette.neutral300,

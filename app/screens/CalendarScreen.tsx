@@ -16,6 +16,7 @@ import { Screen, Text, AppHeader } from "@/components"
 import { PlanSwitcher } from "@/components/PlanSwitcher"
 import { usePendingVaccinations } from "@/hooks/useVaccinationSchedules"
 import type { MainTabScreenProps } from "@/navigators/navigationTypes"
+import { bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { getVaccinationDaysUntilDue } from "@/utils/vaccinationDates"
@@ -451,7 +452,7 @@ const $manageItemHelp: ThemedStyle<TextStyle> = ({ colors }) => ({
 
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flex: 1,
-  paddingHorizontal: spacing.lg,
+  paddingHorizontal: spacing.md,
 })
 
 const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -460,6 +461,7 @@ const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   alignItems: "center",
   paddingTop: spacing.md,
   marginBottom: spacing.md,
+  gap: 10,
 })
 
 const $headerStats: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -542,7 +544,7 @@ const $dateBadgeText: ThemedStyle<TextStyle> = ({ colors }) => ({
 })
 
 const $eventCard: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  borderRadius: 22,
+  borderRadius: bentoRadii.card,
   padding: spacing.sm,
   marginBottom: spacing.xs,
   flexDirection: "row",
@@ -603,11 +605,9 @@ const $emptyActions: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 
 const $emptyActionCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 22,
+  borderRadius: bentoRadii.card,
   padding: spacing.lg,
   alignItems: "center",
-  borderWidth: 1.5,
-  borderColor: colors.palette.neutral200,
 })
 
 const $emptyActionTitle: ThemedStyle<TextStyle> = ({ spacing }) => ({
@@ -628,7 +628,7 @@ const $emptyActionIcon: ImageStyle = {
 const $emptyActionButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   marginTop: spacing.sm,
   backgroundColor: colors.tint,
-  borderRadius: 8,
+  borderRadius: bentoRadii.button,
   paddingVertical: spacing.xs,
   paddingHorizontal: spacing.md,
 })

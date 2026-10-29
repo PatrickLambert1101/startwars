@@ -19,6 +19,7 @@ import { usePasture } from "@/hooks/usePastures"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { uploadPhoto } from "@/services/photoStorage"
 import { enqueuePhotoUploads } from "@/services/photoUploadQueue"
+import { bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { serializePhotos } from "@/types/Photo"
@@ -75,8 +76,11 @@ export const PastureActivityFormScreen: FC<PastureActivityFormScreenProps> = ({
       return
     }
     const parsedTickCount = tickCount === "" ? undefined : Number(tickCount)
-    if (activityType === "tick_observation" && parsedTickCount !== undefined &&
-        (!Number.isSafeInteger(parsedTickCount) || parsedTickCount < 0 || parsedTickCount > 99999999)) {
+    if (
+      activityType === "tick_observation" &&
+      parsedTickCount !== undefined &&
+      (!Number.isSafeInteger(parsedTickCount) || parsedTickCount < 0 || parsedTickCount > 99999999)
+    ) {
       Alert.alert("Invalid tick count", "Enter a whole number of ticks, or leave the count blank.")
       return
     }
@@ -101,7 +105,8 @@ export const PastureActivityFormScreen: FC<PastureActivityFormScreenProps> = ({
         areaHectares: activityType === "tick_observation" ? undefined : parsedArea,
         performedBy,
         notes,
-        tickLoadScore: activityType === "tick_observation" ? tickLoadScore ?? undefined : undefined,
+        tickLoadScore:
+          activityType === "tick_observation" ? (tickLoadScore ?? undefined) : undefined,
         tickCount: activityType === "tick_observation" ? parsedTickCount : undefined,
         animalsInspected: activityType === "tick_observation" ? parsedAnimalsInspected : undefined,
       })
@@ -256,14 +261,19 @@ export const PastureActivityFormScreen: FC<PastureActivityFormScreenProps> = ({
             label="Total ticks counted (optional)"
             value={tickCount}
             onChangeText={setTickCount}
-            integer counter
+            integer
+            counter
           />
-          <Text text="Leave blank if not counted. Enter 0 when checked and none were found." style={themed($fieldHint)} />
+          <Text
+            text="Leave blank if not counted. Enter 0 when checked and none were found."
+            style={themed($fieldHint)}
+          />
           <MeasurementInput
             label="Number of animals inspected"
             value={animalsInspected}
             onChangeText={setAnimalsInspected}
-            integer counter
+            integer
+            counter
           />
         </>
       ) : (
@@ -335,7 +345,7 @@ export const PastureActivityFormScreen: FC<PastureActivityFormScreenProps> = ({
 }
 
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  paddingHorizontal: spacing.lg,
+  paddingHorizontal: spacing.md,
   paddingBottom: spacing.xxxl,
 })
 
@@ -416,7 +426,7 @@ const $scoreChip: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   borderWidth: 1,
   borderColor: colors.palette.neutral300,
   backgroundColor: colors.palette.neutral100,
-  borderRadius: 10,
+  borderRadius: bentoRadii.button,
   paddingHorizontal: spacing.xs,
   paddingVertical: spacing.sm,
 })

@@ -46,7 +46,7 @@ export const FriendlyEmpty: FC<FriendlyEmptyProps> = ({
 
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   alignItems: "center",
-  paddingHorizontal: spacing.lg,
+  paddingHorizontal: spacing.md,
   paddingVertical: spacing.xl,
 })
 
@@ -63,6 +63,7 @@ const $badge: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
 const $heading: ThemedStyle<TextStyle> = ({ spacing }) => ({
   textAlign: "center",
   marginBottom: spacing.xs,
+  flexShrink: 1,
 })
 
 const $content: ThemedStyle<TextStyle> = ({ colors }) => ({
