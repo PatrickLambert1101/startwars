@@ -93,6 +93,12 @@ public final class RfidManager {
         requireInitialized();
         try {
             return reader.inventoryRealTime();
+        } catch (LinkageError error) {
+            // Vendor SDK linkage failures (for example a missing companion
+            // class) are Errors rather than Exceptions. Convert them into the
+            // normal scanner error path instead of crashing the process on the
+            // Rx worker thread.
+            throw new RfidOperationException("RFID SDK is incomplete or incompatible", error);
         } catch (Exception error) {
             throw new RfidOperationException("RFID inventory failed", error);
         }
