@@ -41,6 +41,9 @@ interface UHFReaderModule {
   /** Return the read power last accepted by the native reader manager. */
   getPower(): Promise<number>
 
+  /** Select the reader frequency plan: South Africa (ZA) or United States (US). */
+  setRegion(region: "ZA" | "US"): Promise<boolean>
+
   /**
    * Alias for setPower (for backwards compatibility)
    */

@@ -3,10 +3,12 @@ import { clear } from "@/utils/storage"
 import {
   clampRfidReadPower,
   loadRfidReadPower,
+  loadRfidRegion,
   RFID_READ_POWER_DEFAULT_DBM,
   RFID_READ_POWER_MAX_DBM,
   RFID_READ_POWER_MIN_DBM,
   saveRfidReadPower,
+  saveRfidRegion,
 } from "./rfidReaderSettings"
 
 describe("RFID read power settings", () => {
@@ -25,5 +27,11 @@ describe("RFID read power settings", () => {
   it("persists the normalized read power", () => {
     expect(saveRfidReadPower(24)).toBe(24)
     expect(loadRfidReadPower()).toBe(24)
+  })
+
+  it("defaults to South Africa and persists a US test-card selection", () => {
+    expect(loadRfidRegion()).toBe("ZA")
+    expect(saveRfidRegion("US")).toBe("US")
+    expect(loadRfidRegion()).toBe("US")
   })
 })

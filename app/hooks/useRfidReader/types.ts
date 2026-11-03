@@ -4,6 +4,8 @@ export type RfidReaderHook = {
   reset: () => Promise<boolean>
   /** Set UHF inventory/read power in dBm (not receiver sensitivity). */
   setOutputPower: (powerDbm: number) => Promise<boolean>
+  /** Select and persist the reader frequency plan. */
+  setRegion: (region: "ZA" | "US") => Promise<boolean>
   startScanning: () => Promise<void>
   stopScanning: () => Promise<void>
   clearScannedTag: () => void

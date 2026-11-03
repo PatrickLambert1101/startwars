@@ -204,6 +204,20 @@ const af = {
     },
     rfid: {
       connected: "Handskandeerder gekoppel",
+      frequencyBand: "RFID-frekwensieband",
+      regionSaved: "Frekwensieband gestoor",
+      regionHint:
+        "Gebruik Suid-Afrika vir plaaslike oormerkers. Kies Verenigde State vir Amerikaanse toetskaarte.",
+      regions: {
+        ZA: {
+          title: "Suid-Afrika",
+          frequency: "865–868 MHz",
+        },
+        US: {
+          title: "Verenigde State",
+          frequency: "902–928 MHz",
+        },
+      },
       readerPower: "RFID-leeskrag",
       powerSaved: "Leeskrag gestel op {{power}} dBm",
       rangeHint:

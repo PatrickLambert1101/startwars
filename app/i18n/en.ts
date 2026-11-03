@@ -269,6 +269,20 @@ const en = {
       resetButton: "Reset scanner connection",
       reconnectButton: "Reconnect scanner",
       connectionError: "The reader could not connect. Try resetting it again.",
+      frequencyBand: "RFID Frequency Band",
+      regionSaved: "Frequency band saved",
+      regionHint:
+        "Use South Africa for local ear tags. Switch to United States for US test cards.",
+      regions: {
+        ZA: {
+          title: "South Africa",
+          frequency: "865–868 MHz",
+        },
+        US: {
+          title: "United States",
+          frequency: "902–928 MHz",
+        },
+      },
       readerPower: "RFID Read Power",
       powerSaved: "Read power set to {{power}} dBm",
       rangeHint:

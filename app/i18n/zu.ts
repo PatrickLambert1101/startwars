@@ -206,6 +206,20 @@ const zu = {
     rfid: {
       connected: "Iskena sesandla sixhumekile",
       readerPower: "Amandla Okufunda e-RFID",
+      frequencyBand: "Ibhandi lefrikhwensi ye-RFID",
+      regionSaved: "Ibhandi lefrikhwensi lilondoloziwe",
+      regionHint:
+        "Sebenzisa iNingizimu Afrika kumathegi ezindlebe endawo. Khetha i-US kumakhadi okuhlola aseMelika.",
+      regions: {
+        ZA: {
+          title: "iNingizimu Afrika",
+          frequency: "865–868 MHz",
+        },
+        US: {
+          title: "i-United States",
+          frequency: "902–928 MHz",
+        },
+      },
       powerSaved: "Amandla okufunda amiswe ku-{{power}} dBm",
       rangeHint:
         "{{min}}–{{max}} dBm. Amandla aphezulu angafunda amathegi akude, kodwa angafunda nezilwane eziseduze. Ibanga alikhuli ngokulinganayo.",

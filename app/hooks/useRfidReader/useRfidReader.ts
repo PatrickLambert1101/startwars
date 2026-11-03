@@ -2,7 +2,12 @@ import { useState, useEffect, useCallback } from "react"
 import { NativeEventEmitter, Platform } from "react-native"
 
 import { KeyEventModule, UHFReader, VolumeUpEventModule, SoundFeedback } from "@/services"
-import { clampRfidReadPower, loadRfidReadPower } from "@/services/rfidReaderSettings"
+import {
+  clampRfidReadPower,
+  loadRfidReadPower,
+  loadRfidRegion,
+  RfidRegion,
+} from "@/services/rfidReaderSettings"
 
 import { RfidReaderHook } from "./types"
 
@@ -53,6 +58,7 @@ export const useRfidReader = (): RfidReaderHook => {
       if (Platform.OS === "android" && UHFReader) {
         console.log("[RFID] Calling UHFReader.initialize()...")
         await UHFReader.initialize()
+        await UHFReader.setRegion(loadRfidRegion())
         const savedReadPower = loadRfidReadPower()
         try {
           await UHFReader.setPower(savedReadPower)
@@ -99,6 +105,7 @@ export const useRfidReader = (): RfidReaderHook => {
     setIsInitialized(false)
     try {
       await UHFReader.reset()
+      await UHFReader.setRegion(loadRfidRegion())
       const savedReadPower = loadRfidReadPower()
       try {
         await UHFReader.setPower(savedReadPower)
@@ -143,6 +150,23 @@ export const useRfidReader = (): RfidReaderHook => {
       } catch (err) {
         console.error(`[RFID] ❌ Failed to set power to ${normalizedPower}:`, err)
         setError(`Power setting error: ${err}`)
+        return false
+      }
+    },
+    [isInitialized],
+  )
+
+  const setRegion = useCallback(
+    async (region: RfidRegion) => {
+      if (!isInitialized || Platform.OS !== "android" || !UHFReader) return false
+
+      try {
+        await UHFReader.setRegion(region)
+        setError(null)
+        return true
+      } catch (err) {
+        console.error(`[RFID] Failed to set region to ${region}:`, err)
+        setError(`Region setting error: ${err}`)
         return false
       }
     },
@@ -329,6 +353,7 @@ export const useRfidReader = (): RfidReaderHook => {
     initialize,
     reset,
     setOutputPower,
+    setRegion,
     startScanning,
     stopScanning,
     clearScannedTag,

@@ -6,10 +6,13 @@ import { useTranslation } from "react-i18next"
 import { useRfidReader } from "@/hooks/useRfidReader"
 import {
   loadRfidReadPower,
+  loadRfidRegion,
   RFID_READ_POWER_DEFAULT_DBM,
   RFID_READ_POWER_MAX_DBM,
   RFID_READ_POWER_MIN_DBM,
   saveRfidReadPower,
+  saveRfidRegion,
+  type RfidRegion,
 } from "@/services/rfidReaderSettings"
 import { bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
@@ -24,14 +27,17 @@ export function RfidScannerSettings() {
     themed,
     theme: { colors },
   } = useAppTheme()
-  const { error, hasRfidHardware, initialize, isInitialized, reset, setOutputPower } =
+  const { error, hasRfidHardware, initialize, isInitialized, reset, setOutputPower, setRegion } =
     useRfidReader()
   const [readerPower, setReaderPower] = useState(RFID_READ_POWER_DEFAULT_DBM)
+  const [readerRegion, setReaderRegion] = useState<RfidRegion>("ZA")
   const [powerSaved, setPowerSaved] = useState(false)
+  const [regionSaved, setRegionSaved] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
 
   useEffect(() => {
     setReaderPower(loadRfidReadPower())
+    setReaderRegion(loadRfidRegion())
   }, [])
 
   useEffect(() => {
@@ -60,6 +66,19 @@ export function RfidScannerSettings() {
       setIsResetting(false)
     }
   }, [reset])
+
+  const applyRegion = useCallback(
+    async (region: RfidRegion) => {
+      const applied = !isInitialized || (await setRegion(region))
+      if (!applied) return
+
+      saveRfidRegion(region)
+      setReaderRegion(region)
+      setRegionSaved(true)
+      setTimeout(() => setRegionSaved(false), 1500)
+    },
+    [isInitialized, setRegion],
+  )
 
   if (!hasRfidHardware) return null
 
@@ -140,6 +159,36 @@ export function RfidScannerSettings() {
             style={themed($errorText)}
           />
         )}
+
+        <View style={themed($divider)} />
+        <Text style={themed($powerLabel)}>{t("settingsScreen.rfid.frequencyBand")}</Text>
+        <View style={themed($regionRow)}>
+          {(["ZA", "US"] as const).map((region) => (
+            <Pressable
+              key={region}
+              accessibilityRole="button"
+              accessibilityState={{ selected: readerRegion === region }}
+              style={[themed($regionButton), readerRegion === region && themed($presetChipActive)]}
+              onPress={() => applyRegion(region)}
+            >
+              <Text
+                style={[
+                  themed($regionTitle),
+                  readerRegion === region && themed($presetChipTextActive),
+                ]}
+              >
+                {t(`settingsScreen.rfid.regions.${region}.title`)}
+              </Text>
+              <Text size="xxs" style={themed($regionFrequency)}>
+                {t(`settingsScreen.rfid.regions.${region}.frequency`)}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+        {regionSaved && (
+          <Text style={themed($savedText)}>{t("settingsScreen.rfid.regionSaved")}</Text>
+        )}
+        <Text style={themed($rangeHint)}>{t("settingsScreen.rfid.regionHint")}</Text>
 
         <View style={themed($divider)} />
         <Text style={themed($powerLabel)}>{t("settingsScreen.rfid.readerPower")}</Text>
@@ -316,6 +365,28 @@ const $presetRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   gap: spacing.xs,
   marginBottom: spacing.sm,
+})
+const $regionRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  gap: spacing.sm,
+  marginBottom: spacing.sm,
+})
+const $regionButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  borderColor: colors.palette.neutral300,
+  borderRadius: bentoRadii.button,
+  borderWidth: 1.5,
+  flex: 1,
+  paddingHorizontal: spacing.sm,
+  paddingVertical: spacing.sm,
+})
+const $regionTitle: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.text,
+  fontSize: 14,
+  fontWeight: "700",
+})
+const $regionFrequency: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.textDim,
+  marginTop: 2,
 })
 const $presetChip: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   alignItems: "center",

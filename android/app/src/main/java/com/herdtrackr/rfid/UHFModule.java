@@ -147,6 +147,18 @@ public class UHFModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
+    public void setRegion(String region, Promise promise) {
+        Log.d(TAG, "setRegion(" + region + ") called");
+        try {
+            rfidManager.setRegion(region);
+            promise.resolve(true);
+        } catch (RfidOperationException e) {
+            Log.e(TAG, "Failed to set RFID region", e);
+            promise.reject("REGION_ERROR", "Failed to set RFID region", e);
+        }
+    }
+
+    @ReactMethod
     public void isInitialized(Promise promise) {
         boolean initialized = rfidManager.isInitialized();
         Log.d(TAG, "❓ isInitialized() = " + initialized);

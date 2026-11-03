@@ -205,6 +205,20 @@ const nso = {
     rfid: {
       connected: "Seskenara sa seatla se kgokagane",
       readerPower: "Maatla a Balo ya RFID",
+      frequencyBand: "Lephanta la maqhubu a RFID",
+      regionSaved: "Lephanta la maqhubu le bolokilwe",
+      regionHint:
+        "Šomiša Afrika Borwa go dithegi tša ditsebe tša mo gae. Kgetha US go dikarata tša teko tša Amerika.",
+      regions: {
+        ZA: {
+          title: "Afrika Borwa",
+          frequency: "865–868 MHz",
+        },
+        US: {
+          title: "United States",
+          frequency: "902–928 MHz",
+        },
+      },
       powerSaved: "Maatla a balo a beilwe go {{power}} dBm",
       rangeHint:
         "{{min}}–{{max}} dBm. Maatla a magolo a balo a ka fihlela ditagi tša kgole, eupša a ka bala le diphoofolo tša kgauswi. Bophara ga se bja tlhamalalo.",

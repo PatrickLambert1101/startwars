@@ -12,6 +12,8 @@ public final class RfidManager {
     public static final int MIN_READ_POWER_DBM = 5;
     public static final int MAX_READ_POWER_DBM = 30;
     public static final int DEFAULT_READ_POWER_DBM = 30;
+    public static final String REGION_SOUTH_AFRICA = "ZA";
+    public static final String REGION_UNITED_STATES = "US";
     private static final int MAX_INITIALIZATION_ATTEMPTS = 3;
 
     private static RfidManager instance;
@@ -50,7 +52,12 @@ public final class RfidManager {
         }
 
         initialized = true;
-        configureReaderRegion();
+        try {
+            setRegionInternal(REGION_SOUTH_AFRICA);
+        } catch (RfidOperationException error) {
+            release();
+            throw new RfidInitializationException("Unable to apply the default South African RFID band", error);
+        }
 
         try {
             if (!reader.setGen2session(0)) {
@@ -120,6 +127,12 @@ public final class RfidManager {
         return readPowerDbm;
     }
 
+    public synchronized void setRegion(String regionCode) throws RfidOperationException {
+        requireInitialized();
+        setRegionInternal(regionCode);
+        logReaderConfiguration("region change");
+    }
+
     private void logReaderConfiguration(String reason) {
         try {
             Log.i(
@@ -138,16 +151,31 @@ public final class RfidManager {
         }
     }
 
-    private void configureReaderRegion() {
+    private void setRegionInternal(String regionCode) throws RfidOperationException {
+        final Reader.Region_Conf region;
+        final String description;
+        if (REGION_SOUTH_AFRICA.equals(regionCode)) {
+            // RG_EU3 is the C6 firmware profile covering South Africa's
+            // licence-exempt 865-868 MHz UHF RFID band.
+            region = Reader.Region_Conf.RG_EU3;
+            description = "South Africa 865-868 MHz";
+        } else if (REGION_UNITED_STATES.equals(regionCode)) {
+            region = Reader.Region_Conf.RG_NA;
+            description = "United States 902-928 MHz";
+        } else {
+            throw new RfidOperationException("Unsupported RFID region: " + regionCode);
+        }
+
         try {
-            Reader.READER_ERR regionResult = reader.setRegion(Reader.Region_Conf.RG_NA);
+            Reader.READER_ERR regionResult = reader.setRegion(region);
             if (regionResult != Reader.READER_ERR.MT_OK_ERR) {
-                Log.w(TAG, "C6 SDK rejected its supported 915-928 MHz UHF profile");
-            } else {
-                Log.i(TAG, "C6 915-928 MHz UHF profile applied");
+                throw new RfidOperationException("C6 SDK rejected the " + description + " profile");
             }
+            Log.i(TAG, description + " UHF profile applied");
+        } catch (RfidOperationException error) {
+            throw error;
         } catch (Exception error) {
-            Log.w(TAG, "Unable to configure the C6 UHF region", error);
+            throw new RfidOperationException("Unable to configure the " + description + " profile", error);
         }
     }
 
