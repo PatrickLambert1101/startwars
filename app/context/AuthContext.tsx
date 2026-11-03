@@ -52,7 +52,12 @@ export const AuthContext = createContext<AuthContextType | null>(null)
 
 export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  // Do not block the whole app while Supabase restores its cached session.
+  // Some Android devices can deliver INITIAL_SESSION before React commits the
+  // startup state update, leaving a full-screen loading gate mounted forever.
+  // Rendering the signed-out flow immediately is safe: a restored session
+  // replaces it as soon as getSession/onAuthStateChange returns.
+  const [isLoading, setIsLoading] = useState(false)
   const [authEmail, setAuthEmail] = useState("")
 
   useEffect(() => {
