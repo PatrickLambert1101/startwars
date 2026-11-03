@@ -1,7 +1,7 @@
 package com.herdtrackr.rfid;
 
 import android.util.Log;
-import com.android.hdhe.uhf.readerInterface.TagModel;
+import com.uhf.api.cls.Reader;
 import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 import java.util.List;
@@ -26,14 +26,14 @@ public final class ScanningService {
 
             while (scanning && !emitter.isDisposed()) {
                 try {
-                    List<TagModel> tags = rfidManager.inventory(INVENTORY_DURATION_MS);
+                    List<Reader.TAGINFO> tags = rfidManager.inventory(INVENTORY_DURATION_MS);
                     if (tags != null) {
-                        for (TagModel tag : tags) {
-                            if (tag == null || tag.getmEpcBytes() == null || tag.getmEpcBytes().length == 0) {
+                        for (Reader.TAGINFO tag : tags) {
+                            if (tag == null || tag.EpcId == null || tag.EpcId.length == 0) {
                                 continue;
                             }
 
-                            String epc = bytesToHex(tag.getmEpcBytes());
+                            String epc = bytesToHex(tag.EpcId);
                             if (epc != null && !epc.trim().isEmpty()) {
                                 scanning = false;
                                 emitter.onNext(epc.trim().toUpperCase());

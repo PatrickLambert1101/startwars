@@ -1,8 +1,8 @@
 package com.herdtrackr.rfid;
 
 import android.util.Log;
-import com.android.hdhe.uhf.reader.UhfReader;
-import com.android.hdhe.uhf.readerInterface.TagModel;
+import com.handheld.uhfr.UHFRManager;
+import com.uhf.api.cls.Reader;
 import java.util.List;
 
 /** Owns the vendor UHF reader and its RF configuration. */
@@ -10,11 +10,11 @@ public final class RfidManager {
     private static final String TAG = "RfidManager";
     public static final int MIN_READ_POWER_DBM = 5;
     public static final int MAX_READ_POWER_DBM = 30;
-    public static final int DEFAULT_READ_POWER_DBM = 18;
+    public static final int DEFAULT_READ_POWER_DBM = 30;
     private static final int MAX_INITIALIZATION_ATTEMPTS = 3;
 
     private static RfidManager instance;
-    private UhfReader reader;
+    private UHFRManager reader;
     private boolean initialized;
     private int readPowerDbm = DEFAULT_READ_POWER_DBM;
 
@@ -33,7 +33,7 @@ public final class RfidManager {
         }
 
         for (int attempt = 1; attempt <= MAX_INITIALIZATION_ATTEMPTS && reader == null; attempt++) {
-            reader = UhfReader.getInstance();
+            reader = UHFRManager.getInstance();
             if (reader == null && attempt < MAX_INITIALIZATION_ATTEMPTS) {
                 try {
                     Thread.sleep(100);
@@ -49,6 +49,23 @@ public final class RfidManager {
         }
 
         initialized = true;
+        try {
+            Reader.READER_ERR regionResult = reader.setRegion(Reader.Region_Conf.RG_NA);
+            if (regionResult != Reader.READER_ERR.MT_OK_ERR) {
+                Log.w(TAG, "C6 SDK rejected the North American UHF region; keeping the reader's current region");
+            }
+        } catch (Exception error) {
+            Log.w(TAG, "Unable to configure the C6 UHF region; keeping the reader's current region", error);
+        }
+
+        try {
+            if (!reader.setGen2session(0)) {
+                Log.w(TAG, "C6 SDK rejected Gen2 session 0; keeping the reader's current session");
+            }
+        } catch (Exception error) {
+            Log.w(TAG, "Unable to configure Gen2 session 0; keeping the reader's current session", error);
+        }
+
         try {
             setReadPower(readPowerDbm);
         } catch (RfidOperationException error) {
@@ -67,7 +84,8 @@ public final class RfidManager {
         validateReadPower(powerDbm);
 
         try {
-            if (!reader.setOutputPower(powerDbm)) {
+            Reader.READER_ERR result = reader.setPower(powerDbm, powerDbm);
+            if (result != Reader.READER_ERR.MT_OK_ERR) {
                 throw new RfidOperationException("C6 SDK rejected read power " + powerDbm);
             }
 
@@ -89,10 +107,14 @@ public final class RfidManager {
         return readPowerDbm;
     }
 
-    public List<TagModel> inventory(short durationMs) throws RfidOperationException {
+    public List<Reader.TAGINFO> inventory(short durationMs) throws RfidOperationException {
         requireInitialized();
         try {
-            return reader.inventoryRealTime();
+            // tagInventoryRealTime() only drains tags from an async inventory
+            // that has already been started. Our service performs bounded,
+            // synchronous inventory cycles, so use the SDK call that actually
+            // starts RF inventory for the requested time and returns its tags.
+            return reader.tagInventoryByTimer(durationMs);
         } catch (LinkageError error) {
             // Vendor SDK linkage failures (for example a missing companion
             // class) are Errors rather than Exceptions. Convert them into the
@@ -107,7 +129,7 @@ public final class RfidManager {
     public void stopInventory() throws RfidOperationException {
         requireInitialized();
         try {
-            reader.stopInventoryMulti();
+            reader.stopTagInventory();
         } catch (Exception error) {
             throw new RfidOperationException("Unable to stop RFID inventory", error);
         }
@@ -115,9 +137,9 @@ public final class RfidManager {
 
     public void clearInventoryFilter() {
         if (reader != null) {
-            int result = reader.unSelect();
-            if (result != 0) {
-                Log.w(TAG, "C6 SDK did not clear the inventory filter: " + result);
+            boolean cleared = reader.setCancleInventoryFilter();
+            if (!cleared) {
+                Log.w(TAG, "C6 SDK did not clear the inventory filter");
             }
         }
     }
@@ -125,7 +147,7 @@ public final class RfidManager {
     public synchronized void release() {
         if (reader != null) {
             try {
-                reader.stopInventoryMulti();
+                reader.stopTagInventory();
             } catch (Exception error) {
                 Log.w(TAG, "Unable to stop inventory while releasing the reader", error);
             }

@@ -3,6 +3,7 @@ apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
 def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
+def c6AlignedJniDir = file("$buildDir/generated/c6AlignedJni")
 
 /**
  * This is the configuration block to customize your React Native Android app.
@@ -88,13 +89,17 @@ android {
     compileSdk rootProject.ext.compileSdkVersion
 
     namespace 'com.herdtrackr'
+    // The UHF67 Java SDK loads "ModuleAPIJni". The vendor also ships an
+    // API-compatible ARM64 build named libModuleAPI_Android.so whose ELF
+    // segments are 64 KB aligned. Package that binary under the name the Java
+    // SDK expects so the C6 backend also supports Android 16 KB page devices.
+    sourceSets.main.jniLibs.srcDirs = [c6AlignedJniDir]
     defaultConfig {
         applicationId 'com.herdtrackr'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 22
         versionName "1.4.0"
-
         manifestPlaceholders = [
             GOOGLE_MAPS_API_KEY: findProperty("GOOGLE_MAPS_API_KEY")
                 ?: System.getenv("EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_API_KEY")
@@ -132,10 +137,9 @@ android {
             def enableLegacyPackaging = findProperty('expo.useLegacyPackaging') ?: 'false'
             useLegacyPackaging enableLegacyPackaging.toBoolean()
 
-            // HerdTrackr's tested C6 integration only uses uhfcom13_v15.jar,
-            // which loads libdevapi.so and libuhf.so. The other binaries came
-            // from unrelated legacy handheld/barcode SDKs; two of their ARM64
-            // objects are 4 KB-only and cause Google Play's 16 KB rejection.
+            // The C6 integration uses only the generated, 16 KB-compatible
+            // ARM64 UHF libraries. Exclude unrelated legacy scanner/barcode
+            // binaries that arrived with the vendor SDK bundle.
             excludes += [
                 '**/libDeviceAPI.so',
                 '**/libHHPScanInterface.so',
@@ -144,7 +148,6 @@ android {
                 '**/libIAL.so',
                 '**/libIGLBarDecoder.so',
                 '**/libIGLImageAE.so',
-                '**/libModuleAPIJni.so',
                 '**/libModuleAPI_Android.so',
                 '**/libSDL.so',
                 '**/libSerialPort.so',
@@ -160,6 +163,34 @@ android {
     }
     androidResources {
         ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~'
+    }
+}
+
+tasks.register("prepareC6AlignedJni") {
+    inputs.files(
+        'src/main/jniLibs/arm64-v8a/libdevapi.so',
+        'src/main/jniLibs/arm64-v8a/libuhf.so',
+        'src/main/jniLibs/arm64-v8a/libModuleAPIJni_16k.so'
+    )
+    outputs.dir(c6AlignedJniDir)
+    doLast {
+        delete(c6AlignedJniDir)
+        copy {
+            from('src/main/jniLibs/arm64-v8a') {
+                include 'libdevapi.so', 'libuhf.so'
+            }
+            into new File(c6AlignedJniDir, 'arm64-v8a')
+        }
+        copy {
+            from('src/main/jniLibs/arm64-v8a/libModuleAPIJni_16k.so')
+            into new File(c6AlignedJniDir, 'arm64-v8a')
+            rename { 'libModuleAPIJni.so' }
+        }
+    }
+}
+tasks.configureEach { task ->
+    if (task.name == 'mergeReleaseJniLibFolders' || task.name == 'mergeDebugJniLibFolders') {
+        task.dependsOn('prepareC6AlignedJni')
     }
 }
 
@@ -191,7 +222,9 @@ dependencies {
     implementation 'io.reactivex.rxjava3:rxjava:3.1.5'
     implementation 'io.reactivex.rxjava3:rxandroid:3.0.2'
     implementation files('libs/uhfcom13_v15.jar')
-    implementation files('libs/SerialPort.jar')
+    implementation files('libs/UHF67_v1.0.9.jar')
+    implementation files('libs/ModuleAPI_J.jar')
+    implementation files('libs/reader(1).jar')
 
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
