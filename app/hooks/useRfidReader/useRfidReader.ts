@@ -54,7 +54,17 @@ export const useRfidReader = (): RfidReaderHook => {
         console.log("[RFID] Calling UHFReader.initialize()...")
         await UHFReader.initialize()
         const savedReadPower = loadRfidReadPower()
-        await UHFReader.setPower(savedReadPower)
+        try {
+          await UHFReader.setPower(savedReadPower)
+        } catch (powerError) {
+          // Some C6 firmware revisions reject a power command immediately
+          // after opening the reader even though inventory is fully usable.
+          // Treat that as a warning instead of disabling the scanner.
+          console.warn(
+            `[RFID] Reader connected, but ${savedReadPower} dBm was not accepted; using device power`,
+            powerError,
+          )
+        }
         console.log("[RFID] ✅ UHFReader.initialize() completed successfully")
 
         setIsInitialized(true)
@@ -90,7 +100,14 @@ export const useRfidReader = (): RfidReaderHook => {
     try {
       await UHFReader.reset()
       const savedReadPower = loadRfidReadPower()
-      await UHFReader.setPower(savedReadPower)
+      try {
+        await UHFReader.setPower(savedReadPower)
+      } catch (powerError) {
+        console.warn(
+          `[RFID] Reader reset, but ${savedReadPower} dBm was not accepted; using device power`,
+          powerError,
+        )
+      }
       setIsInitialized(true)
       setError(null)
       await SoundFeedback.neutral()
