@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next"
 
 import { AppHeader, Screen, Text, Button, BIOMETRIC_LOCK_KEY } from "@/components"
 import { BentoSettingsOverview, BentoManagementGrid } from "@/components/BentoPageChrome"
+import { ContactPhoneForm } from "@/components/ContactPhoneForm"
 import { RfidScannerSettings } from "@/components/RfidScannerSettings"
 import { useAuth } from "@/context/AuthContext"
 import { useDatabase } from "@/context/DatabaseContext"
@@ -320,6 +321,9 @@ export const SettingsScreen: FC<any> = ({ navigation }) => {
             },
           ]}
         />
+      </View>
+      <View style={themed($section)}>
+        <ContactPhoneForm key={user?.id} />
       </View>
       <RfidScannerSettings />
 

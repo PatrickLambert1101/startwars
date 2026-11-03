@@ -1,4 +1,18 @@
 const xh = {
+  contactPhone: {
+    title: "Faka inombolo yakho yeselula",
+    description: "Singathanda ukuva ukuba i-HerdTrackr ikusebenzela njani. Faka inombolo yakho yeselula ukuze siqhagamshelane nawe ngengxelo okanye ngoncedo.",
+    label: "Inombolo yeselula",
+    optionalLabel: "Inombolo yeselula (uyazikhethela)",
+    hint: "Sebenzisa inombolo yaseMzantsi Afrika (082 123 4567) okanye ufake ikhowudi yelizwe lakho (+44…).",
+    invalid: "Faka inombolo esebenzayo. Faka ikhowudi yelizwe kwiinombolo ezingaphandle koMzantsi Afrika.",
+    saveFailed: "Asikwazanga ukugcina inombolo yakho. Jonga uqhagamshelo lwakho uze uzame kwakhona.",
+    save: "Gcina inombolo",
+    continue: "Gcina uze uqhubeke",
+    saving: "Iyagcina…",
+    saved: "Inombolo yeselula igciniwe.",
+    skip: "Hayi ngoku",
+  },
   measurementInput: {
     tapToEnter: "Cofa ukufaka",
     notRecorded: "Akurekhodwanga",

@@ -1,4 +1,18 @@
 const af = {
+  contactPhone: {
+    title: "Voeg jou selfoonnommer by",
+    description: "Ons hoor graag hoe HerdTrackr vir jou werk. Voeg jou selfoonnommer by sodat ons jou vir terugvoer of hulp kan kontak.",
+    label: "Selfoonnommer",
+    optionalLabel: "Selfoonnommer (opsioneel)",
+    hint: "Gebruik ’n Suid-Afrikaanse nommer (082 123 4567) of sluit jou landkode in (+44…).",
+    invalid: "Voer ’n geldige nommer in. Sluit die landkode in vir nommers buite Suid-Afrika.",
+    saveFailed: "Ons kon nie jou nommer stoor nie. Kontroleer jou verbinding en probeer weer.",
+    save: "Stoor nommer",
+    continue: "Stoor en gaan voort",
+    saving: "Stoor tans…",
+    saved: "Selfoonnommer gestoor.",
+    skip: "Nie nou nie",
+  },
   measurementInput: {
     tapToEnter: "Tik om in te voer",
     notRecorded: "Nie aangeteken nie",

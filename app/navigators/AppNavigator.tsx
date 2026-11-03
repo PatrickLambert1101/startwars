@@ -6,6 +6,7 @@ import { NavigationContainer } from "@react-navigation/native"
 import { createNativeStackNavigator } from "@react-navigation/native-stack"
 
 import { LoadingScreen } from "@/components"
+import { ContactPhoneGate } from "@/components/ContactPhoneGate"
 import Config from "@/config"
 import { useAuth } from "@/context/AuthContext"
 import { AnimalDetailScreen } from "@/screens/AnimalDetailScreen/AnimalDetailScreen"
@@ -129,13 +130,20 @@ const AppStack = () => {
 
 export const AppNavigator = (props: NavigationProps) => {
   const { navigationTheme } = useAppTheme()
+  const { user, isLoading } = useAuth()
 
   useBackButtonHandler((routeName) => exitRoutes.includes(routeName))
 
   return (
     <NavigationContainer ref={navigationRef} theme={navigationTheme} {...props}>
       <ErrorBoundary catchErrors={Config.catchErrors}>
-        <AppStack />
+        {isLoading ? (
+          <LoadingScreen message="Loading..." />
+        ) : (
+          <ContactPhoneGate key={user?.id ?? "signed-out"}>
+            <AppStack />
+          </ContactPhoneGate>
+        )}
       </ErrorBoundary>
     </NavigationContainer>
   )

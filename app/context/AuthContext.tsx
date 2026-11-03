@@ -4,7 +4,7 @@ import * as Linking from "expo-linking"
 import Purchases from "react-native-purchases"
 import { supabase } from "@/services/supabase"
 import { logAuthOperation, setUserContext, captureException } from "@/services/sentry"
-import { loadString, saveString } from "@/utils/storage"
+import { normalizeContactPhone } from "@/utils/contactPhone"
 
 const AUTH_REDIRECT_URL = Linking.createURL("auth-callback")
 // Hard-gated behind __DEV__ so it can never be enabled in a release build,
@@ -31,10 +31,11 @@ export type AuthContextType = {
   authEmail: string
   setAuthEmail: (email: string) => void
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
-  signUp: (email: string, password: string) => Promise<{ error: string | null }>
+  signUp: (email: string, password: string, phone?: string) => Promise<{ error: string | null }>
   signInWithMagicLink: (email: string) => Promise<{ error: string | null; success?: boolean }>
   signInWithOTP: (email: string) => Promise<{ error: string | null; success?: boolean }>
   verifyOTP: (email: string, token: string) => Promise<{ error: string | null }>
+  updateContactPhone: (phone: string) => Promise<{ error: string | null }>
   logout: () => Promise<void>
   validationError: string
 }
@@ -171,11 +172,18 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
     return { error: null }
   }, [])
 
-  const signUp = useCallback(async (email: string, password: string) => {
+  const signUp = useCallback(async (email: string, password: string, phone?: string) => {
+    const contactPhone = phone?.trim() ? normalizeContactPhone(phone) : null
+    if (phone?.trim() && !contactPhone) {
+      return { error: "Please enter a valid phone number with country code." }
+    }
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: AUTH_REDIRECT_URL },
+      options: {
+        emailRedirectTo: AUTH_REDIRECT_URL,
+        ...(contactPhone ? { data: { contact_phone: contactPhone } } : {}),
+      },
     })
     if (error) return { error: error.message }
     return { error: null }
@@ -314,6 +322,24 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
     return { error: null }
   }, [])
 
+  const updateContactPhone = useCallback(async (phone: string) => {
+    const normalized = normalizeContactPhone(phone)
+    if (!normalized) return { error: "invalid" }
+    try {
+      // Keep this separate from auth.phone: it is an unverified contact number.
+      const { data, error } = await supabase.auth.updateUser({
+        data: { contact_phone: normalized },
+      })
+      if (error || !data.user) return { error: "saveFailed" }
+      setSession((current) =>
+        current?.user.id === data.user.id ? { ...current, user: data.user } : current,
+      )
+      return { error: null }
+    } catch {
+      return { error: "saveFailed" }
+    }
+  }, [])
+
   const logout = useCallback(async () => {
     try {
       // Reset RevenueCat to clear user-specific data
@@ -352,6 +378,7 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
     signInWithMagicLink,
     signInWithOTP,
     verifyOTP,
+    updateContactPhone,
     logout,
     validationError,
   }

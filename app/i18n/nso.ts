@@ -1,4 +1,18 @@
 const nso = {
+  contactPhone: {
+    title: "Tsenya nomoro ya gago ya sellathekeng",
+    description: "Re ka rata go kwa gore HerdTrackr e go šomela bjang. Tsenya nomoro ya gago ya sellathekeng gore re ikgokaganye le wena bakeng sa ditshwaotshwao goba thušo.",
+    label: "Nomoro ya sellathekeng",
+    optionalLabel: "Nomoro ya sellathekeng (ga se kgapeletšo)",
+    hint: "Šomiša nomoro ya Afrika Borwa (082 123 4567) goba o tsenye khoutu ya naga ya gago (+44…).",
+    invalid: "Tsenya nomoro ye e nepagetšego. Tsenya khoutu ya naga bakeng sa dinomoro tša ka ntle ga Afrika Borwa.",
+    saveFailed: "Ga se ra kgona go boloka nomoro ya gago. Lekola kgokagano ya gago gomme o leke gape.",
+    save: "Boloka nomoro",
+    continue: "Boloka gomme o tšwele pele",
+    saving: "E a boloka…",
+    saved: "Nomoro ya sellathekeng e bolokilwe.",
+    skip: "E sego gona bjale",
+  },
   measurementInput: {
     tapToEnter: "Kgotla go tsenya",
     notRecorded: "Ga se ya rekotwa",

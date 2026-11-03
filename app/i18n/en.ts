@@ -1,4 +1,18 @@
 const en = {
+  contactPhone: {
+    title: "Add your mobile number",
+    description: "We’d love to hear how HerdTrackr is working for you. Add your mobile number so we can contact you for feedback or help.",
+    label: "Mobile number",
+    optionalLabel: "Mobile number (optional)",
+    hint: "Use a South African number (082 123 4567) or include your country code (+44…).",
+    invalid: "Enter a valid number, including your country code for numbers outside South Africa.",
+    saveFailed: "We couldn’t save your number. Check your connection and try again.",
+    save: "Save number",
+    continue: "Save and continue",
+    saving: "Saving…",
+    saved: "Mobile number saved.",
+    skip: "Not now",
+  },
   uxFixes: {
     chooseAnimalForWeight: "Choose animal to weigh",
     openHerd: "Open herd records",

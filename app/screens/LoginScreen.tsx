@@ -1,6 +1,7 @@
 import { ComponentType, FC, useMemo, useRef, useState } from "react"
 // eslint-disable-next-line no-restricted-imports
 import { ActivityIndicator, TextInput, TextStyle, View, ViewStyle } from "react-native"
+import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/Button"
 import { PressableIcon } from "@/components/Icon"
@@ -13,12 +14,15 @@ import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { bentoRadii } from "@/theme/bento"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
+import { normalizeContactPhone } from "@/utils/contactPhone"
 
 interface LoginScreenProps extends AppStackScreenProps<"Login"> {}
 
 export const LoginScreen: FC<LoginScreenProps> = ({ navigation }) => {
   const authPasswordInput = useRef<TextInput>(null)
 
+  const { t } = useTranslation()
+  const [phone, setPhone] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isPasswordHidden, setIsPasswordHidden] = useState(true)
@@ -59,8 +63,15 @@ export const LoginScreen: FC<LoginScreenProps> = ({ navigation }) => {
       return
     }
 
+    if (isSignUp && phone.trim() && !normalizeContactPhone(phone)) {
+      setServerError(t("contactPhone.invalid"))
+      return
+    }
+
     setIsSubmitting(true)
-    const { error } = isSignUp ? await signUp(email, password) : await signIn(email, password)
+    const { error } = isSignUp
+      ? await signUp(email, password, phone)
+      : await signIn(email, password)
 
     setIsSubmitting(false)
 
@@ -141,7 +152,23 @@ export const LoginScreen: FC<LoginScreenProps> = ({ navigation }) => {
           RightAccessory={PasswordRightAccessory}
         />
 
+        {isSignUp && (
+          <TextField
+            label={t("contactPhone.optionalLabel")}
+            value={phone}
+            onChangeText={setPhone}
+            placeholder="+27 82 123 4567"
+            keyboardType="phone-pad"
+            autoComplete="tel"
+            textContentType="telephoneNumber"
+            maxLength={30}
+            helper={t("contactPhone.description")}
+            containerStyle={themed($textField)}
+          />
+        )}
+
         <Button
+          disabled={isSubmitting}
           testID="login-button"
           text={isSubmitting ? "..." : isSignUp ? "Create Account" : "Sign In"}
           style={themed($submitButton)}
