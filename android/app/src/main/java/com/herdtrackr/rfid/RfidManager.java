@@ -3,6 +3,7 @@ package com.herdtrackr.rfid;
 import android.util.Log;
 import com.handheld.uhfr.UHFRManager;
 import com.uhf.api.cls.Reader;
+import java.util.Arrays;
 import java.util.List;
 
 /** Owns the vendor UHF reader and its RF configuration. */
@@ -49,14 +50,7 @@ public final class RfidManager {
         }
 
         initialized = true;
-        try {
-            Reader.READER_ERR regionResult = reader.setRegion(Reader.Region_Conf.RG_NA);
-            if (regionResult != Reader.READER_ERR.MT_OK_ERR) {
-                Log.w(TAG, "C6 SDK rejected the North American UHF region; keeping the reader's current region");
-            }
-        } catch (Exception error) {
-            Log.w(TAG, "Unable to configure the C6 UHF region; keeping the reader's current region", error);
-        }
+        configureReaderRegion();
 
         try {
             if (!reader.setGen2session(0)) {
@@ -76,7 +70,7 @@ public final class RfidManager {
             Log.w(TAG, "UHF reader connected, but initial power configuration was not accepted", error);
         }
 
-        Log.i(TAG, "UHF reader initialized at " + readPowerDbm + " dBm read power");
+        logReaderConfiguration("initialization");
     }
 
     public synchronized void setReadPower(int powerDbm) throws RfidOperationException {
@@ -89,8 +83,17 @@ public final class RfidManager {
                 throw new RfidOperationException("C6 SDK rejected read power " + powerDbm);
             }
 
-            readPowerDbm = powerDbm;
-            Log.i(TAG, "RFID read power set to " + powerDbm + " dBm");
+            int[] reportedPower = reader.getPower();
+            if (reportedPower != null && reportedPower.length > 0) {
+                readPowerDbm = reportedPower[0];
+            } else {
+                readPowerDbm = powerDbm;
+            }
+            Log.i(
+                TAG,
+                "RFID read power requested " + powerDbm + " dBm; hardware reported " +
+                    (reportedPower == null ? "unavailable" : Arrays.toString(reportedPower))
+            );
         } catch (RfidOperationException error) {
             throw error;
         } catch (Exception error) {
@@ -104,7 +107,48 @@ public final class RfidManager {
     }
 
     public synchronized int getReadPower() {
+        if (reader != null) {
+            try {
+                int[] reportedPower = reader.getPower();
+                if (reportedPower != null && reportedPower.length > 0) {
+                    readPowerDbm = reportedPower[0];
+                }
+            } catch (Exception error) {
+                Log.w(TAG, "Unable to read power back from the UHF reader", error);
+            }
+        }
         return readPowerDbm;
+    }
+
+    private void logReaderConfiguration(String reason) {
+        try {
+            Log.i(
+                TAG,
+                "RFID configuration after " + reason +
+                    ": hardware=" + reader.getHardware() +
+                    ", region=" + reader.getRegion() +
+                    ", frequencies=" + Arrays.toString(reader.getFrequencyPoints()) +
+                    ", power=" + Arrays.toString(reader.getPower()) +
+                    ", Gen2 session=" + reader.getGen2session() +
+                    ", Q=" + reader.getQvalue() +
+                    ", target=" + reader.getTarget()
+            );
+        } catch (Exception error) {
+            Log.w(TAG, "Unable to read back the UHF reader configuration", error);
+        }
+    }
+
+    private void configureReaderRegion() {
+        try {
+            Reader.READER_ERR regionResult = reader.setRegion(Reader.Region_Conf.RG_NA);
+            if (regionResult != Reader.READER_ERR.MT_OK_ERR) {
+                Log.w(TAG, "C6 SDK rejected its supported 915-928 MHz UHF profile");
+            } else {
+                Log.i(TAG, "C6 915-928 MHz UHF profile applied");
+            }
+        } catch (Exception error) {
+            Log.w(TAG, "Unable to configure the C6 UHF region", error);
+        }
     }
 
     public List<Reader.TAGINFO> inventory(short durationMs) throws RfidOperationException {
