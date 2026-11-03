@@ -1,4 +1,12 @@
-import { createContext, FC, PropsWithChildren, useCallback, useContext, useEffect, useState } from "react"
+import {
+  createContext,
+  FC,
+  PropsWithChildren,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react"
 import { Session, User } from "@supabase/supabase-js"
 import * as Linking from "expo-linking"
 import Purchases from "react-native-purchases"
@@ -48,24 +56,43 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
   const [authEmail, setAuthEmail] = useState("")
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s)
-      setIsLoading(false)
+    let active = true
+    supabase.auth
+      .getSession()
+      .then(({ data: { session: s } }) => {
+        if (!active) return
+        setSession(s)
 
-      if (s?.user) {
-        setUserContext({ id: s.user.id, email: s.user.email })
-        logAuthOperation("session-refresh", {
-          userId: s.user.id,
-          email: s.user.email,
-        })
-      } else {
+        if (s?.user) {
+          setUserContext({ id: s.user.id, email: s.user.email })
+          logAuthOperation("session-refresh", {
+            userId: s.user.id,
+            email: s.user.email,
+          })
+        } else {
+          setUserContext(null)
+        }
+      })
+      .catch((error) => {
+        if (!active) return
+        console.error("[Auth] Failed to restore session:", error)
+        setSession(null)
         setUserContext(null)
-      }
-    })
+      })
+      .finally(() => {
+        if (active) setIsLoading(false)
+      })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, s) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, s) => {
+      if (!active) return
       console.log("[Auth] State change:", event)
       setSession(s)
+      // INITIAL_SESSION is the authoritative startup result. Clearing loading
+      // here prevents a stalled getSession request from trapping the app on
+      // its splash screen after a fresh install.
+      setIsLoading(false)
 
       if (s?.user) {
         setUserContext({ id: s.user.id, email: s.user.email })
@@ -79,7 +106,9 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
           // The DatabaseContext will filter to show only this user's organizations
           // This allows background sync to continue for all users without data loss
           console.log("[Auth] User signed in:", s.user.email)
-          console.log("[Auth] Local database preserved - will show only this user's data via filtering")
+          console.log(
+            "[Auth] Local database preserved - will show only this user's data via filtering",
+          )
         }
       } else {
         setUserContext(null)
@@ -92,7 +121,10 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
       }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      active = false
+      subscription.unsubscribe()
+    }
   }, [])
 
   // Handle auth deep links (email confirmation, magic links, etc.)
@@ -128,7 +160,7 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
       emailLength: email.length,
       passwordLength: password.length,
       emailTrimmed: email.trim(),
-      hasWhitespace: email !== email.trim()
+      hasWhitespace: email !== email.trim(),
     })
 
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
@@ -160,7 +192,7 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
     console.log("[Auth] signIn success:", {
       userId: data?.user?.id,
       email: data?.user?.email,
-      hasSession: !!data?.session
+      hasSession: !!data?.session,
     })
 
     logAuthOperation("login", {
@@ -268,10 +300,11 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
         console.log("[Auth] DEV MODE: Created new user, signing in...")
 
         // Now sign in with the new account
-        const { data: newSignInData, error: newSignInError } = await supabase.auth.signInWithPassword({
-          email,
-          password: devPassword,
-        })
+        const { data: newSignInData, error: newSignInError } =
+          await supabase.auth.signInWithPassword({
+            email,
+            password: devPassword,
+          })
 
         if (newSignInError) {
           console.error("[Auth] DEV MODE: SignIn after signup error:", newSignInError.message)
