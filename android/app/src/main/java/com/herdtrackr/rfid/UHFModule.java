@@ -77,8 +77,12 @@ public class UHFModule extends ReactContextBaseJavaModule {
     public void startScanning(Promise promise) {
         Log.d(TAG, "🎯 startScanning() called");
         if (scanningDisposable != null && !scanningDisposable.isDisposed()) {
-            Log.w(TAG, "⚠️ Already scanning");
-            promise.reject("ALREADY_SCANNING", "Scanning already in progress");
+            // The C6 trigger can repeat its key-down broadcast while it is held.
+            // Starting an already-running inventory is therefore a successful
+            // no-op, not an error that should be shown to the farmer.
+            Log.d(TAG, "Scan already active; reusing the current inventory session");
+            callbackHandler.sendScanningStarted();
+            promise.resolve(true);
             return;
         }
 
